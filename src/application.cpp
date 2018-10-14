@@ -9,19 +9,18 @@ Application::Application(std::string v) {
     sf::ContextSettings settings;
     settings.antialiasingLevel = 8;
     ImGui::CreateContext();
-    L().info("init");
+    // L().info("init");
 
     // ImGuiIO &io = ImGui::GetIO();
     // io.Fonts->AddFontFromFileTTF("./font.ttf", 15.0f);
 
-    window = new sf::RenderWindow(sf::VideoMode::getDesktopMode(), "",
-                                  sf::Style::Default, settings);
+    // char windowTitle[6] = "SiuiS";
+    window = new sf::RenderWindow(sf::VideoMode(800, 600), "SFML + ImGui = <3");
     L().info("init sfml");
     window->setVerticalSyncEnabled(true);
     ImGui::SFML::Init(*window);
-    char windowTitle[255] = "SiuiS";
 
-    window->setTitle(windowTitle);
+    // window->setTitle(windowTitle);
     window->resetGLStates();
 }
 

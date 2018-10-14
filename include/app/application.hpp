@@ -7,6 +7,7 @@
 class Application {
 public:
         Application(std::string v);
+        ~Application() = default;
         sf::RenderWindow *window;
         void processEvent(sf::Event event);
         int serve();

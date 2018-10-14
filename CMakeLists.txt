@@ -7,6 +7,8 @@ set( EXE_NAME ${PROJECT_NAME} )
 include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
 conan_basic_setup()
 
+add_subdirectory(backward-cpp)
+
 add_definitions(-DIMGUI_USER_CONFIG="${PROJECT_PATH}/include/imgui-sfml/imconfig-SFML.h")
 add_definitions(-D_USE_MATH_DEFINES)
 include_directories(
@@ -26,10 +28,12 @@ include_directories(${SFML_INCLUDE_DIR})
 
 file(GLOB SOURCE "src/*.cpp")
 add_executable(${EXE_NAME}
+  ${BACKWARD_ENABLE}
   ${IMLIB_SOURCE}
   ${IMLIB_SFML_SOURCE}
 
   ${PROJECT_PATH}/src/application.cpp
   ${PROJECT_PATH}/src/main.cpp
   )
+add_backward(${EXE_NAME})
 target_link_libraries(${EXE_NAME} PRIVATE ${OPENGL_LIBRARIES} ${CONAN_LIBS} imgui-sfml)
