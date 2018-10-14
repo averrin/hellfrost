@@ -1,0 +1,9 @@
+[submodule "include/imgui-sfml"]
+	path = include/imgui-sfml
+	url = https://github.com/eliasdaler/imgui-sfml.git
+[submodule "include/libcolor"]
+	path = include/libcolor
+	url = https://github.com/averrin/libcolor
+[submodule "include/liblog"]
+	path = include/liblog
+	url = https://github.com/averrin/liblog

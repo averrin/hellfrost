@@ -1,0 +1,11 @@
+[requires]
+sfml/2.5.0@bincrafters/stable
+fmt/5.1.0@bincrafters/stable
+imgui/1.62@bincrafters/stable
+
+[options]
+sfml:graphics=True
+sfml:window=True
+
+[generators]
+cmake
