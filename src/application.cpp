@@ -1,51 +1,60 @@
 #include "app/application.hpp"
 
-#include <liblog/liblog.hpp>
-
-#include <imgui-sfml/imgui-SFML.h>
 #include <imgui.h>
+#include <imgui-sfml/imgui-SFML.h>
 
-Application::Application(std::string v) {
+Application::Application(std::string app_name, std::string version) : APP_NAME(app_name), VERSION(version) {
     sf::ContextSettings settings;
     settings.antialiasingLevel = 8;
     ImGui::CreateContext();
-    // L().info("init");
 
-    // ImGuiIO &io = ImGui::GetIO();
-    // io.Fonts->AddFontFromFileTTF("./font.ttf", 15.0f);
+    ImGuiIO &io = ImGui::GetIO();
 
-    // char windowTitle[6] = "SiuiS";
-    window = new sf::RenderWindow(sf::VideoMode(800, 600), "SFML + ImGui = <3");
-    L().info("init sfml");
+    window = new sf::RenderWindow(sf::VideoMode::getDesktopMode(), APP_NAME,
+                                 sf::Style::Default, settings);
     window->setVerticalSyncEnabled(true);
     ImGui::SFML::Init(*window);
 
-    // window->setTitle(windowTitle);
     window->resetGLStates();
 }
 
 void Application::processEvent(sf::Event event) {
     ImGui::SFML::ProcessEvent(event);
     switch (event.type) {
+    case sf::Event::KeyPressed:
+      switch (event.key.code) {
+      case sf::Keyboard::Escape:
+        window->close();
+        break;
+      }
     case sf::Event::Closed:
       window->close();
       break;
     }
 }
 
+  void Application::drawMainWindow() {
+    ImGui::Begin("SiuiS");
+    ImGui::Text("\n\nSFML + ImGui starter (%s)\n\n", VERSION.c_str());
+    ImGui::End();
+  }
+
 int Application::serve() {
-    L().info("serve");
+    log.info("serve");
     sf::Clock deltaClock;
     while (window->isOpen()) {
       sf::Event event;
       while (window->pollEvent(event)) {
         processEvent(event);
       }
+      sf::Color bgColor = sf::Color(23, 23, 23);
+      window->clear(bgColor);
       ImGui::SFML::Update(*window, deltaClock.restart());
+      drawMainWindow();
       ImGui::SFML::Render(*window);
       window->display();
     }
-    L().info("shutdown");
+    log.info("shutdown");
     ImGui::SFML::Shutdown();
     return 0;
 }

@@ -4,13 +4,21 @@
 #include <SFML/Graphics/RenderWindow.hpp>
 #include <SFML/Graphics.hpp>
 
+#include <liblog/liblog.hpp>
+
 class Application {
 public:
-        Application(std::string v);
+        Application(std::string, std::string);
         ~Application() = default;
+
+        std::string APP_NAME;
+        std::string VERSION;
+
         sf::RenderWindow *window;
         void processEvent(sf::Event event);
         int serve();
+        void drawMainWindow();
+        Logger& log = Logger::getInstance();
 };
 
 
