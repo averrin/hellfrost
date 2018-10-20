@@ -39,6 +39,7 @@ int Application::serve() {
     while (window->isOpen()) {
       sf::Event event;
       while (window->pollEvent(event)) {
+        processEvent(event);
       }
       ImGui::SFML::Update(*window, deltaClock.restart());
       ImGui::SFML::Render(*window);
