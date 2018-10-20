@@ -38,10 +38,14 @@ void Application::processEvent(sf::Event event) {
 }
 
 float value = 1.f;
+int count = 15;
+float size = 50.f;
 
 void Application::drawMainWindow() {
   ImGui::Begin(APP_NAME.c_str());
   ImGui::Text("\n\nSFML + ImGui starter (%s)\n\n", VERSION.c_str());
+  ImGui::SliderInt("Count", &count, 1, 200);
+  ImGui::SliderFloat("Size", &size, 4.f, 200.f);
   ImGui::SliderFloat("Value", &value, 0.f, 1.f);
   ImGui::End();
 }
@@ -57,10 +61,8 @@ int Application::serve() {
     auto bgColor = sf::Color(23, 23, 23);
     window->clear(bgColor);
 
-
+    float padding = size/10;
     auto yOffset = 0.f;
-    auto count = 15;
-    auto size = 50.f;
     for (auto y = 0; y < count; y++) {
       auto offset = 0.f;
       auto startColor = Color::fromWebName("red");
@@ -72,20 +74,20 @@ int Application::serve() {
 
         sf::VertexArray quad(sf::Quads, 4);
 
-        quad[0].position = sf::Vector2f(10.f + offset, 10.f + yOffset);
+        quad[0].position = sf::Vector2f(padding + offset, padding + yOffset);
         quad[0].color = sfColor;
-        quad[1].position = sf::Vector2f(10.f + size + offset, 10.f + yOffset);
+        quad[1].position = sf::Vector2f(padding + size + offset, padding + yOffset);
         quad[1].color = sfColor;
-        quad[2].position = sf::Vector2f(10.f + size + offset, 10.f + size + yOffset);
+        quad[2].position = sf::Vector2f(padding + size + offset, padding + size + yOffset);
         quad[2].color = sfColor;
-        quad[3].position = sf::Vector2f(10.f + offset, 10.f + size + yOffset);
+        quad[3].position = sf::Vector2f(padding + offset, padding + size + yOffset);
         quad[3].color = sfColor;
 
         window->draw(quad);
-        offset += size + 10;
+        offset += size + padding;
         startColor.hue(startColor.hue() + 360.f / count);
       }
-      yOffset += size + 10;
+      yOffset += size + padding;
     }
 
     ImGui::SFML::Update(*window, deltaClock.restart());
