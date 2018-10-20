@@ -34,7 +34,7 @@ void Application::processEvent(sf::Event event) {
 }
 
   void Application::drawMainWindow() {
-    ImGui::Begin("SiuiS");
+    ImGui::Begin(APP_NAME.c_str());
     ImGui::Text("\n\nSFML + ImGui starter (%s)\n\n", VERSION.c_str());
     ImGui::End();
   }
