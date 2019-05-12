@@ -1,9 +1,13 @@
+#include <thread>   // for access to this thread
+
 #include "app/application.hpp"
 
 #include <imgui-sfml/imgui-SFML.h>
 #include <imgui/imgui.h>
 
 #include <libcolor/libcolor.hpp>
+#include <app/fonts/material_design_icons.h>
+#include <app/style/theme.h>
 
 // static ImGuiDockNodeFlags opt_flags = ImGuiDockNodeFlags_PassthruCentralNode;
 static ImGuiDockNodeFlags opt_flags = ImGuiDockNodeFlags_PassthruCentralNode;
@@ -23,8 +27,6 @@ Application::Application(std::string app_name, std::string version)
   ImGui::SFML::Init(*window);
   io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
   io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
-
-  fmt::print(IMGUI_VERSION);
 
   window->resetGLStates();
 }
@@ -49,6 +51,29 @@ float value = 1.f;
 int count = 15;
 float size = 50.f;
 
+void Application::DrawStatusBar(float width, float height, float pos_x,
+                                    float pos_y) {
+  // Draw status bar (no docking)
+  ImGui::SetNextWindowSize(ImVec2(width, height), ImGuiSetCond_Always);
+  ImGui::SetNextWindowPos(ImVec2(pos_x, pos_y), ImGuiSetCond_Always);
+  ImGui::Begin("statusbar", nullptr,
+               ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoSavedSettings |
+                   ImGuiWindowFlags_NoBringToFrontOnFocus |
+                   ImGuiWindowFlags_NoResize);
+
+  // Call the derived class to add stuff to the status bar
+  // DrawInsideStatusBar(width - 45.0f, height);
+
+  // Draw the common stuff
+  ImGui::SameLine(width - 60.0f);
+  Font font(Font::FAMILY_MONOSPACE);
+  font.Normal().Regular().SmallSize();
+  ImGui::PushFont(font.ImGuiFont());
+  ImGui::Text("FPS: %ld", std::lround(ImGui::GetIO().Framerate));
+  ImGui::PopFont();
+  ImGui::End();
+}
+
 void Application::drawMainWindow() {
   ImGui::Begin(APP_NAME.c_str());
   ImGui::Text("\n\nSFML + ImGui starter (%s + %s)\n\n", VERSION.c_str(),
@@ -67,6 +92,21 @@ int Application::serve() {
     while (window->pollEvent(event)) {
       processEvent(event);
     }
+
+    static float wanted_fps;
+    // if (sleep_when_inactive &&
+    //     !(SDL_GetWindowFlags(window_) & SDL_WINDOW_INPUT_FOCUS)) {
+    //   wanted_fps = 20.0f;
+    // } else {
+      wanted_fps = 90.0f;
+    // }
+    float current_fps = ImGui::GetIO().Framerate;
+    float frame_time = 1000 / current_fps;
+    auto wait_time = std::lround(1000 / wanted_fps - frame_time);
+    if (wanted_fps < current_fps) {
+      std::this_thread::sleep_for(std::chrono::milliseconds(wait_time));
+    }
+
     auto bgColor = sf::Color(23, 23, 23);
     window->clear(bgColor);
 
@@ -141,6 +181,8 @@ int Application::serve() {
       // TODO: emit a log message
     }
     ImGui::End();
+
+    DrawStatusBar(viewport->Size.x, 16.0f, 0.0f, viewport->Size.y - 24);
 
     drawMainWindow();
     ImGui::SFML::Render(*window);

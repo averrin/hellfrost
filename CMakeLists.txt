@@ -46,6 +46,25 @@ add_executable(${EXE_NAME}
 
   ${PROJECT_PATH}/src/application.cpp
   ${PROJECT_PATH}/src/main.cpp
+  ${PROJECT_PATH}/include/app/style/theme.cpp
+
+  ${PROJECT_PATH}/include/app/fonts/fonts.h
+  ${PROJECT_PATH}/include/app/fonts/Roboto-Black.cpp
+  ${PROJECT_PATH}/include/app/fonts/Roboto-BlackItalic.cpp
+  ${PROJECT_PATH}/include/app/fonts/Roboto-Bold.cpp
+  ${PROJECT_PATH}/include/app/fonts/Roboto-BoldItalic.cpp
+  ${PROJECT_PATH}/include/app/fonts/Roboto-Italic.cpp
+  ${PROJECT_PATH}/include/app/fonts/Roboto-Light.cpp
+  ${PROJECT_PATH}/include/app/fonts/Roboto-LightItalic.cpp
+  ${PROJECT_PATH}/include/app/fonts/Roboto-Medium.cpp
+  ${PROJECT_PATH}/include/app/fonts/Roboto-MediumItalic.cpp
+  ${PROJECT_PATH}/include/app/fonts/Roboto-Regular.cpp
+  ${PROJECT_PATH}/include/app/fonts/Roboto-Thin.cpp
+  ${PROJECT_PATH}/include/app/fonts/Roboto-ThinItalic.cpp
+  ${PROJECT_PATH}/include/app/fonts/Inconsolata-Regular.cpp
+  ${PROJECT_PATH}/include/app/fonts/Inconsolata-Bold.cpp
+  ${PROJECT_PATH}/include/app/fonts/material_design_icons.cpp
+  ${PROJECT_PATH}/include/app/fonts/material_design_icons.h
   )
 add_backward(${EXE_NAME})
 

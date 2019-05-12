@@ -17,6 +17,7 @@ public:
         sf::RenderWindow *window;
         void processEvent(sf::Event event);
         int serve();
+        void DrawStatusBar(float width, float height, float pos_x, float pos_y);
         void drawMainWindow();
         Logger& log = Logger::getInstance();
 };
