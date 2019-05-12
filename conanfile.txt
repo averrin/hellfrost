@@ -1,7 +1,7 @@
 [requires]
-sfml/2.5.0@bincrafters/stable
-fmt/5.1.0@bincrafters/stable
-imgui/1.62@bincrafters/stable
+sfml/2.5.1@bincrafters/stable
+fmt/5.3.0@bincrafters/stable
+gl3w/0.2@tuebel/testing
 
 [options]
 sfml:graphics=True
