@@ -3,7 +3,7 @@
 #include "app/application.hpp"
 
 std::string VERSION = "0.0.0";
-std::string APP_NAME = "SiuiS";
+std::string APP_NAME = "Hellfrost";
 
 int main(int argc, char *argv[]) {
     Application app(APP_NAME, VERSION);
