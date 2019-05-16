@@ -35,6 +35,7 @@ namespace CellType {
 const CellSpec UNKNOWN = CellSpec{"unknown", false, false};
 const CellSpec FLOOR = CellSpec{"floor", true, true};
 const CellSpec WALL = CellSpec{"wall", false, false};
+const CellSpec ROOF = CellSpec{"roof", true, false};
 const CellSpec DOWNSTAIRS = CellSpec{"downstairs", true, true};
 const CellSpec UPSTAIRS = CellSpec{"upstairs", true, false};
 const CellSpec WATER =

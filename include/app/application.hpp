@@ -16,11 +16,12 @@ public:
         std::string VERSION;
 
         sf::RenderWindow *window;
+        std::shared_ptr<Viewport> view_map;
         void processEvent(sf::Event event);
         int serve();
         void drawStatusBar(float width, float height, float pos_x, float pos_y);
         void drawDocking();
-        void drawMainWindow(std::shared_ptr<Viewport>);
+        void drawMainWindow();
         Logger& log = Logger::getInstance();
 };
 

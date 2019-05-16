@@ -32,6 +32,10 @@ Application::Application(std::string app_name, std::string version)
   window->resetGLStates();
 }
 
+int x = 0;
+int y = 0;
+int z = 0;
+
 void Application::processEvent(sf::Event event) {
   ImGui::SFML::ProcessEvent(event);
   switch (event.type) {
@@ -40,16 +44,33 @@ void Application::processEvent(sf::Event event) {
     case sf::Keyboard::Escape:
       window->close();
       break;
+    case sf::Keyboard::Right:
+      x += 1;
+      break;
+    case sf::Keyboard::Left:
+      x -= 1;
+      break;
+    case sf::Keyboard::Up:
+      y -= 1;
+      break;
+    case sf::Keyboard::Down:
+      y += 1;
+      break;
+    case sf::Keyboard::U:
+      z += 1;
+      break;
+    case sf::Keyboard::D:
+      z -= 1;
+      break;
     }
+    view_map->position = std::make_pair(x, y);
+    view_map->z = z;
     break;
   case sf::Event::Closed:
     window->close();
     break;
   }
 }
-
-int x = 0;
-int y = 0;
 
 void Application::drawDocking() {
     ImGuiViewport *viewport = ImGui::GetMainViewport();
@@ -114,15 +135,24 @@ void Application::drawStatusBar(float width, float height, float pos_x,
   ImGui::End();
 }
 
-void Application::drawMainWindow(std::shared_ptr<Viewport> view_map) {
+bool h_v = true;
+
+void Application::drawMainWindow() {
   ImGui::Begin(APP_NAME.c_str());
-  ImGui::Text("\n\nSFML + ImGui starter (%s + %s)\n\n", VERSION.c_str(),
-              IMGUI_VERSION);
-  if (ImGui::SliderInt("x", &x, 0, view_map->height*10)) {
+  // ImGui::Text("\n\nSFML + ImGui starter (%s + %s)\n\n", VERSION.c_str(),
+              // IMGUI_VERSION);
+  ImGui::Text("\n\nCache len: %d\n\n", view_map->tilesCache.size());
+  if (ImGui::SliderInt("x", &x, -10, view_map->height*10)) {
     view_map->position.first = x;
   }
-  if (ImGui::SliderInt("y", &y, 0, view_map->width*10)) {
+  if (ImGui::SliderInt("y", &y, -10, view_map->width*10)) {
     view_map->position.second = y;
+  }
+  if (ImGui::SliderInt("z", &z, -10, 10)) {
+    view_map->z = z;
+  }
+  if (ImGui::Checkbox("house", &(view_map->regions[1]->active))) {
+    view_map->tilesCache.clear(); //TODO: invalidate region cache only
   }
   ImGui::End();
 }
@@ -134,14 +164,21 @@ int Application::serve() {
   sf::Texture tiles;
   tiles.loadFromFile("tiles_t.png");
 
-  auto view_map =  std::make_shared<Viewport>();
+  view_map =  std::make_shared<Viewport>();
   view_map->position = std::make_pair(x, y);
   auto area = std::make_shared<Region>();
-  area->position = std::make_pair<int, int>(0, 0);
+  area->position = std::make_pair<int, int>(-10, -10);
   area->active = true;
+  area->z = 0;
   auto house = std::make_shared<Region>();
-  house->active = true;
+  house->active = h_v;
   house->position = std::make_pair<int, int>(15, 40);
+  house->z = 0;
+
+  auto roof = std::make_shared<Region>();
+  roof->active = h_v;
+  roof->position = house->position;
+  roof->z = 1;
 
   for (auto y = 0; y < view_map->height*10; y++) {
     std::vector<std::shared_ptr<Cell>> row;
@@ -163,8 +200,19 @@ int Application::serve() {
     house->cells.push_back(row);
   }
 
+  for (auto y = 0; y < 10; y++) {
+    std::vector<std::shared_ptr<Cell>> row;
+    for (auto x = 0; x < 20; x++) {
+      auto cell = std::make_shared<Cell>(x, y, CellType::ROOF);
+      cell->anchor = roof->position;
+      row.push_back(cell);
+    }
+    roof->cells.push_back(row);
+  }
+
   view_map->regions.push_back(area);
   view_map->regions.push_back(house);
+  view_map->regions.push_back(roof);
   view_map->tilesTexture = tiles;
 
 
@@ -194,10 +242,12 @@ int Application::serve() {
 
     // for (auto r : area->cells) {
       // for (auto cell : r) {
-    for (auto y = 0; y < view_map->height; y++) {
-      for (auto x = 0; x < view_map->width; x++) {
-        auto tile = view_map->getTile(x, y, 0);
-        window->draw(tile->sprite);
+    for (auto ly = 0; ly < view_map->height; ly++) {
+      for (auto lx = 0; lx < view_map->width; lx++) {
+        auto sprite = view_map->getTile(lx, ly, view_map->z)->sprite;
+        sprite.move(-view_map->SPRITE_TILE_SIZE.first*view_map->position.first,
+                   -view_map->SPRITE_TILE_SIZE.second*view_map->position.second );
+        window->draw(sprite);
       }
     }
 
@@ -208,7 +258,7 @@ int Application::serve() {
     ImGuiViewport *viewport = ImGui::GetMainViewport();
     drawStatusBar(viewport->Size.x, 16.0f, 0.0f, viewport->Size.y - 24);
 
-    drawMainWindow(view_map);
+    drawMainWindow();
     ImGui::SFML::Render(*window);
     window->display();
   }
