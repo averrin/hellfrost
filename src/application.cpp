@@ -32,8 +32,8 @@ Application::Application(std::string app_name, std::string version)
   window->resetGLStates();
 }
 
-int x = 0;
-int y = 0;
+int x = -4;
+int y = 19;
 int z = 0;
 
 void Application::processEvent(sf::Event event) {
@@ -180,35 +180,10 @@ int Application::serve() {
   roof->position = house->position;
   roof->z = 1;
 
-  for (auto y = 0; y < view_map->height*10; y++) {
-    std::vector<std::shared_ptr<Cell>> row;
-    for (auto x = 0; x < view_map->width*10; x++) {
-      auto cell = std::make_shared<Cell>(x, y, CellType::FLOOR);
-      cell->anchor = area->position;
-      row.push_back(cell);
-    }
-    area->cells.push_back(row);
-  }
-
-  for (auto y = 0; y < 10; y++) {
-    std::vector<std::shared_ptr<Cell>> row;
-    for (auto x = 0; x < 20; x++) {
-      auto cell = std::make_shared<Cell>(x, y, CellType::WALL);
-      cell->anchor = house->position;
-      row.push_back(cell);
-    }
-    house->cells.push_back(row);
-  }
-
-  for (auto y = 0; y < 10; y++) {
-    std::vector<std::shared_ptr<Cell>> row;
-    for (auto x = 0; x < 20; x++) {
-      auto cell = std::make_shared<Cell>(x, y, CellType::ROOF);
-      cell->anchor = roof->position;
-      row.push_back(cell);
-    }
-    roof->cells.push_back(row);
-  }
+  area->fill(view_map->height*10, view_map->width*10, CellType::GROUND);
+  house->fill(10, 20, CellType::FLOOR);
+  house->walls(CellType::WALL);
+  roof->fill(10, 20, CellType::ROOF);
 
   view_map->regions.push_back(area);
   view_map->regions.push_back(house);

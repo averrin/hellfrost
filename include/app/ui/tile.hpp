@@ -72,17 +72,17 @@ public:
     sf::Sprite sprite;
     sprite.setTexture(tilesTexture);
     std::pair<int, int> sprite_spec;
-    if (cell->type == CellType::FLOOR) {
+    if (cell->type == CellType::GROUND) {
       auto v = gen->R(5, 7);
       sprite_spec = std::make_pair(0, v);
-    }
-    if (cell->type == CellType::WALL) {
-      sprite_spec = std::make_pair<int, int>(13, 0);
-    }
-    if (cell->type == CellType::ROOF) {
+    } else if (cell->type == CellType::FLOOR) {
+      auto v = gen->R(16, 17);
+      sprite_spec = std::make_pair(0, v);
+    } else if (cell->type == CellType::WALL) {
+      sprite_spec = getWallSpec(cell);
+    } else if (cell->type == CellType::ROOF) {
       sprite_spec = std::make_pair<int, int>(17, 1);
-    }
-    if (cell->type == CellType::UNKNOWN) {
+    } else if (cell->type == CellType::UNKNOWN) {
       sprite_spec = std::make_pair<int, int>(0, 0);
     }
     auto src = getTileRect(sprite_spec.first, sprite_spec.second);
@@ -97,6 +97,60 @@ public:
     tilesCache[coords] = tile;
     return tile;
   }
+
+std::pair<int, int> getCoords(std::shared_ptr<Cell> cell) {
+    return std::make_pair<int, int>(
+cell->anchor.first + cell->x,
+cell->anchor.second + cell->y
+);
+}
+
+std::pair<int, int> getWallSpec(std::shared_ptr<Cell> cell) {
+    // auto n = getNeighbors(cell);
+    auto coords = getCoords(cell);
+    auto l = getCell(coords.first-1, coords.second, z);
+    auto r = getCell(coords.first+1, coords.second, z);
+    auto t = getCell(coords.first, coords.second-1, z);
+    auto b = getCell(coords.first, coords.second+1, z);
+    // if (c == nullptr || c->type != CellType::WALL) {
+    //     return std::make_pair<int, int>(13, 16);
+    // }
+    if (l != nullptr && r != nullptr && l->type == CellType::WALL && r->type == CellType::WALL) {
+        return std::make_pair<int, int>(13, 17);
+    }
+    if (t != nullptr && b != nullptr && t->type == CellType::WALL && b->type == CellType::WALL) {
+        return std::make_pair<int, int>(14, 16);
+    }
+
+    if (l != nullptr && b != nullptr && l->type == CellType::WALL && b->type == CellType::WALL) {
+        return std::make_pair<int, int>(13, 18);
+    }
+    if (r != nullptr && b != nullptr && r->type == CellType::WALL && b->type == CellType::WALL) {
+        return std::make_pair<int, int>(13, 16);
+    }
+}
+
+  // std::vector<std::shared_ptr<Cell>> getNeighbors(std::shared_ptr<Cell> cell) {
+  //   std::vector<std::shared_ptr<Cell>> nbrs;
+  //   std::shared_ptr<Cell> c;
+  //   c = getCell(cell->x-1, cell->y-1, z);
+  //   if (c != nullptr) nbrs.push_back(c);
+  //   c = getCell(cell->x, cell->y-1, z);
+  //   if (c != nullptr) nbrs.push_back(c);
+  //   c = getCell(cell->x+1, cell->y-1, z);
+  //   if (c != nullptr) nbrs.push_back(c);
+  //   c = getCell(cell->x+1, cell->y, z);
+  //   if (c != nullptr) nbrs.push_back(c);
+  //   c = getCell(cell->x+1, cell->y+1, z);
+  //   if (c != nullptr) nbrs.push_back(c);
+  //   c = getCell(cell->x, cell->y+1, z);
+  //   if (c != nullptr) nbrs.push_back(c);
+  //   c = getCell(cell->x-1, cell->y+1, z);
+  //   if (c != nullptr) nbrs.push_back(c);
+  //   c = getCell(cell->x-1, cell->y, z);
+  //   if (c != nullptr) nbrs.push_back(c);
+  //   return nbrs;
+  // }
 };
 
 #endif // __TILE_H_
