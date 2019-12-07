@@ -201,6 +201,19 @@ int Application::serve() {
   inside->walls(CellType::WALL);
   inside->active = true;
 
+  auto insideT = std::make_shared<Region>();
+  insideT->position = std::make_pair<int, int>(15, 15);
+  insideT->z = 1;
+  insideT->fill(10, 10, CellType::FLOOR);
+  insideT->walls(CellType::WALL);
+  insideT->active = true;
+
+  auto insideTr = std::make_shared<Region>();
+  insideTr->position = std::make_pair<int, int>(15, 15);
+  insideTr->z = 2;
+  insideTr->fill(10, 10, CellType::ROOF);
+  insideTr->active = true;
+
   auto inside2 = std::make_shared<Region>();
   inside2->position = std::make_pair<int, int>(15, 15);
   inside2->z = 0;
@@ -221,6 +234,8 @@ int Application::serve() {
   view_map->regions.push_back(inside2);
   view_map->regions.push_back(inside3);
   view_map->regions.push_back(roof);
+  view_map->regions.push_back(insideT);
+  view_map->regions.push_back(insideTr);
   view_map->tilesTexture = tiles;
 
 

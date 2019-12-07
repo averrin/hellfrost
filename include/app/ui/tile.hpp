@@ -76,7 +76,6 @@ public:
     auto t = tilesCache.find(coords);
     if (t != tilesCache.end()) return t->second;
 
-
     auto tile = std::make_shared<Tile>();
     auto fgColor = sf::Color(220,220,220);
     auto sprite = std::make_shared<sf::Sprite>();
@@ -138,10 +137,10 @@ std::pair<int, int> getCoords(std::shared_ptr<Cell> cell) {
 
 std::pair<int, int> getWallSpec(std::shared_ptr<Cell> cell) {
     auto coords = getCoords(cell);
-    auto l = getCell(coords.first-1, coords.second, z);
-    auto r = getCell(coords.first+1, coords.second, z);
-    auto t = getCell(coords.first, coords.second-1, z);
-    auto b = getCell(coords.first, coords.second+1, z);
+    auto [l, _z1] = getCell(coords.first-1, coords.second, z);
+    auto [r, _z2] = getCell(coords.first+1, coords.second, z);
+    auto [t, _z3] = getCell(coords.first, coords.second-1, z);
+    auto [b, _z4] = getCell(coords.first, coords.second+1, z);
 
     auto spec = TileMap::WALL_H;
     if (t != nullptr && b != nullptr && (t->type == CellType::WALL || b->type == CellType::WALL)) {
