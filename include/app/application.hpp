@@ -22,6 +22,7 @@ public:
         void drawStatusBar(float width, float height, float pos_x, float pos_y);
         void drawDocking();
         void drawMainWindow();
+        void renderTile(std::shared_ptr<Tile>);
         Logger& log = Logger::getInstance();
 };
 
