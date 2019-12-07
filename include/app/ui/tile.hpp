@@ -45,7 +45,7 @@ public:
   int z = 0;
   sf::Texture tilesTexture;
   std::vector<std::shared_ptr<Region>> regions;
-  std::shared_ptr<Cell> getCell(int x, int y, int z) {
+  std::pair<std::shared_ptr<Cell>, int> getCell(int x, int y, int z) {
     std::shared_ptr<Cell> cell(nullptr);
     for (auto region : regions) {
       if (region->active && region->z == z &&
@@ -57,21 +57,25 @@ public:
                             [x - region->position.first];
       }
     }
-    return cell;
+    if (z > 0 && cell == nullptr) {
+      return getCell(x,y,z-1);
+    }
+    return std::make_pair(cell, z);
   }
 
   std::shared_ptr<Tile> getTile(int x, int y, int z) {
     x += position.first;
     y += position.second;
 
-    auto coords = fmt::format("{}.{}.{}", x, y, z);
-    auto t = tilesCache.find(coords);
-    if (t != tilesCache.end()) return t->second;
-
-    auto cell = getCell(x, y, z);
+    auto [cell, rz] = getCell(x, y, z);
     if (cell == nullptr) {
       cell = std::make_shared<Cell>(x, y, CellType::UNKNOWN);
     }
+
+    auto coords = fmt::format("{}.{}.{}", x, y, rz);
+    auto t = tilesCache.find(coords);
+    if (t != tilesCache.end()) return t->second;
+
 
     auto tile = std::make_shared<Tile>();
     auto fgColor = sf::Color(220,220,220);
