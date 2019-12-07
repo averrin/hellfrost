@@ -9,6 +9,7 @@
 #include <librandom/random.hpp>
 
 #include <game/cell.hpp>
+#include <app/ui/tilemap.hpp>
 
 class Tile {
 public:
@@ -73,17 +74,15 @@ public:
     sprite.setTexture(tilesTexture);
     std::pair<int, int> sprite_spec;
     if (cell->type == CellType::GROUND) {
-      auto v = gen->R(5, 7);
-      sprite_spec = std::make_pair(0, v);
+      sprite_spec = gen->R(TileMap::GRASS);
     } else if (cell->type == CellType::FLOOR) {
-      auto v = gen->R(16, 17);
-      sprite_spec = std::make_pair(0, v);
+      sprite_spec = gen->R(TileMap::FLOOR);
     } else if (cell->type == CellType::WALL) {
       sprite_spec = getWallSpec(cell);
     } else if (cell->type == CellType::ROOF) {
       sprite_spec = std::make_pair<int, int>(17, 1);
     } else if (cell->type == CellType::UNKNOWN) {
-      sprite_spec = std::make_pair<int, int>(0, 0);
+      sprite_spec = TileMap::UNKNOWN[0];
     }
     auto src = getTileRect(sprite_spec.first, sprite_spec.second);
     sprite.setTextureRect(src);

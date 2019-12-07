@@ -164,6 +164,8 @@ int Application::serve() {
   sf::Texture tiles;
   tiles.loadFromFile("tiles_t.png");
 
+  std::shared_ptr<R::Generator> gen = std::make_shared<R::Generator>();
+
   view_map =  std::make_shared<Viewport>();
   view_map->position = std::make_pair(x, y);
   auto area = std::make_shared<Region>();
@@ -172,7 +174,7 @@ int Application::serve() {
   area->z = 0;
   auto house = std::make_shared<Region>();
   house->active = h_v;
-  house->position = std::make_pair<int, int>(15, 40);
+  house->position = std::make_pair<int, int>(gen->R(5, 50), gen->R(5, 50));
   house->z = 0;
 
   auto roof = std::make_shared<Region>();
@@ -181,9 +183,9 @@ int Application::serve() {
   roof->z = 1;
 
   area->fill(view_map->height*10, view_map->width*10, CellType::GROUND);
-  house->fill(10, 20, CellType::FLOOR);
+  house->fill(gen->R(5, 80), gen->R(5, 80), CellType::FLOOR);
   house->walls(CellType::WALL);
-  roof->fill(10, 20, CellType::ROOF);
+  roof->fill(house->cells.size(), house->cells[0].size(), CellType::ROOF);
 
   view_map->regions.push_back(area);
   view_map->regions.push_back(house);

@@ -44,6 +44,7 @@ add_executable(${EXE_NAME}
   ${BACKWARD_ENABLE}
   ${IMLIB_SFML_SOURCE}
 
+  ${PROJECT_PATH}/src/tilemap.cpp
   ${PROJECT_PATH}/src/application.cpp
   ${PROJECT_PATH}/src/main.cpp
   ${PROJECT_PATH}/include/app/style/theme.cpp

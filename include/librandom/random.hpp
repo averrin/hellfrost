@@ -60,6 +60,11 @@ public:
     std::uniform_int_distribution<> dis(min, max);
     return dis(*gen);
   }
+
+  template <class T>
+  T R(std::vector<T> list) {
+    return list[R(0, list.size()-1)];
+  }
 };
 } // namespace R
 
