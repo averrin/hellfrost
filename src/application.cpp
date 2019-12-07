@@ -9,6 +9,7 @@
 #include <libcolor/libcolor.hpp>
 #include <app/fonts/material_design_icons.h>
 #include <app/style/theme.h>
+#include <SFML/Graphics.hpp>
 
 // static ImGuiDockNodeFlags opt_flags = ImGuiDockNodeFlags_PassthruCentralNode;
 static ImGuiDockNodeFlags opt_flags = ImGuiDockNodeFlags_PassthruCentralNode;
@@ -162,7 +163,7 @@ int Application::serve() {
   sf::Clock deltaClock;
 
   sf::Texture tiles;
-  tiles.loadFromFile("tiles_t.png");
+  tiles.loadFromFile("ascii_tiles.png");
 
   std::shared_ptr<R::Generator> gen = std::make_shared<R::Generator>();
 
@@ -172,9 +173,10 @@ int Application::serve() {
   area->position = std::make_pair<int, int>(-10, -10);
   area->active = true;
   area->z = 0;
+
   auto house = std::make_shared<Region>();
   house->active = h_v;
-  house->position = std::make_pair<int, int>(gen->R(5, 50), gen->R(5, 50));
+  house->position = std::make_pair<int, int>(10, 10);
   house->z = 0;
 
   auto roof = std::make_shared<Region>();
@@ -183,12 +185,41 @@ int Application::serve() {
   roof->z = 1;
 
   area->fill(view_map->height*10, view_map->width*10, CellType::GROUND);
-  house->fill(gen->R(5, 80), gen->R(5, 80), CellType::FLOOR);
+  house->fill(20, 40, CellType::FLOOR);
   house->walls(CellType::WALL);
   roof->fill(house->cells.size(), house->cells[0].size(), CellType::ROOF);
+  // house->cells[0][10]->type = CellType::FLOOR;
+  // house->cells[1][5]->type = CellType::WALL;
+  // house->cells[5][1]->type = CellType::WALL;
+  // house->cells[house->cells.size()-2][5]->type = CellType::WALL;
+  // house->cells[5][house->cells[0].size()-2]->type = CellType::WALL;
+
+  auto inside = std::make_shared<Region>();
+  inside->position = house->position;
+  inside->z = 0;
+  inside->fill(10, 10, CellType::FLOOR);
+  inside->walls(CellType::WALL);
+  inside->active = true;
+
+  auto inside2 = std::make_shared<Region>();
+  inside2->position = std::make_pair<int, int>(15, 15);
+  inside2->z = 0;
+  inside2->fill(10, 10, CellType::FLOOR);
+  inside2->walls(CellType::WALL);
+  inside2->active = true;
+
+  auto inside3 = std::make_shared<Region>();
+  inside3->position = std::make_pair<int, int>(10, 24);
+  inside3->z = 0;
+  inside3->fill(6, 6, CellType::FLOOR);
+  inside3->walls(CellType::WALL);
+  inside3->active = true;
 
   view_map->regions.push_back(area);
   view_map->regions.push_back(house);
+  view_map->regions.push_back(inside);
+  view_map->regions.push_back(inside2);
+  view_map->regions.push_back(inside3);
   view_map->regions.push_back(roof);
   view_map->tilesTexture = tiles;
 
@@ -217,16 +248,14 @@ int Application::serve() {
     auto bgColor = sf::Color(33, 33, 23);
     window->clear(bgColor);
 
-    // for (auto r : area->cells) {
-      // for (auto cell : r) {
+    auto scale = 0.8f;
     for (auto ly = 0; ly < view_map->height; ly++) {
       for (auto lx = 0; lx < view_map->width; lx++) {
-        auto sprite = view_map->getTile(lx, ly, view_map->z)->sprite;
-        sprite.move(-view_map->SPRITE_TILE_SIZE.first*view_map->position.first,
-                   -view_map->SPRITE_TILE_SIZE.second*view_map->position.second );
-        window->draw(sprite);
+        auto t = view_map->getTile(lx, ly, view_map->z);
+        renderTile(t);
       }
     }
+    // window->setScale(sf::Vector2f(0.5,0.5));
 
     ImGui::SFML::Update(*window, deltaClock.restart());
 
@@ -242,4 +271,19 @@ int Application::serve() {
   log.info("shutdown");
   ImGui::SFML::Shutdown();
   return 0;
+}
+
+void Application::renderTile(std::shared_ptr<Tile> t) {
+  auto sprites = t->sprites;
+  sf::RectangleShape bg;
+  bg.setSize(sf::Vector2f(20, 20));
+  bg.setFillColor(t->bgColor);
+  bg.setPosition(sprites.front()->getPosition());
+  window->draw(bg);
+  for (auto sprite : sprites) {
+    sprite->setPosition(t->pos);
+    sprite->move(-view_map->SPRITE_TILE_SIZE.first*view_map->position.first,
+              -view_map->SPRITE_TILE_SIZE.second*view_map->position.second );
+    window->draw(*sprite);
+  }
 }
