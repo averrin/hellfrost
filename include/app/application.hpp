@@ -7,8 +7,11 @@
 #include <liblog/liblog.hpp>
 #include <app/ui/tile.hpp>
 
+#include "lss/generator/generator.hpp"
+
 class Application {
         bool needRedraw = true;
+        std::vector<std::pair<int, int>> damage;
 public:
         Application(std::string, std::string, int);
         ~Application() = default;
@@ -27,9 +30,12 @@ public:
         void drawDocking();
         void drawMainWindow();
         void renderTile(std::shared_ptr<sf::RenderTexture>, std::shared_ptr<Tile>);
-        Logger& log = Logger::getInstance();
+        LibLog::Logger &log = LibLog::Logger::getInstance();
         int seed;
         int redraws;
+        int tilesUpdated;
+
+        std::shared_ptr<Generator> generator;
 };
 
 

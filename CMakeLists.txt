@@ -41,8 +41,22 @@ file(GLOB SOURCE "src/*.cpp")
 add_executable(${EXE_NAME}
   ${IMLIB_SFML_SOURCE}
 
+  ${PROJECT_PATH}/include/EventBus/EventBus.cpp
+  ${PROJECT_PATH}/include/EventBus/EventRegisttration.cpp
+  ${PROJECT_PATH}/include/micropather/micropather.cpp
+
   ${PROJECT_PATH}/src/application.cpp
   ${PROJECT_PATH}/src/main.cpp
+
+  ${PROJECT_PATH}/src/game/randomTools.cpp
+  ${PROJECT_PATH}/src/game/fov.cpp
+  ${PROJECT_PATH}/src/game/cell.cpp
+  # ${PROJECT_PATH}/src/game/terrain.cpp
+  ${PROJECT_PATH}/src/game/location.cpp
+  ${PROJECT_PATH}/src/game/object.cpp
+  ${PROJECT_PATH}/src/game/door.cpp
+  ${PROJECT_PATH}/src/generator/generator.cpp
+
   ${PROJECT_PATH}/include/app/style/theme.cpp
 
   ${PROJECT_PATH}/include/app/fonts/fonts.h

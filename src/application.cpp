@@ -1,5 +1,6 @@
 #include <thread>   // for access to this thread
 #include <utility>   // for access to this thread
+#include <chrono>   // for access to this thread
 
 #include "app/application.hpp"
 
@@ -34,7 +35,7 @@ void Application::setupGui() {
 
   ImGuiIO &io = ImGui::GetIO();
 
-  window = new sf::RenderWindow(sf::VideoMode::getDesktopMode(), APP_NAME,
+ window = new sf::RenderWindow(sf::VideoMode::getDesktopMode(), APP_NAME,
                                 sf::Style::Default, settings);
   window->setVerticalSyncEnabled(true);
 
@@ -157,7 +158,8 @@ void Application::drawMainWindow() {
   // ImGui::Text("\n\nSFML + ImGui starter (%s + %s)\n\n", VERSION.c_str(),
               // IMGUI_VERSION);
   ImGui::Text("\n\nCache len: %d\n", view_map->tilesCache.size());
-  ImGui::Text("Redraws: %d\n\n", redraws);
+  ImGui::Text("Redraws: %d\n", redraws);
+  ImGui::Text("Tiles updated: %d\n\n", tilesUpdated);
   if (ImGui::SliderInt("x", &x, -10, view_map->height*10)) {
     view_map->position.first = x;
     needRedraw = true;
@@ -172,11 +174,13 @@ void Application::drawMainWindow() {
   }
   if (ImGui::SliderFloat("scale", &scale, 0.1f, 3.f)) {
     needRedraw = true;
+    view_map->width /= scale;
+    view_map->height /= scale;
   }
-  if (ImGui::Checkbox("house", &(view_map->regions[1]->active))) {
-    view_map->tilesCache.clear(); //TODO: invalidate region cache only
-    needRedraw = true;
-  }
+  // if (ImGui::Checkbox("house", &(view_map->regions[1]->active))) {
+  //   view_map->tilesCache.clear(); //TODO: invalidate region cache only
+  //   needRedraw = true;
+  // }
   ImGui::End();
 }
 
@@ -195,70 +199,89 @@ int Application::serve() {
     tiles.push_back(t);
   }
   view_map->position = std::make_pair(x, y);
-  auto area = std::make_shared<Region>();
-  area->position = std::make_pair<int, int>(-10, -10);
-  area->active = true;
-  area->z = 0;
 
-  auto house = std::make_shared<Region>();
-  house->active = h_v;
-  house->position = std::make_pair<int, int>(10, 10);
-  house->z = 0;
+  // auto area = std::make_shared<Region>();
+  // area->position = std::make_pair<int, int>(-10, -10);
+  // area->active = true;
+  // area->z = 0;
 
-  auto roof = std::make_shared<Region>();
-  roof->active = h_v;
-  roof->position = house->position;
-  roof->z = 1;
+  // auto house = std::make_shared<Region>();
+  // house->active = h_v;
+  // house->position = std::make_pair<int, int>(10, 10);
+  // house->z = 0;
 
-  area->fill(view_map->height*10, view_map->width*10, CellType::GROUND);
-  house->fill(20, 40, CellType::FLOOR);
-  house->walls(CellType::WALL);
-  roof->fill(house->cells.size(), house->cells[0].size(), CellType::ROOF);
+  // auto roof = std::make_shared<Region>();
+  // roof->active = h_v;
+  // roof->position = house->position;
+  // roof->z = 1;
 
-  auto inside = std::make_shared<Region>();
-  inside->position = house->position;
-  inside->z = 0;
-  inside->fill(10, 10, CellType::FLOOR);
-  inside->walls(CellType::WALL);
-  inside->active = true;
+  // area->fill(view_map->height*10, view_map->width*10, CellType::GROUND);
+  // house->fill(20, 40, CellType::FLOOR);
+  // house->walls(CellType::WALL);
+  // roof->fill(house->cells.size(), house->cells[0].size(), CellType::ROOF);
 
-  auto insideT = std::make_shared<Region>();
-  insideT->position = std::make_pair<int, int>(15, 15);
-  insideT->z = 1;
-  insideT->fill(10, 10, CellType::FLOOR);
-  insideT->walls(CellType::WALL);
-  insideT->active = true;
+  // auto inside = std::make_shared<Region>();
+  // inside->position = house->position;
+  // inside->z = 0;
+  // inside->fill(10, 10, CellType::FLOOR);
+  // inside->walls(CellType::WALL);
+  // inside->active = true;
 
-  auto insideTr = std::make_shared<Region>();
-  insideTr->position = std::make_pair<int, int>(15, 15);
-  insideTr->z = 2;
-  insideTr->fill(10, 10, CellType::ROOF);
-  insideTr->active = true;
+  // auto insideT = std::make_shared<Region>();
+  // insideT->position = std::make_pair<int, int>(15, 15);
+  // insideT->z = 1;
+  // insideT->fill(10, 10, CellType::FLOOR);
+  // insideT->walls(CellType::WALL);
+  // insideT->active = true;
 
-  auto inside2 = std::make_shared<Region>();
-  inside2->position = std::make_pair<int, int>(15, 15);
-  inside2->z = 0;
-  inside2->fill(10, 10, CellType::FLOOR);
-  inside2->walls(CellType::WALL);
-  inside2->cells[0][2]->type = CellType::FLOOR;
-  inside2->active = true;
+  // auto insideTr = std::make_shared<Region>();
+  // insideTr->position = std::make_pair<int, int>(15, 15);
+  // insideTr->z = 2;
+  // insideTr->fill(10, 10, CellType::ROOF);
+  // insideTr->active = true;
 
-  auto inside3 = std::make_shared<Region>();
-  inside3->position = std::make_pair<int, int>(10, 24);
-  inside3->z = 0;
-  inside3->fill(6, 6, CellType::FLOOR);
-  inside3->walls(CellType::WALL);
-  inside3->active = true;
+  // auto inside2 = std::make_shared<Region>();
+  // inside2->position = std::make_pair<int, int>(15, 15);
+  // inside2->z = 0;
+  // inside2->fill(10, 10, CellType::FLOOR);
+  // inside2->walls(CellType::WALL);
+  // inside2->cells[0][2]->type = CellType::FLOOR;
+  // inside2->active = true;
 
-  view_map->regions.push_back(area);
-  view_map->regions.push_back(house);
-  view_map->regions.push_back(inside);
-  view_map->regions.push_back(inside2);
-  view_map->regions.push_back(inside3);
-  view_map->regions.push_back(roof);
-  view_map->regions.push_back(insideT);
-  view_map->regions.push_back(insideTr);
+  // auto inside3 = std::make_shared<Region>();
+  // inside3->position = std::make_pair<int, int>(10, 24);
+  // inside3->z = 0;
+  // inside3->fill(6, 6, CellType::FLOOR);
+  // inside3->walls(CellType::WALL);
+  // inside3->active = true;
+
+  // view_map->regions.push_back(area);
+  // view_map->regions.push_back(house);
+  // view_map->regions.push_back(inside);
+  // view_map->regions.push_back(inside2);
+  // view_map->regions.push_back(inside3);
+  // view_map->regions.push_back(roof);
+  // view_map->regions.push_back(insideT);
+  // view_map->regions.push_back(insideTr);
   view_map->tilesTextures = tiles;
+
+
+  // auto hero = std
+  auto spec = LocationSpec{"Dungeon"};
+  spec.features.push_back(LocationFeature::TORCHES);
+  spec.features.push_back(LocationFeature::STATUE);
+  spec.features.push_back(LocationFeature::ALTAR);
+  spec.features.push_back(LocationFeature::ICE);
+  spec.features.push_back(LocationFeature::CORRUPT);
+  auto l = generator->getLocation(spec);
+
+  auto location = std::make_shared<Region>();
+  location->cells = l->cells;
+  location->position = {0,0};
+  location->active = true;
+  location->location = l;
+
+  view_map->regions.push_back(location);
 
   auto bgColor = sf::Color(33, 33, 23);
   cacheTex = std::make_shared<sf::RenderTexture>();
@@ -267,29 +290,36 @@ int Application::serve() {
   auto canvas = std::make_shared<sf::RenderTexture>();
   canvas->create(window->getSize().x, window->getSize().y);
 
+
+  // auto bgThread = std::thread([&]() {
+  //   sf::sleep(sf::milliseconds(2000));
+  //   while(true) {
+  //     for (auto ly = 0; ly < view_map->height; ly++) {
+  //       for (auto lx = 0; lx < view_map->width; lx++) {
+  //         auto t = view_map->getTile(lx, ly, view_map->z);
+  //         if (!t->hasBackground) continue;
+  //         t->bgColor = sf::Color(rand()%256, rand()%256, rand()%256, 60);
+  //         t->hasBackground = true;
+  //         damage.push_back({lx,ly});
+  //       }
+  //     }
+
+  //     sf::sleep(sf::milliseconds(100));
+  //   }
+  // });
+
   window->clear(bgColor);
   cacheTex->clear(bgColor);
   canvas->clear(bgColor);
   redraws = 0;
+  tilesUpdated = 0;
   while (window->isOpen()) {
     sf::Event event;
     while (window->pollEvent(event)) {
       processEvent(event);
     }
 
-    // static float wanted_fps;
-    // if (sleep_when_inactive &&
-    //     !(SDL_GetWindowFlags(window_) & SDL_WINDOW_INPUT_FOCUS)) {
-    //   wanted_fps = 20.0f;
-    // } else {
-      // wanted_fps = 90.0f;
-    // }
     float current_fps = ImGui::GetIO().Framerate;
-    // float frame_time = 1000 / current_fps;
-    // auto wait_time = std::lround(1000 / wanted_fps - frame_time);
-    // if (wanted_fps < current_fps) {
-    //   std::this_thread::sleep_for(std::chrono::milliseconds(wait_time));
-    // }
 
     sf::RectangleShape rectangle;
     rectangle.setSize(sf::Vector2f(window->getSize().x,
@@ -297,8 +327,6 @@ int Application::serve() {
     rectangle.setPosition(0, 0);
 
     if (needRedraw) {
-      // cacheTex->clear(bgColor);
-      // window->clear(bgColor);
       canvas->clear(bgColor);
       for (auto ly = 0; ly < view_map->height; ly++) {
         for (auto lx = 0; lx < view_map->width; lx++) {
@@ -308,13 +336,25 @@ int Application::serve() {
       }
       needRedraw = false;
       canvas->display();
-      // sf::Sprite s;
-      // s.setTexture(canvas->getTexture());
-      // cacheTex->draw(s);
-      // window->setScale(sf::Vector2f(0.5,0.5));
       cacheTex->display();
       rectangle.setTexture(&(canvas->getTexture()));
       redraws++;
+    } else if (damage.size() > 0) {
+      for (auto d : damage) {
+        sf::RectangleShape bg;
+        bg.setSize(sf::Vector2f(view_map->tileSet.size.first, view_map->tileSet.size.second)*scale);
+        bg.setFillColor(bgColor);
+        auto t = view_map->getTile(d.first, d.second, view_map->z);
+        bg.setPosition(t->pos*scale);
+        bg.move(-view_map->tileSet.size.first*view_map->position.first*scale,
+                  -view_map->tileSet.size.second*view_map->position.second*scale );
+        renderTile(canvas, t);
+        canvas->display();
+        cacheTex->display();
+        rectangle.setTexture(&(canvas->getTexture()));
+        tilesUpdated++;
+      }
+      damage.clear();
     } else {
       rectangle.setTexture(&(cacheTex->getTexture()));
     }
@@ -342,13 +382,15 @@ int Application::serve() {
 
 void Application::renderTile(std::shared_ptr<sf::RenderTexture> canvas, std::shared_ptr<Tile> t) {
   sf::RectangleShape bg;
-  bg.setSize(sf::Vector2f(view_map->tileSet.size.first, view_map->tileSet.size.second)*scale);
-  bg.setFillColor(t->bgColor);
-  bg.setPosition(t->pos*scale);
-  bg.move(-view_map->tileSet.size.first*view_map->position.first*scale,
-            -view_map->tileSet.size.second*view_map->position.second*scale );
-  if (t->sprites.size() == 0) {
-    canvas->draw(bg);
+  if (t->hasBackground) {
+    bg.setSize(sf::Vector2f(view_map->tileSet.size.first, view_map->tileSet.size.second)*scale);
+    bg.setFillColor(t->bgColor);
+    bg.setPosition(t->pos*scale);
+    bg.move(-view_map->tileSet.size.first*view_map->position.first*scale,
+              -view_map->tileSet.size.second*view_map->position.second*scale );
+    if (t->sprites.size() == 0) {
+      canvas->draw(bg);
+    }
   }
   auto n = 0;
   for (auto sprite : t->sprites) {
@@ -357,10 +399,10 @@ void Application::renderTile(std::shared_ptr<sf::RenderTexture> canvas, std::sha
               -view_map->tileSet.size.second*view_map->position.second*scale );
     auto s = *sprite;
     s.setScale(sf::Vector2f(scale, scale));
-    if (n == t->bgLayer) {
-      canvas->draw(bg);
-    }
     canvas->draw(s);
     n++;
+    if (n == t->bgLayer && t->hasBackground) {
+      canvas->draw(bg);
+    }
   }
 }

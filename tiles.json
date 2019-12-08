@@ -6,6 +6,7 @@
     "SIZE": [32, 32],
     "GAP": 0,
     "SPRITES": {
+        "UNKNOWN": [0,15, 3],
         "GRASS": [0, 14, 2],
         "FLOOR": [0, 11, 2],
 
@@ -21,6 +22,15 @@
         "WALL_LB": [0, 11,11],
         "WALL_RT": [0,8, 12],
         "WALL_RB": [0,9, 12],
+
+        "UPSTAIRS": [0,12, 3],
+        "DOWNSTAIRS": [0,14, 3],
+        "DOOR": [0,2, 9],
+
+        "TORCH_STAND": [0,0, 8],
+        "STATUE": [0,12, 8],
+        "ALTAR": [0,15, 15],
+        "CRATE": [0,14, 15],
 
         "ORK": [0,15, 6]
     }
