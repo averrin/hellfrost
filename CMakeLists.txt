@@ -7,8 +7,6 @@ project(hellfrost)
 set(PROJECT_PATH "${CMAKE_CURRENT_SOURCE_DIR}")
 set( EXE_NAME ${PROJECT_NAME} )
 
-add_subdirectory(backward-cpp)
-
 add_definitions(-DIMGUI_USER_CONFIG="${PROJECT_PATH}/include/imgui-sfml/imconfig-SFML.h")
 add_definitions(-D_USE_MATH_DEFINES)
 include_directories(
@@ -41,10 +39,8 @@ include_directories("imgui")
 
 file(GLOB SOURCE "src/*.cpp")
 add_executable(${EXE_NAME}
-  ${BACKWARD_ENABLE}
   ${IMLIB_SFML_SOURCE}
 
-  ${PROJECT_PATH}/src/tilemap.cpp
   ${PROJECT_PATH}/src/application.cpp
   ${PROJECT_PATH}/src/main.cpp
   ${PROJECT_PATH}/include/app/style/theme.cpp
@@ -67,7 +63,6 @@ add_executable(${EXE_NAME}
   ${PROJECT_PATH}/include/app/fonts/material_design_icons.cpp
   ${PROJECT_PATH}/include/app/fonts/material_design_icons.h
   )
-add_backward(${EXE_NAME})
 
 target_link_libraries(${EXE_NAME} PRIVATE imgui-sfml fmt
   OpenGL GL imgui ${CONAN_LIBS})

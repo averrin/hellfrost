@@ -5,11 +5,23 @@
 #include <vector>
 #include <map>
 #include <memory>
+#include <fstream>
+#include <json.hpp>
 #include <SFML/Graphics.hpp>
 #include <librandom/random.hpp>
+#include <libcolor/libcolor.hpp>
 
 #include <game/cell.hpp>
-#include <app/ui/tilemap.hpp>
+
+using json = nlohmann::json;
+using Color = LibColor::Color;
+
+struct TileSet {
+  std::vector<std::string> maps;
+  std::pair<int, int> size;
+  int gap;
+  std::map<std::string, std::array<int, 3>> sprites;
+};
 
 class Tile {
 public:
@@ -19,23 +31,37 @@ public:
   bool damaged = false;
   sf::Color bgColor = sf::Color(33, 33, 23);
   sf::Vector2f pos;
+  int bgLayer = 1;
 };
 
 class Viewport {
-  const std::pair<int, int> SPRITE_MAP_SIZE = std::make_pair(16, 16);
-  const int SPRITE_GAP_SIZE = 0;
-
   sf::IntRect getTileRect(int x, int y) {
-    return sf::IntRect((SPRITE_TILE_SIZE.first + SPRITE_GAP_SIZE) * y,
-                       (SPRITE_TILE_SIZE.second + SPRITE_GAP_SIZE) * x,
-                       SPRITE_TILE_SIZE.first, SPRITE_TILE_SIZE.second);
+    return sf::IntRect((tileSet.size.first + tileSet.gap) * x,
+                       (tileSet.size.second + tileSet.gap) * y,
+                       tileSet.size.first, tileSet.size.second);
   }
 
 
   std::shared_ptr<R::Generator> gen = std::make_shared<R::Generator>();
 
 public:
-  const std::pair<int, int> SPRITE_TILE_SIZE = std::make_pair(20, 20);
+  Viewport() {
+    std::ifstream file("tiles.json");
+    // std::ifstream file("tiles_lon.json");
+    json tilesSpec;
+    file >> tilesSpec;
+    tileSet = TileSet{
+      tilesSpec["TILEMAPS"],
+      tilesSpec["SIZE"],
+      tilesSpec["GAP"],
+      tilesSpec["SPRITES"],
+    };
+
+    std::ifstream cfile("colors.json");
+    cfile >> colors;
+  }
+  TileSet tileSet;
+  json colors;
   std::map<std::string, std::shared_ptr<Tile>> tilesCache;
 
 public:
@@ -43,7 +69,7 @@ public:
   int height = 50;
   std::pair<int, int> position;
   int z = 0;
-  sf::Texture tilesTexture;
+  std::vector<sf::Texture> tilesTextures;
   std::vector<std::shared_ptr<Region>> regions;
   std::pair<std::shared_ptr<Cell>, int> getCell(int x, int y, int z) {
     std::shared_ptr<Cell> cell(nullptr);
@@ -79,37 +105,41 @@ public:
     auto tile = std::make_shared<Tile>();
     auto fgColor = sf::Color(220,220,220);
     auto sprite = std::make_shared<sf::Sprite>();
-    sprite->setTexture(tilesTexture);
     tile->sprites.push_back(sprite);
-
-    std::pair<int, int> sprite_spec;
+    std::array<int, 3> sprite_spec = {0,0,0};
     if (cell->type == CellType::GROUND) {
-      sprite_spec = TileMap::GRASS;
-      fgColor = sf::Color(120,150,60);
+      sprite_spec = tileSet.sprites["GRASS"];
+      auto brown = Color(95,85,65);
+      brown.g += gen->R(0, 40);
+      fgColor = gen->R(std::vector<sf::Color>{sf::Color(120,150,60, gen->R(235, 255)), sf::Color(95,85,65, gen->R(235, 255))});
+      fgColor = sf::Color(brown.r, brown.g, brown.b);
+      // tile->bgColor = sf::Color(95,85,65, gen->R(20, 120));
     } else if (cell->type == CellType::FLOOR) {
-      sprite_spec = TileMap::FLOOR;
+      sprite_spec = tileSet.sprites["FLOOR"];
       fgColor = sf::Color(95,85,65);
 
-      if (gen->R(0, 100) < 10) {
+      if (gen->R(0, 100) < 5) {
+        std::array<int, 3> ss = tileSet.sprites["ORK"];
         auto s = std::make_shared<sf::Sprite>();
-        s->setTexture(tilesTexture);
-        s->setTextureRect(getTileRect(0, 1));
-        s->setColor(sf::Color(rand()%256, rand()%256, rand()%256));
+        s->setTexture(tilesTextures[ss[0]]);
+        s->setTextureRect(getTileRect(ss[1], ss[2]));
+        auto c = Color::fromHexString(colors["ENEMY"]["ORK"]);
+        s->setColor(sf::Color(c.r, c.g, c.b));
         tile->sprites.push_back(s);
-        tile->bgColor = sf::Color(rand()%256, rand()%256, rand()%256, rand()%256);
+        tile->bgColor = sf::Color(rand()%256, rand()%256, rand()%256, 60);
       }
     } else if (cell->type == CellType::WALL) {
       sprite_spec = getWallSpec(cell);
-      // sprite_spec = gen->R(TileMap::WALL);
-      // fgColor = sf::Color(190,185,170);
-      fgColor = sf::Color(125,115,105);
+      auto c = Color::fromHexString(colors["ENV"]["WALL"]);
+      fgColor = sf::Color(c.r, c.g, c.b);
     } else if (cell->type == CellType::ROOF) {
-      sprite_spec = std::make_pair<int, int>(17, 1);
-    } else if (cell->type == CellType::UNKNOWN) {
-      sprite_spec = TileMap::UNKNOWN;
+      sprite_spec = {0, 1, 17};
     }
 
-    auto src = getTileRect(sprite_spec.first, sprite_spec.second);
+    sprite->setTexture(tilesTextures[sprite_spec[0]]);
+
+
+    auto src = getTileRect(sprite_spec[1], sprite_spec[2]);
     sprite->setTextureRect(src);
     sprite->setColor(fgColor);
 
@@ -117,8 +147,8 @@ public:
 
 
     auto scale = 0.8f;
-    tile->pos = sf::Vector2f((cell->anchor.first + cell->x) * (SPRITE_TILE_SIZE.first),
-          (cell->anchor.second + cell->y) * (SPRITE_TILE_SIZE.second));
+    tile->pos = sf::Vector2f((cell->anchor.first + cell->x) * (tileSet.size.first),
+          (cell->anchor.second + cell->y) * (tileSet.size.second));
     for (auto s : tile->sprites) {
       s->setPosition(tile->pos);
     }
@@ -135,59 +165,59 @@ std::pair<int, int> getCoords(std::shared_ptr<Cell> cell) {
     );
 }
 
-std::pair<int, int> getWallSpec(std::shared_ptr<Cell> cell) {
+std::array<int, 3> getWallSpec(std::shared_ptr<Cell> cell) {
     auto coords = getCoords(cell);
     auto [l, _z1] = getCell(coords.first-1, coords.second, z);
     auto [r, _z2] = getCell(coords.first+1, coords.second, z);
     auto [t, _z3] = getCell(coords.first, coords.second-1, z);
     auto [b, _z4] = getCell(coords.first, coords.second+1, z);
 
-    auto spec = TileMap::WALL_H;
+    auto spec = tileSet.sprites["WALL_H"];
     if (t != nullptr && b != nullptr && (t->type == CellType::WALL || b->type == CellType::WALL)) {
-        spec = TileMap::WALL_V;
+        spec = tileSet.sprites["WALL_V"];
     }
 
     if (t != nullptr && b != nullptr && t->type == CellType::WALL && b->type == CellType::WALL &&
       l != nullptr && r != nullptr && l->type == CellType::WALL && r->type == CellType::WALL) {
-          spec = TileMap::WALL_CROSS;
+          spec = tileSet.sprites["WALL_CROSS"];
           return spec;
     }
 
     if (l != nullptr && r != nullptr && l->type == CellType::WALL && r->type == CellType::WALL) {
-        spec = TileMap::WALL_H;
+        spec = tileSet.sprites["WALL_H"];
         if (b != nullptr && b->type == CellType::WALL) {
-          spec = TileMap::WALL_HB;
+          spec = tileSet.sprites["WALL_HB"];
         }
         if (t != nullptr && t->type == CellType::WALL) {
-          spec = TileMap::WALL_HT;
+          spec = tileSet.sprites["WALL_HT"];
         }
         return spec;
     }
     if (t != nullptr && b != nullptr && t->type == CellType::WALL && b->type == CellType::WALL) {
-        spec = TileMap::WALL_V;
+        spec = tileSet.sprites["WALL_V"];
         if (l != nullptr && l->type == CellType::WALL) {
-          spec = TileMap::WALL_VL;
+          spec = tileSet.sprites["WALL_VL"];
         }
         if (r != nullptr && r->type == CellType::WALL) {
-          spec = TileMap::WALL_VR;
+          spec = tileSet.sprites["WALL_VR"];
         }
         return spec;
     }
 
     if (l != nullptr && b != nullptr && l->type == CellType::WALL && b->type == CellType::WALL) {
-        spec = TileMap::WALL_LB;
+        spec = tileSet.sprites["WALL_LB"];
     }
     else
     if (r != nullptr && b != nullptr && r->type == CellType::WALL && b->type == CellType::WALL) {
-        spec = TileMap::WALL_RB;
+        spec = tileSet.sprites["WALL_RB"];
     }
     else
     if (r != nullptr && t != nullptr && r->type == CellType::WALL && t->type == CellType::WALL) {
-        spec = TileMap::WALL_RT;
+        spec = tileSet.sprites["WALL_RT"];
     }
     else
     if (l != nullptr && t != nullptr && l->type == CellType::WALL && t->type == CellType::WALL) {
-        spec = TileMap::WALL_LT;
+        spec = tileSet.sprites["WALL_LT"];
     }
     return spec;
 }

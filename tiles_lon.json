@@ -1,0 +1,26 @@
+{
+    "TILEMAPS": [
+        "sprites/ascii_tiles.png"
+    ],
+    "SIZE": [20, 20],
+    "GAP": 0,
+    "SPRITES": {
+        "GRASS": [0, 14, 2],
+        "FLOOR": [0, 11, 2],
+
+        "WALL_V": [0, 10,11],
+        "WALL_H": [0, 13,12],
+        "WALL_HB": [0, 11,12],
+        "WALL_HT": [0, 10,12],
+        "WALL_VL": [0,9, 11],
+        "WALL_VR": [0, 12,12],
+        "WALL_CROSS": [0,14, 12],
+
+        "WALL_LT": [0,12, 11],
+        "WALL_LB": [0, 11,11],
+        "WALL_RT": [0,8, 12],
+        "WALL_RB": [0,9, 12],
+
+        "ORK": [0,15, 6]
+    }
+}

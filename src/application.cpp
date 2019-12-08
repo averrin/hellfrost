@@ -14,8 +14,20 @@
 // static ImGuiDockNodeFlags opt_flags = ImGuiDockNodeFlags_PassthruCentralNode;
 static ImGuiDockNodeFlags opt_flags = ImGuiDockNodeFlags_PassthruCentralNode;
 
-Application::Application(std::string app_name, std::string version)
+Application::Application(std::string app_name, std::string version, int s)
     : APP_NAME(app_name), VERSION(version) {
+  seed = s;
+  fmt::print("Seed: {}\n", seed);
+  srand(seed);
+  setupGui();
+}
+
+int x = -4;
+int y = 10;
+int z = 0;
+float scale = 1.f;
+
+void Application::setupGui() {
   sf::ContextSettings settings;
   settings.antialiasingLevel = 8;
   ImGui::CreateContext();
@@ -32,10 +44,6 @@ Application::Application(std::string app_name, std::string version)
 
   window->resetGLStates();
 }
-
-int x = -4;
-int y = 19;
-int z = 0;
 
 void Application::processEvent(sf::Event event) {
   ImGui::SFML::ProcessEvent(event);
@@ -66,6 +74,12 @@ void Application::processEvent(sf::Event event) {
     }
     view_map->position = std::make_pair(x, y);
     view_map->z = z;
+    needRedraw = true;
+    break;
+  case sf::Event::Resized:
+  case sf::Event::LostFocus:
+  case sf::Event::GainedFocus:
+    needRedraw = true;
     break;
   case sf::Event::Closed:
     window->close();
@@ -142,18 +156,26 @@ void Application::drawMainWindow() {
   ImGui::Begin(APP_NAME.c_str());
   // ImGui::Text("\n\nSFML + ImGui starter (%s + %s)\n\n", VERSION.c_str(),
               // IMGUI_VERSION);
-  ImGui::Text("\n\nCache len: %d\n\n", view_map->tilesCache.size());
+  ImGui::Text("\n\nCache len: %d\n", view_map->tilesCache.size());
+  ImGui::Text("Redraws: %d\n\n", redraws);
   if (ImGui::SliderInt("x", &x, -10, view_map->height*10)) {
     view_map->position.first = x;
+    needRedraw = true;
   }
   if (ImGui::SliderInt("y", &y, -10, view_map->width*10)) {
     view_map->position.second = y;
+    needRedraw = true;
   }
   if (ImGui::SliderInt("z", &z, -10, 10)) {
     view_map->z = z;
+    needRedraw = true;
+  }
+  if (ImGui::SliderFloat("scale", &scale, 0.1f, 3.f)) {
+    needRedraw = true;
   }
   if (ImGui::Checkbox("house", &(view_map->regions[1]->active))) {
     view_map->tilesCache.clear(); //TODO: invalidate region cache only
+    needRedraw = true;
   }
   ImGui::End();
 }
@@ -162,12 +184,16 @@ int Application::serve() {
   log.info("serve");
   sf::Clock deltaClock;
 
-  sf::Texture tiles;
-  tiles.loadFromFile("ascii_tiles.png");
+  std::vector<sf::Texture> tiles;
 
   std::shared_ptr<R::Generator> gen = std::make_shared<R::Generator>();
 
   view_map =  std::make_shared<Viewport>();
+  for (auto path : view_map->tileSet.maps) {
+    sf::Texture t;
+    t.loadFromFile(path);
+    tiles.push_back(t);
+  }
   view_map->position = std::make_pair(x, y);
   auto area = std::make_shared<Region>();
   area->position = std::make_pair<int, int>(-10, -10);
@@ -188,11 +214,6 @@ int Application::serve() {
   house->fill(20, 40, CellType::FLOOR);
   house->walls(CellType::WALL);
   roof->fill(house->cells.size(), house->cells[0].size(), CellType::ROOF);
-  // house->cells[0][10]->type = CellType::FLOOR;
-  // house->cells[1][5]->type = CellType::WALL;
-  // house->cells[5][1]->type = CellType::WALL;
-  // house->cells[house->cells.size()-2][5]->type = CellType::WALL;
-  // house->cells[5][house->cells[0].size()-2]->type = CellType::WALL;
 
   auto inside = std::make_shared<Region>();
   inside->position = house->position;
@@ -219,6 +240,7 @@ int Application::serve() {
   inside2->z = 0;
   inside2->fill(10, 10, CellType::FLOOR);
   inside2->walls(CellType::WALL);
+  inside2->cells[0][2]->type = CellType::FLOOR;
   inside2->active = true;
 
   auto inside3 = std::make_shared<Region>();
@@ -236,69 +258,109 @@ int Application::serve() {
   view_map->regions.push_back(roof);
   view_map->regions.push_back(insideT);
   view_map->regions.push_back(insideTr);
-  view_map->tilesTexture = tiles;
+  view_map->tilesTextures = tiles;
 
+  auto bgColor = sf::Color(33, 33, 23);
+  cacheTex = std::make_shared<sf::RenderTexture>();
+  cacheTex->create(window->getSize().x, window->getSize().y);
 
+  auto canvas = std::make_shared<sf::RenderTexture>();
+  canvas->create(window->getSize().x, window->getSize().y);
 
+  window->clear(bgColor);
+  cacheTex->clear(bgColor);
+  canvas->clear(bgColor);
+  redraws = 0;
   while (window->isOpen()) {
     sf::Event event;
     while (window->pollEvent(event)) {
       processEvent(event);
     }
 
-    static float wanted_fps;
+    // static float wanted_fps;
     // if (sleep_when_inactive &&
     //     !(SDL_GetWindowFlags(window_) & SDL_WINDOW_INPUT_FOCUS)) {
     //   wanted_fps = 20.0f;
     // } else {
-      wanted_fps = 90.0f;
+      // wanted_fps = 90.0f;
     // }
     float current_fps = ImGui::GetIO().Framerate;
-    float frame_time = 1000 / current_fps;
-    auto wait_time = std::lround(1000 / wanted_fps - frame_time);
-    if (wanted_fps < current_fps) {
-      std::this_thread::sleep_for(std::chrono::milliseconds(wait_time));
-    }
+    // float frame_time = 1000 / current_fps;
+    // auto wait_time = std::lround(1000 / wanted_fps - frame_time);
+    // if (wanted_fps < current_fps) {
+    //   std::this_thread::sleep_for(std::chrono::milliseconds(wait_time));
+    // }
 
-    auto bgColor = sf::Color(33, 33, 23);
-    window->clear(bgColor);
+    sf::RectangleShape rectangle;
+    rectangle.setSize(sf::Vector2f(window->getSize().x,
+    window->getSize().y));
+    rectangle.setPosition(0, 0);
 
-    auto scale = 0.8f;
-    for (auto ly = 0; ly < view_map->height; ly++) {
-      for (auto lx = 0; lx < view_map->width; lx++) {
-        auto t = view_map->getTile(lx, ly, view_map->z);
-        renderTile(t);
+    if (needRedraw) {
+      // cacheTex->clear(bgColor);
+      // window->clear(bgColor);
+      canvas->clear(bgColor);
+      for (auto ly = 0; ly < view_map->height; ly++) {
+        for (auto lx = 0; lx < view_map->width; lx++) {
+          auto t = view_map->getTile(lx, ly, view_map->z);
+          renderTile(canvas, t);
+        }
       }
+      needRedraw = false;
+      canvas->display();
+      // sf::Sprite s;
+      // s.setTexture(canvas->getTexture());
+      // cacheTex->draw(s);
+      // window->setScale(sf::Vector2f(0.5,0.5));
+      cacheTex->display();
+      rectangle.setTexture(&(canvas->getTexture()));
+      redraws++;
+    } else {
+      rectangle.setTexture(&(cacheTex->getTexture()));
     }
-    // window->setScale(sf::Vector2f(0.5,0.5));
+
+    window->draw(rectangle);
 
     ImGui::SFML::Update(*window, deltaClock.restart());
+    ImGuiViewport *viewport = ImGui::GetMainViewport();
 
     drawDocking();
-
-    ImGuiViewport *viewport = ImGui::GetMainViewport();
     drawStatusBar(viewport->Size.x, 16.0f, 0.0f, viewport->Size.y - 24);
-
     drawMainWindow();
+
     ImGui::SFML::Render(*window);
+
     window->display();
+
+    cacheTex->draw(rectangle);
+    cacheTex->display();
   }
   log.info("shutdown");
   ImGui::SFML::Shutdown();
   return 0;
 }
 
-void Application::renderTile(std::shared_ptr<Tile> t) {
-  auto sprites = t->sprites;
+void Application::renderTile(std::shared_ptr<sf::RenderTexture> canvas, std::shared_ptr<Tile> t) {
   sf::RectangleShape bg;
-  bg.setSize(sf::Vector2f(20, 20));
+  bg.setSize(sf::Vector2f(view_map->tileSet.size.first, view_map->tileSet.size.second)*scale);
   bg.setFillColor(t->bgColor);
-  bg.setPosition(sprites.front()->getPosition());
-  window->draw(bg);
-  for (auto sprite : sprites) {
-    sprite->setPosition(t->pos);
-    sprite->move(-view_map->SPRITE_TILE_SIZE.first*view_map->position.first,
-              -view_map->SPRITE_TILE_SIZE.second*view_map->position.second );
-    window->draw(*sprite);
+  bg.setPosition(t->pos*scale);
+  bg.move(-view_map->tileSet.size.first*view_map->position.first*scale,
+            -view_map->tileSet.size.second*view_map->position.second*scale );
+  if (t->sprites.size() == 0) {
+    canvas->draw(bg);
+  }
+  auto n = 0;
+  for (auto sprite : t->sprites) {
+    sprite->setPosition(t->pos*scale);
+    sprite->move(-view_map->tileSet.size.first*view_map->position.first*scale,
+              -view_map->tileSet.size.second*view_map->position.second*scale );
+    auto s = *sprite;
+    s.setScale(sf::Vector2f(scale, scale));
+    if (n == t->bgLayer) {
+      canvas->draw(bg);
+    }
+    canvas->draw(s);
+    n++;
   }
 }
