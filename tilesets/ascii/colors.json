@@ -1,0 +1,62 @@
+{
+  "TERRAIN": {
+    "BUSH": "#33cc11",
+    "TORCH_STAND": "#ffa500",
+    "STATUE": "#f0f0ff",
+    "ALTAR": "#555",
+    "CRATE": "#7d7369"
+  },
+  "ENV": {
+    "BLOOD": "#771d1f89",
+    "FROST": "#2d2f6089",
+    "CORRUPT": "#550088aa",
+    "FLOOR": "#5f5541",
+    "WATER": "#4444aa",
+    "GROUND": "#6B4F20",
+    "WALL": "#6d6359",
+    "DOOR": "#8B5F20",
+    "VOID": "#333333"
+  },
+  "ITEMS": {
+    "BONES": "#f0f0ec",
+    "HERB": "#82aa22",
+    "ROCK": "#888888",
+    "SCROLL": "#aa8500",
+    "POTION": "#dfdfdf",
+    "PICK_AXE": "#dfdfdf",
+    "TWO_HAND": "#dfdfdf",
+    "ONE_HAND": "#dfdfdf",
+    "SWORD": "#dfdfdf",
+    "GREAT_AXE": "#dfdfdf",
+    "LIGHT_WEAPON": "#dfdfdf",
+    "RING": "#dfdfdf",
+    "AMULET": "#dfdfdf",
+    "TORCH": "#dfdfdf",
+    "LANTERN": "#dfdfdf",
+    "CANDLE": "#dfdfdf",
+    "GOLD_COINS": "#dfdfdf",
+    "PLATE": "#dfdfdf",
+    "CUIRASS": "#dfdfdf",
+    "HELMET": "#dfdfdf",
+    "SHIELD": "#dfdfdf",
+    "GREAVES": "#dfdfdf",
+    "BOOTS": "#dfdfdf",
+    "CLOAK": "#dfdfdf",
+    "LEFT_PAULDRON": "#dfdfdf",
+    "RIGHT_PAULDRON": "#dfdfdf",
+    "LEFT_GAUNTLET": "#dfdfdf",
+    "RIGHT_GAUNTLET": "#dfdfdf",
+    "CORPSE": "#dfdfdf",
+    "THROWING_KNIVES": "#dfdfdf",
+    "CLUTTER": "#dfdfdf",
+    "EMPTY": "#dfdfdf",
+    "ENEMY": "#dfdfdf"
+  },
+  "ENEMY": {
+    "ORK": "#22aa22"
+  },
+  "PALETTE": {
+    "BACKGROUND": "#111100",
+    "BROWN": "#5f5541"
+  }
+}

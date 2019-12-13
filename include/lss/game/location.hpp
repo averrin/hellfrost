@@ -36,6 +36,7 @@ struct LocationSpec {
   std::vector<LocationFeature> features;
   std::vector<CellFeature> cellFeatures;
   std::shared_ptr<Cell> enterCell;
+  CellSpec floor = CellType::FLOOR;
 };
 
 class Player;

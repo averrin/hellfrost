@@ -47,6 +47,7 @@ add_executable(${EXE_NAME}
 
   ${PROJECT_PATH}/src/application.cpp
   ${PROJECT_PATH}/src/main.cpp
+  ${PROJECT_PATH}/include/app/style/theme.cpp
 
   ${PROJECT_PATH}/src/game/randomTools.cpp
   ${PROJECT_PATH}/src/game/fov.cpp
@@ -55,6 +56,14 @@ add_executable(${EXE_NAME}
   ${PROJECT_PATH}/src/game/location.cpp
   ${PROJECT_PATH}/src/game/object.cpp
   ${PROJECT_PATH}/src/game/door.cpp
+  ${PROJECT_PATH}/src/game/effect.cpp
+  ${PROJECT_PATH}/src/game/item.cpp
+  ${PROJECT_PATH}/src/game/damageSpec.cpp
+  ${PROJECT_PATH}/src/game/spell.cpp
+  ${PROJECT_PATH}/src/game/enemy.cpp
+  ${PROJECT_PATH}/src/game/creature.cpp
+  ${PROJECT_PATH}/src/game/equipment.cpp
+  ${PROJECT_PATH}/src/game/slot.cpp
   ${PROJECT_PATH}/src/generator/generator.cpp
 
   ${PROJECT_PATH}/include/app/style/theme.cpp

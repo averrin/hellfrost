@@ -6,20 +6,22 @@
 
 // #include "EventBus/EventBus.hpp"
 // #include "lss/game/trigger.hpp"
-// #include "lss/game/content/enemies.hpp"
+#include "lss/game/content/enemies.hpp"
 #include "lss/game/door.hpp"
 // #include "lss/game/enemy.hpp"
-// #include "lss/game/item.hpp"
+#include "lss/game/item.hpp"
+#include "lss/game/content/items.hpp"
 // #include "lss/game/player.hpp"
 #include "lss/game/terrain.hpp"
 #include "lss/generator/generator.hpp"
 #include "lss/generator/room.hpp"
-// #include "lss/generator/spawnTable.hpp"
+#include "lss/generator/spawnTable.hpp"
+#include "lss/generator/lootTable.hpp"
 #include "lss/generator/mapUtils.hpp"
 #include "lss/utils.hpp"
 
 #ifndef GEN_DEBUG
-#define GEN_DEBUG false
+#define GEN_DEBUG true
 #endif
 
 Generator::Generator() {}
@@ -29,8 +31,8 @@ void dlog(std::string msg) {
     fmt::print("{}\n", msg);
 }
 
-int WIDTH = 120;
-int HEIGHT = 56;
+int WIDTH = 100;
+int HEIGHT = 100;
 
 namespace P {
 float CAVERN = 0.30;
@@ -91,10 +93,11 @@ getRandomCell(std::shared_ptr<Location> location, CellSpec type) {
 }
 
 void placeInRoom(std::shared_ptr<Location> location, std::shared_ptr<Room> room) {
-  auto ltcr = getRandomCell(location, CellType::FLOOR);
+  auto floor = location->type.floor;
+  auto ltcr = getRandomCell(location, floor);
   while (!ltcr || (*ltcr)->x + room->width >= WIDTH ||
          (*ltcr)->y + room->height >= HEIGHT) {
-    ltcr = getRandomCell(location, CellType::FLOOR);
+    ltcr = getRandomCell(location, floor);
   }
   auto ltc = *ltcr;
   mapUtils::paste(room->cells, location, ltc->x, ltc->y);
@@ -103,10 +106,11 @@ void placeInRoom(std::shared_ptr<Location> location, std::shared_ptr<Room> room)
 }
 
 void placeStartInRoom(std::shared_ptr<Location> location, std::shared_ptr<Room> room) {
-  auto ltcr = *getRandomCell(location, CellType::FLOOR);
+  auto floor = location->type.floor;
+  auto ltcr = *getRandomCell(location, floor);
   while (ltcr->x + room->width >= WIDTH ||
          ltcr->y + room->height >= HEIGHT) {
-    ltcr = *getRandomCell(location, CellType::FLOOR);
+    ltcr = *getRandomCell(location, floor);
   }
   mapUtils::paste(room->cells, location, ltcr->x, ltcr->y);
 
@@ -132,7 +136,7 @@ void placeWalls(std::shared_ptr<Location> location) {
         auto n = location->getNeighbors(cell);
         if (auto nc = std::find_if(n.begin(), n.end(),
                                    [](std::shared_ptr<Cell> c) {
-                                     return c->type == CellType::FLOOR ||
+                                     return c->passThrough ||
                                             c->type == CellType::DOWNSTAIRS ||
                                             c->type == CellType::WATER ||
                                             c->type == CellType::VOID ||
@@ -237,7 +241,7 @@ void makePassageBetweenRooms(std::shared_ptr<Location> location,
 
 std::pair<std::shared_ptr<Cell>, Cells>
 dig(std::shared_ptr<Cell> start, Direction dir, int length, int minWidth,
-    int jWidth, int wind = 0, CellSpec type = CellType::FLOOR) {
+    int jWidth, int wind = 0, CellSpec type = CellType::GROUND) {
   auto cell = start;
   std::vector<CellFeature> f = {CellFeature::CAVE};
   Cells dCells = mapUtils::fill(HEIGHT, WIDTH, CellType::UNKNOWN);
@@ -417,113 +421,113 @@ void placeDoors(std::shared_ptr<Location> location) {
   }
 }
 
-// void placeLoot(std::shared_ptr<Location> location, int threat) {
-//   dlog("place loot");
-//   auto table = LootBoxes::ZERO;
-//   if (location->type.type == int(LocationType::DUNGEON)) {
-//     if (threat >= LootTable::DUNGEON.size())
-//       threat = LootTable::DUNGEON.size() - 1;
-//     table = LootTable::DUNGEON.at(threat);
-//   } else if (location->type.type == LocationType::CAVERN) {
-//     // TODO: use cavern table
-//     if (threat >= int(LootTable::DUNGEON.size()))
-//       threat = LootTable::DUNGEON.size() - 1;
-//     table = LootTable::DUNGEON.at(threat);
-//   }
+void placeLoot(std::shared_ptr<Location> location, int threat) {
+  dlog("place loot");
+  auto table = LootBoxes::ZERO;
+  if (location->type.type == int(LocationType::DUNGEON)) {
+    if (threat >= LootTable::DUNGEON.size())
+      threat = LootTable::DUNGEON.size() - 1;
+    table = LootTable::DUNGEON.at(threat);
+  } else if (location->type.type == LocationType::CAVERN) {
+    // TODO: use cavern table
+    if (threat >= int(LootTable::DUNGEON.size()))
+      threat = LootTable::DUNGEON.size() - 1;
+    table = LootTable::DUNGEON.at(threat);
+  }
 
-//   // TODO: gen count and get loot from 100% lootbox
-//   for (auto room : location->rooms) {
-//     auto rc = room->getRandomCell(CellType::FLOOR);
-//     std::shared_ptr<Cell> c;
-//     if (rc)
-//       c = *rc;
-//     else
-//       continue;
-//     auto n = 0;
-//     // TODO: fix crash in getObjects
-//     while (location->getObjects(c).size() != 0 && n < 20) {
-//       rc = room->getRandomCell(CellType::FLOOR);
-//       if (rc)
-//         c = *rc;
-//       else
-//         continue;
-//       n++;
-//     }
-//     if (n == 20) {
-//       continue;
-//     }
+  // TODO: gen count and get loot from 100% lootbox
+  for (auto room : location->rooms) {
+    auto rc = room->getRandomCell(CellType::FLOOR);
+    std::shared_ptr<Cell> c;
+    if (rc)
+      c = *rc;
+    else
+      continue;
+    auto n = 0;
+    // TODO: fix crash in getObjects
+    while (location->getObjects(c).size() != 0 && n < 20) {
+      rc = room->getRandomCell(CellType::FLOOR);
+      if (rc)
+        c = *rc;
+      else
+        continue;
+      n++;
+    }
+    if (n == 20) {
+      continue;
+    }
 
-//     auto loot = table.open();
-//     // for (auto item : loot) {
-//     //   auto new_item = item->roll();
-//     //   // fmt::print("Place {} at {}.{}\n", new_item->getTitle(true), c->x,
-//     //   // c->y);
-//     //   new_item->setCurrentCell(c);
-//     //   location->addObject<Item>(new_item);
-//     // }
-//   }
-// }
+    auto loot = table.open();
+    for (auto item : loot) {
+      auto new_item = item->roll();
+      // fmt::print("Place {} at {}.{}\n", new_item->getTitle(true), c->x,
+      // c->y);
+      new_item->setCurrentCell(c);
+      location->addObject<Item>(new_item);
+    }
+  }
+}
 
 void placeEnemies(std::shared_ptr<Location> location, int threat) {
   dlog("place enemies");
-  // std::map<const EnemySpec, float> table;
-  // auto pather = new micropather::MicroPather(location.get());
-  // micropather::MPVector<void *> path;
-  // float totalCost = 0;
+  std::map<const EnemySpec, float> table;
+  auto pather = new micropather::MicroPather(location.get());
+  micropather::MPVector<void *> path;
+  float totalCost = 0;
 
-  // if (location->type.type == LocationType::DUNGEON) {
-  //   if (threat >= int(SpawnTable::DUNGEON.size()))
-  //     threat = SpawnTable::DUNGEON.size() - 1;
-  //   table = SpawnTable::DUNGEON.at(threat);
-  // } else if (location->type.type == LocationType::CAVERN) {
-  //   // TODO: use cavern table
-  //   if (threat >= int(SpawnTable::DUNGEON.size()))
-  //     threat = SpawnTable::DUNGEON.size() - 1;
-  //   table = SpawnTable::DUNGEON.at(threat);
-  // }
-  // for (auto room : location->rooms) {
-  //   if (room->type == RoomType::PASSAGE)
-  //     continue;
-  //   std::vector<std::shared_ptr<Cell>> cells(room->cells.size());
-  //   auto it =
-  //       std::copy_if(room->cells.begin(), room->cells.end(), cells.begin(),
-  //                    [](auto cell) { return cell->type == CellType::FLOOR; });
-  //   cells.resize(std::distance(cells.begin(), it));
-  //   if (cells.size() == 0)
-  //     continue;
-  //   int count = R::N(1, 2);
-  //   if (count < 0)
-  //     count = 0;
-  //   for (auto n = cells.size() / 64; n > 0; n--) {
-  //     count += R::Z(0, 3);
-  //   }
-  //   for (; count != 0; count--) {
-  //     auto p = R::R();
-  //     EnemySpec type;
-  //     float fullP = 0;
-  //     std::for_each(table.begin(), table.end(),
-  //                   [&](auto rec) { fullP += rec.second; });
-  //     p *= fullP;
-  //     float ap = 0;
-  //     for (auto [et, tp] : table) {
-  //       ap += tp;
-  //       if (p <= ap) {
-  //         type = et;
-  //         break;
-  //       }
-  //     }
-  //     auto c = cells[rand() % cells.size()];
+  if (location->type.type == LocationType::DUNGEON) {
+    if (threat >= int(SpawnTable::DUNGEON.size()))
+      threat = SpawnTable::DUNGEON.size() - 1;
+    table = SpawnTable::DUNGEON.at(threat);
+  } else if (location->type.type == LocationType::CAVERN) {
+    // TODO: use cavern table
+    if (threat >= int(SpawnTable::DUNGEON.size()))
+      threat = SpawnTable::DUNGEON.size() - 1;
+    table = SpawnTable::DUNGEON.at(threat);
+  }
+  for (auto room : location->rooms) {
+    if (room->type == RoomType::PASSAGE)
+      continue;
+    std::vector<std::shared_ptr<Cell>> cells(room->cells.size());
+    auto it =
+        std::copy_if(room->cells.begin(), room->cells.end(), cells.begin(),
+                     [&location](auto cell) { return cell->type == location->type.floor; });
+    cells.resize(std::distance(cells.begin(), it));
+    if (cells.size() == 0)
+      continue;
+    int count = R::N(1, 2);
+    if (count < 0)
+      count = 0;
+    for (auto n = cells.size() / 64; n > 0; n--) {
+      count += R::Z(0, 3);
+    }
+    for (; count != 0; count--) {
+      auto p = R::R();
+      EnemySpec type;
+      float fullP = 0;
+      std::for_each(table.begin(), table.end(),
+                    [&](auto rec) { fullP += rec.second; });
+      p *= fullP;
+      float ap = 0;
+      for (auto [et, tp] : table) {
+        ap += tp;
+        if (p <= ap) {
+          type = et;
+          break;
+        }
+      }
+      auto c = cells[rand() % cells.size()];
 
-  //     pather->Reset();
-  //     int result =
-  //         pather->Solve(c.get(), location->enterCell.get(), &path, &totalCost);
-  //     if (result != micropather::MicroPather::SOLVED)
-  //       break;
+      pather->Reset();
+      int result =
+          pather->Solve(c.get(), location->enterCell.get(), &path, &totalCost);
+      if (result != micropather::MicroPather::SOLVED)
+        break;
 
-  //     auto enemy = mapUtils::makeEnemy(location, c, type);
-  //     location->addObject<Enemy>(enemy);
-  //   }
-  // }
+      auto enemy = mapUtils::makeEnemy(location, c, type);
+      location->addObject<Enemy>(enemy);
+    }
+  }
 }
 
 void makeRiver(std::shared_ptr<Location> location) {
@@ -608,12 +612,13 @@ std::shared_ptr<Terrain> makeTorch() {
 
 void placeTorches(std::shared_ptr<Location> location) {
   dlog("place torches");
+  auto floor = location->type.floor;
   auto tc = rand() % 7 + 3;
   int n;
   for (n = 0; n < tc;) {
     auto room = location->rooms[rand() % location->rooms.size()];
     auto cell = room->cells[rand() % room->cells.size()];
-    if (cell->type != CellType::FLOOR || location->getObjects(cell).size() > 0)
+    if (cell->type != floor || location->getObjects(cell).size() > 0)
       continue;
     auto ngs = location->getNeighbors(cell);
     if (std::find_if(ngs.begin(), ngs.end(), [](std::shared_ptr<Cell> nc) {
@@ -641,19 +646,24 @@ void placeTorches(std::shared_ptr<Location> location) {
 bool placeStairs(std::shared_ptr<Location> location) {
   dlog("place stairs");
 
-  auto entr = getRandomCell(location, CellType::FLOOR);
+  auto floor = location->type.floor;
+  auto entr = getRandomCell(location, floor);
   if (location->type.enterCell != nullptr) {
     auto e = location->type.enterCell;
     entr =
         std::make_optional<std::shared_ptr<Cell>>(location->cells[e->y][e->x]);
   }
-  auto exir = getRandomCell(location, CellType::FLOOR);
+  dlog("entr found 1");
+  auto exir = getRandomCell(location, floor);
+  dlog("exir found 1");
   while (!entr) {
-    entr = getRandomCell(location, CellType::FLOOR);
+    entr = getRandomCell(location, floor);
   }
+  dlog("entr found");
   while (!exir) {
-    exir = getRandomCell(location, CellType::FLOOR);
+    exir = getRandomCell(location, floor);
   }
+  dlog("exir found");
   location->enterCell = *entr;
   location->exitCell = *exir;
   // location->dump();
@@ -669,12 +679,12 @@ bool placeStairs(std::shared_ptr<Location> location) {
   while (result != micropather::MicroPather::SOLVED ||
          (totalCost < 20 && i < 10)) {
     // entr = mapUtils::getRandomCell(location, CellType::FLOOR);
-    exir = getRandomCell(location, CellType::FLOOR);
+    exir = getRandomCell(location, floor);
     // while (!entr) {
     // entr = mapUtils::getRandomCell(location, CellType::FLOOR);
     // }
     while (!exir) {
-      exir = getRandomCell(location, CellType::FLOOR);
+      exir = getRandomCell(location, floor);
     }
     location->enterCell = *entr;
     location->exitCell = *exir;
@@ -797,7 +807,7 @@ void placeCaves(std::shared_ptr<Location> location) {
 
     for (auto c : room->cells) {
       if (R::R() > P::CAVERN_WALL) {
-        c->type = CellType::FLOOR;
+        c->type = CellType::GROUND;
         c->passThrough = true;
       }
     }
@@ -823,17 +833,17 @@ void placeCaves(std::shared_ptr<Location> location) {
         auto n = location->getNeighbors(c);
         auto fn =
             std::count_if(n.begin(), n.end(), [](std::shared_ptr<Cell> nc) {
-              return nc->type == CellType::FLOOR;
+              return nc->type == CellType::GROUND;
             });
 
-        if (c->type == CellType::FLOOR) {
+        if (c->type == CellType::GROUND) {
           if (fn < 4) {
             c->type = CellType::WALL;
             c->passThrough = false;
           }
         } else if (c->type == CellType::WALL) {
           if (fn >= 6) {
-            c->type = CellType::FLOOR;
+            c->type = CellType::GROUND;
             c->passThrough = true;
           }
         }
@@ -847,18 +857,18 @@ void placeCaves(std::shared_ptr<Location> location) {
         continue;
       auto n = location->getNeighbors(c);
       auto fn = std::count_if(n.begin(), n.end(), [](std::shared_ptr<Cell> nc) {
-        return nc->type == CellType::FLOOR;
+        return nc->type == CellType::GROUND;
       });
       if (fn == 0) {
         c->type = CellType::UNKNOWN;
       } else if (fn != 8) {
-        if (c->type == CellType::FLOOR && R::R() < P::CAVE_ROCK) {
-          // auto rock = Prototype::ROCK->clone();
-          // rock->setCurrentCell(c);
-          // location->addObject<Item>(rock);
+        if (c->type == CellType::GROUND && R::R() < P::CAVE_ROCK) {
+          auto rock = Prototype::ROCK->clone();
+          rock->setCurrentCell(c);
+          location->addObject<Item>(rock);
           continue;
         }
-      } else if (c->type == CellType::FLOOR && R::R() < P::CAVE_GRASS) {
+      } else if (c->type == CellType::GROUND && R::R() < P::CAVE_GRASS) {
         if (R::R() < P::CAVE_BUSH ||
             std::find_if(n.begin(), n.end(), [&](auto nc) {
               auto t = utils::castObjects<Terrain>(location->getObjects(nc));
@@ -871,9 +881,9 @@ void placeCaves(std::shared_ptr<Location> location) {
           //   return Triggers::BUSH_TRIGGER(c, location);
           // }));
         } else {
-          // auto grass = Prototype::GRASS->clone();
-          // grass->setCurrentCell(c);
-          // location->addObject<Item>(grass);
+          auto grass = Prototype::GRASS->clone();
+          grass->setCurrentCell(c);
+          location->addObject<Item>(grass);
         }
         continue;
       }
@@ -897,19 +907,19 @@ void makeCavePassage(std::shared_ptr<Location> location) {
     newRoom->threat = rand() % 4;
     location->rooms.push_back(newRoom);
     for (auto c : newRoom->cells) {
-      if (c->type == CellType::FLOOR && R::R() < P::CAVE_ROCK) {
-        // auto rock = Prototype::ROCK->clone();
-        // rock->setCurrentCell(c);
-        // location->addObject<Item>(rock);
-      } else if (c->type == CellType::FLOOR && R::R() < P::CAVE_GRASS) {
+      if (c->type == CellType::GROUND && R::R() < P::CAVE_ROCK) {
+        auto rock = Prototype::ROCK->clone();
+        rock->setCurrentCell(c);
+        location->addObject<Item>(rock);
+      } else if (c->type == CellType::GROUND && R::R() < P::CAVE_GRASS) {
         if (R::R() < P::CAVE_BUSH) {
           auto s = std::make_shared<Terrain>(TerrainType::BUSH);
           s->setCurrentCell(c);
           location->addObject<Terrain>(s);
         } else {
-          // auto grass = Prototype::GRASS->clone();
-          // grass->setCurrentCell(c);
-          // location->addObject<Item>(grass);
+          auto grass = Prototype::GRASS->clone();
+          grass->setCurrentCell(c);
+          location->addObject<Item>(grass);
         }
         continue;
       }
@@ -1074,7 +1084,7 @@ std::shared_ptr<Location> Generator::getLocation(LocationSpec spec) {
   auto success = placeStairs(location);
 
   if (!success) {
-    // log.info(lu::green("MAPGEN"), "regen location");
+    log.info(lu::green("MAPGEN"), "regen location");
     dlog("regen location");
     return getLocation(spec);
   }
@@ -1099,7 +1109,7 @@ std::shared_ptr<Location> Generator::getLocation(LocationSpec spec) {
   timings["placeEnemies"] = end - start;
 
   start = std::chrono::system_clock::now();
-  // placeLoot(location, spec.threat);
+  placeLoot(location, spec.threat);
   end = std::chrono::system_clock::now();
   timings["placeLoot"] = end - start;
 
@@ -1124,9 +1134,9 @@ std::shared_ptr<Location> Generator::getLocation(LocationSpec spec) {
   start = std::chrono::system_clock::now();
   for (auto r : location->cells) {
     for (auto c : r) {
-      if (c->type == CellType::FLOOR && R::R() < P::BLOOD) {
+      if (c->passThrough && R::R() < P::BLOOD) {
         c->features.push_back(CellFeature::BLOOD);
-      } else if (c->room != nullptr && c->room->type == RoomType::HALL && c->type == CellType::FLOOR && R::R() < P::CRATE) {
+      } else if (c->room != nullptr && c->room->type == RoomType::HALL && c->type == location->type.floor && R::R() < P::CRATE) {
         auto crate = std::make_shared<Terrain>(TerrainType::CRATE);
         crate->setCurrentCell(c);
         // crate->triggers.push_back(std::make_shared<AttackTrigger>([=](std::shared_ptr<Creature> actor){
@@ -1136,16 +1146,16 @@ std::shared_ptr<Location> Generator::getLocation(LocationSpec spec) {
         //   return Triggers::CRATE_MOVE_TRIGGER(actor, crate, location);
         // }));
         location->addObject<Terrain>(crate);
-      } else if (c->type == CellType::FLOOR && R::R() < P::BONES) {
-        // auto bones = std::make_shared<Item>(ItemType::BONES, 1);
-        // bones->setCurrentCell(c);
-        // location->addObject<Item>(bones);
+      } else if (c->passThrough && R::R() < P::BONES) {
+        auto bones = std::make_shared<Item>(ItemType::BONES, 1);
+        bones->setCurrentCell(c);
+        location->addObject<Item>(bones);
       }
       for (auto cf : location->type.cellFeatures) {
         c->features.push_back(cf);
       }
       if (c->room != nullptr && (c->room->type == RoomType::CAVERN) &&
-          c->type == CellType::FLOOR && R::R() < P::POND) {
+          c->passThrough && R::R() < P::POND) {
         c->type = CellType::WATER;
       }
     }

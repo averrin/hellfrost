@@ -20,7 +20,7 @@ class Font final {
 
   enum class Size {
     SMALL = 11,   // 11px
-    MEDIUM = 13,  // 13px
+    MEDIUM = 14,  // 13px
     LARGE = 16,   // 16px
     LARGER = 24,  // 20px
   };

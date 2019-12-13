@@ -5,10 +5,11 @@
 #include <SFML/Graphics.hpp>
 
 #include <liblog/liblog.hpp>
-#include <app/ui/tile.hpp>
 
-#include "lss/generator/generator.hpp"
-
+class Tile;
+class Viewport;
+class Generator;
+class Object;
 class Application {
         bool needRedraw = true;
         std::vector<std::pair<int, int>> damage;
@@ -29,11 +30,16 @@ public:
         void drawStatusBar(float width, float height, float pos_x, float pos_y);
         void drawDocking();
         void drawMainWindow();
+        void drawObjectsWindow();
+        void drawCellInfo();
+        void drawObjects(std::vector<std::shared_ptr<Object>>);
+
         void renderTile(std::shared_ptr<sf::RenderTexture>, std::shared_ptr<Tile>);
         LibLog::Logger &log = LibLog::Logger::getInstance();
         int seed;
         int redraws;
         int tilesUpdated;
+        void genLocation(int);
 
         std::shared_ptr<Generator> generator;
 };

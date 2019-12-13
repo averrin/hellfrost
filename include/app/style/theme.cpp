@@ -307,7 +307,7 @@ char const *Font::SizeString(Font::Size size) {
     case Size::SMALL:
       return "11px";
     case Size::MEDIUM:
-      return "13px";
+      return "14px";
     case Size::LARGE:
       return "16px";
     case Size::LARGER:
