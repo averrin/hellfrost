@@ -1020,6 +1020,11 @@ std::shared_ptr<Location> Generator::getLocation(LocationSpec spec) {
     placeCaves(location);
     end = std::chrono::system_clock::now();
     timings["placeCaves"] = end - start;
+  } else if (spec.type == LocationType::EXTERIOR) {
+    start = std::chrono::system_clock::now();
+    placeCaves(location);
+    end = std::chrono::system_clock::now();
+    timings["placeCaves"] = end - start;
   }
 
   start = std::chrono::system_clock::now();

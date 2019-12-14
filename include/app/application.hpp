@@ -33,6 +33,7 @@ public:
         void drawObjectsWindow();
         void drawCellInfo();
         void drawObjects(std::vector<std::shared_ptr<Object>>);
+        void centerObject(std::shared_ptr<Object>);
 
         void renderTile(std::shared_ptr<sf::RenderTexture>, std::shared_ptr<Tile>);
         LibLog::Logger &log = LibLog::Logger::getInstance();

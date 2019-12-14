@@ -51,11 +51,11 @@ int vH;
 int ts_idx = 0;
 //TODO: read sets from folder
 auto ts = std::vector<std::string>{"ascii", "vettlingr", "esoteric", "spacefox"};
-std::optional<sf::Vector2<float>> lockedPos = std::nullopt;
+std::optional<std::pair<int, int>> lockedPos = std::nullopt;
 
 int lts_idx = 0;
-auto lts = std::vector<std::string>{"dungeon", "cavern"};
-auto lt = std::vector<LocationType>{LocationType::DUNGEON, LocationType::CAVERN};
+auto lts = std::vector<std::string>{"dungeon", "cavern", "exterior"};
+auto lt = std::vector<LocationType>{LocationType::DUNGEON, LocationType::CAVERN, LocationType::EXTERIOR};
 auto locationType = LocationType::DUNGEON;
 
 void Application::setupGui() {
@@ -123,7 +123,13 @@ void Application::processEvent(sf::Event event) {
     break;
     case sf::Event::MouseButtonPressed:
       if (event.mouseButton.button == sf::Mouse::Right) {
-        lockedPos = window->mapPixelToCoords(sf::Mouse::getPosition(*window));
+        auto pos = window->mapPixelToCoords(sf::Mouse::getPosition(*window));
+        auto x = int(pos.x/(view_map->tileSet.size.first*scale));
+        auto y = int(pos.y/(view_map->tileSet.size.second*scale));
+        auto rx = x+view_map->position.first;
+        auto ry =  y+view_map->position.second;
+
+        lockedPos = {rx, ry};
       } else
       if (event.mouseButton.button == sf::Mouse::Middle) {
         lockedPos = std::nullopt;
@@ -207,18 +213,22 @@ bool h_v = true;
 void Application::drawCellInfo() {
     sf::Vector2<float> pos =
         window->mapPixelToCoords(sf::Mouse::getPosition(*window));
-    if (lockedPos) {
-      pos = *lockedPos;
-    }
-
     auto x = int(pos.x/(view_map->tileSet.size.first*scale));
     auto y = int(pos.y/(view_map->tileSet.size.second*scale));
+
     sf::RectangleShape bg;
     bg.setSize(sf::Vector2f(view_map->tileSet.size.first, view_map->tileSet.size.second)*scale);
     bg.setFillColor(sf::Color::Transparent);
     bg.setOutlineColor(sf::Color(200,124,70));
     auto rx = x+view_map->position.first;
     auto ry =  y+view_map->position.second;
+    if (lockedPos) {
+      rx = (*lockedPos).first;
+      ry = (*lockedPos).second;
+      x = rx - view_map->position.first;
+      y = ry - view_map->position.second;
+    }
+
     auto [cc, rz] = view_map->getCell(rx, ry, view_map->z);
     auto [region, _] = view_map->getRegion(rx, ry, rz);
 
@@ -251,6 +261,14 @@ void Application::drawCellInfo() {
     }
 }
 
+void Application::centerObject(std::shared_ptr<Object> o) {
+    lockedPos = {o->currentCell->x, o->currentCell->y};
+    x = o->currentCell->x-view_map->width/2;
+    y = o->currentCell->y-view_map->height/2;
+    view_map->position = {x, y};
+    needRedraw = true;
+}
+
 void Application::drawObjects(std::vector<std::shared_ptr<Object>> objects) {
       ImGui::Text("%s Objects: %d\n", ICON_MDI_CUBE_OUTLINE, objects.size());
       auto enemies = utils::castObjects<Enemy>(objects);
@@ -260,11 +278,15 @@ void Application::drawObjects(std::vector<std::shared_ptr<Object>> objects) {
           for (auto e : enemies) {
             if (ImGui::TreeNode((void*)(intptr_t)n, "%s %s", ICON_MDI_SWORD_CROSS, e->type.name.c_str())) {
                 ImGui::Text("Position: %d.%d", e->currentCell->x, e->currentCell->y);
+                ImGui::SameLine();
+                if (ImGui::SmallButton(ICON_MDI_TARGET)) {
+                  centerObject(e);
+                }
                 ImGui::TreePop();
             }
             n++;
           }
-                ImGui::TreePop();
+          ImGui::TreePop();
         }
       }
       auto terrain = utils::castObjects<Terrain>(objects);
@@ -273,11 +295,15 @@ void Application::drawObjects(std::vector<std::shared_ptr<Object>> objects) {
           for (auto t : terrain) {
             if (ImGui::TreeNode((void*)(intptr_t)n, "%s %s", ICON_MDI_CUBE, t->type.name.c_str())) {
                 ImGui::Text("Position: %d.%d", t->currentCell->x, t->currentCell->y);
+                ImGui::SameLine();
+                if (ImGui::SmallButton(ICON_MDI_TARGET)) {
+                  centerObject(t);
+                }
                 ImGui::TreePop();
             }
             n++;
           }
-                ImGui::TreePop();
+          ImGui::TreePop();
         }
       }
       auto items = utils::castObjects<Item>(objects);
@@ -287,11 +313,15 @@ void Application::drawObjects(std::vector<std::shared_ptr<Object>> objects) {
             if (ImGui::TreeNode((void*)(intptr_t)n, "%s %s", ICON_MDI_SWORD, i->getTitle(true).c_str())) {
                 ImGui::Text("Type: %s", i->type.name.c_str());
                 ImGui::Text("Position: %d.%d", i->currentCell->x, i->currentCell->y);
+                ImGui::SameLine();
+                if (ImGui::SmallButton(ICON_MDI_TARGET)) {
+                  centerObject(i);
+                }
                 ImGui::TreePop();
             }
             n++;
           }
-                ImGui::TreePop();
+          ImGui::TreePop();
         }
       }
 }
@@ -368,12 +398,13 @@ void Application::drawMainWindow() {
     needRedraw = true;
   }
 
+  ImGui::Text("\nFeatures\n");
   if (locationType == LocationType::CAVERN) {
-    cave_pass = false;
     if (ImGui::Checkbox("river", &river) || ImGui::Checkbox("lake", &lake)) {
       genLocation(seed);
       needRedraw = true;
     }
+  } else if (locationType == LocationType::EXTERIOR) {
   } else {
     river = false;
     lake = false;
@@ -382,23 +413,20 @@ void Application::drawMainWindow() {
       needRedraw = true;
     }
   }
-  if (ImGui::Checkbox("torches", &torches)
-      || ImGui::Checkbox("statue", &statue)
-      || ImGui::Checkbox("altar", &altar)
-      || ImGui::Checkbox("treasure", &treasure)
-      || ImGui::Checkbox("heal", &heal)
-      || ImGui::Checkbox("mana", &mana)
-      || ImGui::Checkbox("ice", &ice)
-      || ImGui::Checkbox("corrupt", &corrupt)) {
-    genLocation(seed);
-    needRedraw = true;
+  if (locationType != LocationType::EXTERIOR) {
+    if (ImGui::Checkbox("torches", &torches)
+        || ImGui::Checkbox("statue", &statue)
+        || ImGui::Checkbox("altar", &altar)
+        || ImGui::Checkbox("treasure", &treasure)
+        || ImGui::Checkbox("heal", &heal)
+        || ImGui::Checkbox("mana", &mana)
+        || ImGui::Checkbox("ice", &ice)
+        || ImGui::Checkbox("corrupt", &corrupt)) {
+      genLocation(seed);
+      needRedraw = true;
+    }
   }
 
-
-  // if (ImGui::Checkbox("house", &(view_map->regions[1]->active))) {
-  //   view_map->tilesCache.clear(); //TODO: invalidate region cache only
-  //   needRedraw = true;
-  // }
   ImGui::End();
 }
 
@@ -411,41 +439,50 @@ void Application::genLocation(int s) {
   if (locationType == LocationType::CAVERN) {
     spec.type = LocationType::CAVERN;
     spec.floor = CellType::GROUND;
+    cave_pass = false;
+  } else if (locationType == LocationType::EXTERIOR) {
+    spec.type = LocationType::EXTERIOR;
+    spec.floor = CellType::GROUND;
+    cave_pass = false;
+    river = false;
+    lake = false;
+  } else
+  if (locationType == LocationType::DUNGEON) {
+    spec.type = LocationType::DUNGEON;
+    spec.floor = CellType::FLOOR;
+    river = false;
+    lake = false;
   }
-  if (torches) {
-    spec.features.push_back(LocationFeature::TORCHES);
+
+  std::vector<bool> flags = {
+    cave_pass, statue,altar,
+    treasure,heal,
+    mana,river,
+    lake,torches,
+    corrupt,ice,};
+
+  std::vector<LocationFeature> features = {
+    LocationFeature::CAVE_PASSAGE,
+    LocationFeature::STATUE,
+    LocationFeature::ALTAR,
+    LocationFeature::TREASURE_SMALL,
+    LocationFeature::HEAL,
+    LocationFeature::MANA,
+    LocationFeature::RIVER,
+    LocationFeature::LAKE,
+    LocationFeature::TORCHES,
+    LocationFeature::CORRUPT,
+    LocationFeature::ICE,
+  };
+
+  auto n = 0;
+  for (auto flag : flags) {
+    if (flag) {
+      spec.features.push_back(features[n]);
+    }
+    n++;
   }
-  if (statue) {
-  spec.features.push_back(LocationFeature::STATUE);
-  }
-  if (altar) {
-  spec.features.push_back(LocationFeature::ALTAR);
-  }
-  if (heal) {
-  spec.features.push_back(LocationFeature::HEAL);
-  }
-  if (mana) {
-  spec.features.push_back(LocationFeature::MANA);
-  }
-  if (altar) {
-  spec.features.push_back(LocationFeature::ALTAR);
-  }
-  if (ice) {
-  spec.features.push_back(LocationFeature::ICE);
-  }
-  if (corrupt) {
-  spec.features.push_back(LocationFeature::CORRUPT);
-  }
-  if (river) {
-    spec.features.push_back(LocationFeature::RIVER);
-  }
-  if (lake) {
-    spec.features.push_back(LocationFeature::LAKE);
-  }
-  if (cave_pass) {
-    spec.features.push_back(LocationFeature::CAVE_PASSAGE);
-  }
-  // spec.features.push_back(LocationFeature::VOID);
+
   srand(s);
   auto l = generator->getLocation(spec);
   log.stop(label);

@@ -80,6 +80,27 @@
         "EMPTY": [0,11,7],
         "ENEMY": [0,11,7],
 
-        "ORK": [0,15, 6]
+        "RAT":[0,2,7],
+        "BAT":[0,2,6],
+        "SNAKE":[0,3,7],
+        "VIPER":[0,3,7],
+        "LARGE_BAT":[0,2,4],
+        "GOBLIN_ROCKTHROWER":[0,7,6],
+        "GOBLIN":[0,7,6],
+        "CULTIST":[0,11,6],
+        "ORK_BLACK":[0,15,6],
+        "ORK":[0,15,6],
+        "ORK_BERSERK":[0,15,6],
+        "PIXI":[0,0,7],
+        "OGRE":[0,15,4],
+        "I_OGRE":[0,15,4],
+        "GOBLIN_LIEUTENANT":[0,7,6],
+        "GOBLIN_ROGUE":[0,7,6],
+        "ANT":[0,1,6],
+        "GIANT_ANT":[0,1,6],
+        "ANT_QUEEN":[0,1,6],
+        "SKELETON":[0,10,7],
+        "ZOMBIE":[0,10,7],
+        "WRAITH":[0,7,7]
     }
 }

@@ -10,9 +10,9 @@
     "BLOOD": "#771d1f89",
     "FROST": "#2d2f6089",
     "CORRUPT": "#550088aa",
-    "FLOOR": "#5f5541",
+    "FLOOR": "#5f554188",
     "WATER": "#4444aa",
-    "GROUND": "#6B4F20",
+    "GROUND": "#6B4F2099",
     "WALL": "#6d6359",
     "DOOR": "#8B5F20",
     "VOID": "#333333"
@@ -53,10 +53,42 @@
     "ENEMY": "#dfdfdf"
   },
   "ENEMY": {
-    "ORK": "#22aa22"
+    "RAT": "#808080",
+    "BAT": "#808080",
+    "SNAKE": "#808080",
+    "VIPER": "#006400",
+    "BAT_LARGE": "#a9a9a9",
+    "GOBLIN_ROCKTHROWER": "#5050e0",
+    "GOBLIN": "#00f000",
+    "CULTIST": "#881111",
+    "ORK": "#22aa22",
+    "ORK_BERSERK": "#aa2222",
+    "ORK_BLACK": "#555",
+    "OGRE": "#006400",
+    "I_OGRE": "#cc0044",
+    "PIXI": "#ff1493",
+    "GOBLIN_LIEUTENANT": "#008b8b",
+    "GOBLIN_ROGUE": "#2f4f4f",
+    "ANT": "#8f4f4f",
+    "ANT_QUEEN": "#8f6f4f",
+
+    "SKELETON": "#fafafa",
+    "ZOMBIE": "#8A9A5B",
+    "WRAITH": "#808080",
+
+    "FIRE_ELEMENTAL": "#cc1111",
+    "FROST_ELEMENTAL": "#add8e6",
+    "ACID_ELEMENTAL": "#11cc11",
+
+    "STONE_GOLEM": "#808080",
+    "STEEL_GOLEM": "#2f4f4f",
+
+    "FIRE_DRAGON": "#cc1111",
+    "FROST_DRAGON": "#add8e6",
+    "ACID_DRAGON": "#11cc11"
   },
   "PALETTE": {
     "BACKGROUND": "#111100",
-    "BROWN": "#5f5541"
+    "BROWN": "#5f5541aa"
   }
 }

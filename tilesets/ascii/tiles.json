@@ -98,6 +98,7 @@
         "GOBLIN_LIEUTENANT":[0,7,6],
         "GOBLIN_ROGUE":[0,7,6],
         "ANT":[0,1,6],
+        "GIANT_ANT":[0,1,6],
         "ANT_QUEEN":[0,1,6],
         "SKELETON":[0,10,7],
         "ZOMBIE":[0,10,7],
