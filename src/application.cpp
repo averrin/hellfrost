@@ -35,17 +35,28 @@ int x = -4;
 int y = 10;
 int z = 0;
 float scale = 1.f;
-bool cavern = false;
+bool cave_pass = false;
+bool statue = false;
+bool altar = false;
+bool treasure = false;
+bool heal = false;
+bool mana = false;
 bool river = false;
 bool lake = false;
 bool torches = false;
 bool corrupt = false;
+bool ice = false;
 int vW;
 int vH;
 int ts_idx = 0;
 //TODO: read sets from folder
 auto ts = std::vector<std::string>{"ascii", "vettlingr", "esoteric", "spacefox"};
 std::optional<sf::Vector2<float>> lockedPos = std::nullopt;
+
+int lts_idx = 0;
+auto lts = std::vector<std::string>{"dungeon", "cavern"};
+auto lt = std::vector<LocationType>{LocationType::DUNGEON, LocationType::CAVERN};
+auto locationType = LocationType::DUNGEON;
 
 void Application::setupGui() {
 
@@ -292,8 +303,7 @@ void Application::drawObjectsWindow() {
 }
 
 void Application::drawMainWindow() {
-  ImGui::Begin("Viewport");
-
+  ImGui::Begin("Tileset");
   std::vector<const char*> _ts;
   std::transform(ts.begin(), ts.end(), std::back_inserter(_ts), [](auto s) {
     char*r = new char[s.size()+1];
@@ -305,6 +315,10 @@ void Application::drawMainWindow() {
     view_map->tilesCache.clear();
     needRedraw = true;
   }
+  ImGui::Text("Size: %dx%d\n", view_map->tileSet.size.first, view_map->tileSet.size.second);
+  ImGui::End();
+
+  ImGui::Begin("Viewport");
   ImGui::Text("Cache len: %d\n", view_map->tilesCache.size());
   ImGui::Text("Redraws: %d\n", redraws);
   ImGui::Text("Tiles updated: %d\n\n", tilesUpdated);
@@ -342,23 +356,40 @@ void Application::drawMainWindow() {
 
   ImGui::Begin("Location");
   ImGui::Text("Seed: %d\n", seed);
-  if (ImGui::Checkbox("cavern", &cavern)) {
+  std::vector<const char*> _lts;
+  std::transform(lts.begin(), lts.end(), std::back_inserter(_lts), [](auto s) {
+    char*r = new char[s.size()+1];
+    std::strcpy(r, s.c_str());
+    return r;
+  });
+  if (ImGui::Combo("Location type", &lts_idx, _lts.data(), lts.size())) {
+    locationType = lt[lts_idx];
     genLocation(seed);
     needRedraw = true;
   }
-  if (ImGui::Checkbox("river", &river)) {
-    genLocation(seed);
-    needRedraw = true;
+
+  if (locationType == LocationType::CAVERN) {
+    cave_pass = false;
+    if (ImGui::Checkbox("river", &river) || ImGui::Checkbox("lake", &lake)) {
+      genLocation(seed);
+      needRedraw = true;
+    }
+  } else {
+    river = false;
+    lake = false;
+    if (ImGui::Checkbox("cave_pass", &cave_pass)) {
+      genLocation(seed);
+      needRedraw = true;
+    }
   }
-  if (ImGui::Checkbox("lake", &lake)) {
-    genLocation(seed);
-    needRedraw = true;
-  }
-  if (ImGui::Checkbox("torches", &torches)) {
-    genLocation(seed);
-    needRedraw = true;
-  }
-  if (ImGui::Checkbox("corrupt", &corrupt)) {
+  if (ImGui::Checkbox("torches", &torches)
+      || ImGui::Checkbox("statue", &statue)
+      || ImGui::Checkbox("altar", &altar)
+      || ImGui::Checkbox("treasure", &treasure)
+      || ImGui::Checkbox("heal", &heal)
+      || ImGui::Checkbox("mana", &mana)
+      || ImGui::Checkbox("ice", &ice)
+      || ImGui::Checkbox("corrupt", &corrupt)) {
     genLocation(seed);
     needRedraw = true;
   }
@@ -377,16 +408,31 @@ void Application::genLocation(int s) {
   auto spec = LocationSpec{"Dungeon"};
   spec.type = LocationType::DUNGEON;
   spec.threat = 1;
-  if (cavern) {
+  if (locationType == LocationType::CAVERN) {
     spec.type = LocationType::CAVERN;
     spec.floor = CellType::GROUND;
   }
   if (torches) {
-  spec.features.push_back(LocationFeature::TORCHES);
+    spec.features.push_back(LocationFeature::TORCHES);
   }
-  // spec.features.push_back(LocationFeature::STATUE);
-  // spec.features.push_back(LocationFeature::ALTAR);
-  // spec.features.push_back(LocationFeature::ICE);
+  if (statue) {
+  spec.features.push_back(LocationFeature::STATUE);
+  }
+  if (altar) {
+  spec.features.push_back(LocationFeature::ALTAR);
+  }
+  if (heal) {
+  spec.features.push_back(LocationFeature::HEAL);
+  }
+  if (mana) {
+  spec.features.push_back(LocationFeature::MANA);
+  }
+  if (altar) {
+  spec.features.push_back(LocationFeature::ALTAR);
+  }
+  if (ice) {
+  spec.features.push_back(LocationFeature::ICE);
+  }
   if (corrupt) {
   spec.features.push_back(LocationFeature::CORRUPT);
   }
@@ -395,6 +441,9 @@ void Application::genLocation(int s) {
   }
   if (lake) {
     spec.features.push_back(LocationFeature::LAKE);
+  }
+  if (cave_pass) {
+    spec.features.push_back(LocationFeature::CAVE_PASSAGE);
   }
   // spec.features.push_back(LocationFeature::VOID);
   srand(s);

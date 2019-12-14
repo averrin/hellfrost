@@ -33,15 +33,15 @@
 
         "UPSTAIRS": [0,12, 3],
         "DOWNSTAIRS": [0,14, 3],
-        "DOOR": [0,2, 9],
+        "DOOR": [0,5, 12],
 
-        "TORCH_STAND": [0,0, 8],
+        "TORCH_STAND": [0,15, 0],
         "STATUE": [0,12, 8],
         "ALTAR": [0,15, 15],
         "CRATE": [0,14, 15],
         "BUSH": [0,7, 14],
 
-        "BONES": [0,7, 8],
+        "BONES": [0,5, 2],
         "HERB": [0,12, 15],
         "ROCK": [0,10, 2],
         "SCROLL": [0,7, 10],
@@ -57,7 +57,7 @@
         "RING": [0,11,5],
         "AMULET": [0,11,5],
 
-        "TORCH": [0,11,5],
+        "TORCH": [0,15,0],
         "LANTERN": [0,11,5],
         "CANDLE": [0,11,5],
         "GOLD_COINS": [0,11,5],

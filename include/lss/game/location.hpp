@@ -27,7 +27,7 @@ enum LocationFeature {
   BONES_FIELD,
 };
 
-enum LocationType { DUNGEON, CAVERN };
+enum LocationType { DUNGEON, CAVERN, EXTERIOR, BUILDING };
 
 struct LocationSpec {
   std::string name;

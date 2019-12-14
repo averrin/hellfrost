@@ -33,15 +33,15 @@
 
         "UPSTAIRS": [0,12, 3],
         "DOWNSTAIRS": [0,14, 3],
-        "DOOR": [0,2, 9],
+        "DOOR": [0,5, 12],
 
-        "TORCH_STAND": [0,0, 8],
+        "TORCH_STAND": [0,15, 0],
         "STATUE": [0,12, 8],
         "ALTAR": [0,15, 15],
         "CRATE": [0,14, 15],
         "BUSH": [0,7, 14],
 
-        "BONES": [0,7, 8],
+        "BONES": [0,5, 2],
         "HERB": [0,12, 15],
         "ROCK": [0,10, 2],
         "SCROLL": [0,7, 10],
@@ -57,7 +57,7 @@
         "RING": [0,11,5],
         "AMULET": [0,11,5],
 
-        "TORCH": [0,11,5],
+        "TORCH": [0,15,0],
         "LANTERN": [0,11,5],
         "CANDLE": [0,11,5],
         "GOLD_COINS": [0,11,5],
@@ -81,6 +81,37 @@
         "EMPTY": [0,11,5],
         "ENEMY": [0,11,5],
 
-        "ORK": [0,15, 6]
+        "RAT":[0,2,7],
+        "BAT":[0,2,6],
+        "SNAKE":[0,3,7],
+        "VIPER":[0,3,7],
+        "LARGE_BAT":[0,2,4],
+        "GOBLIN_ROCKTHROWER":[0,7,6],
+        "GOBLIN":[0,7,6],
+        "CULTIST":[0,11,6],
+        "ORK_BLACK":[0,15,6],
+        "ORK":[0,15,6],
+        "ORK_BERSERK":[0,15,6],
+        "PIXI":[0,0,7],
+        "OGRE":[0,15,4],
+        "I_OGRE":[0,15,4],
+        "GOBLIN_LIEUTENANT":[0,7,6],
+        "GOBLIN_ROGUE":[0,7,6],
+        "ANT":[0,1,6],
+        "ANT_QUEEN":[0,1,6],
+        "SKELETON":[0,10,7],
+        "ZOMBIE":[0,10,7],
+        "WRAITH":[0,7,7],
+
+        "FIRE_ELEMENTAL":[0,2,6],
+        "FROST_ELEMENTAL":[0,2,6],
+        "ACID_ELEMENTAL":[0,2,6],
+
+        "STONE_GOLEM":[0,2,6],
+        "STEEL_GOLEM":[0,2,6],
+
+        "FIRE_DRAGON":[0,2,6],
+        "FROST_DRAGON":[0,2,6],
+        "ACID_DRAGON":[0,2,6]
     }
 }

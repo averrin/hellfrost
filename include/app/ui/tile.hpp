@@ -200,9 +200,7 @@ std::shared_ptr<sf::Sprite> makeSprite(std::string cat, std::string key) {
         sprite_spec = tileSet.sprites["GRASS"];
         auto brown = Color::fromHexString(colors["PALETTE"]["BROWN"]);
         brown.g += gen->R(0, 60);
-        fgColor = gen->R(std::vector<sf::Color>{sf::Color(120,150,60, gen->R(235, 255)), sf::Color(95,85,65, gen->R(235, 255))});
-        fgColor = sf::Color(brown.r, brown.g, brown.b);
-        // tile->bgColor = sf::Color(95,85,65, gen->R(20, 120));
+        fgColor = sf::Color(brown.r, brown.g, brown.b, brown.a);
       } else if (cell->type == CellType::FLOOR) {
         sprite_spec = tileSet.sprites["FLOOR"];
         fgColor = getColor(colors["ENV"]["FLOOR"]);
@@ -213,8 +211,7 @@ std::shared_ptr<sf::Sprite> makeSprite(std::string cat, std::string key) {
         if (doors.size() != 0) {
           if (doors.front()->hidden) {
             sprite_spec = getWallSpec(cell);
-            // auto c = Color::fromHexString(colors["ENV"]["WALL"]);
-            // fgColor = sf::Color(c.r, c.g, c.b);
+            fgColor = getColor(colors["ENV"]["WALL"]);
           } else {
             sprite_spec = tileSet.sprites["DOOR"];
             fgColor = getColor(colors["ENV"]["DOOR"]);
@@ -233,7 +230,7 @@ std::shared_ptr<sf::Sprite> makeSprite(std::string cat, std::string key) {
                 std::transform(key.begin(), key.end(), key.begin(), ::toupper);
                 std::replace(key.begin(), key.end(), ' ', '_');
                 // fmt::print("{}\n", key);
-                tile->sprites.push_back(makeSprite("ENEMIES", key));
+                tile->sprites.push_back(makeSprite("ENEMY", key));
             } else {
               auto items = utils::castObjects<Item>((*region)->location->getObjects(cell));
               if (items.size() != 0) {
