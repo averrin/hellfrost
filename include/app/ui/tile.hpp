@@ -218,6 +218,9 @@ std::shared_ptr<sf::Sprite> makeSprite(std::string cat, std::string key) {
           if (doors.front()->hidden) {
             sprite_spec = getWallSpec(cell);
             fgColor = getColor(colors["ENV"]["WALL"]);
+            if (cell->hasFeature(CellFeature::CAVE)) {
+              fgColor = getColor(colors["ENV"]["WALL_CAVE"]);
+            }
           } else {
             sprite_spec = tileSet.sprites["DOOR"];
             fgColor = getColor(colors["ENV"]["DOOR"]);
@@ -253,6 +256,9 @@ std::shared_ptr<sf::Sprite> makeSprite(std::string cat, std::string key) {
     } else if (cell->type == CellType::WALL) {
       sprite_spec = getWallSpec(cell);
       fgColor = getColor(colors["ENV"]["WALL"]);
+      if (cell->hasFeature(CellFeature::CAVE)) {
+        fgColor = getColor(colors["ENV"]["WALL_CAVE"]);
+      }
     } else if (cell->type == CellType::ROOF) {
       sprite_spec = {0, 1, 17};
     }

@@ -381,6 +381,21 @@ void Application::drawObjectsWindow() {
   ImGui::End();
 }
 
+void Application::saveTileset() {
+  auto path = fmt::format("tilesets/{}", ts[ts_idx]);
+  std::ofstream o(fmt::format("{}/colors.json", path));
+  o << std::setw(4) << view_map->colors << std::endl;
+
+  json j;
+  j["TILEMAPS"] = view_map->tileSet.maps;
+  j["SIZE"] = view_map->tileSet.size;
+  j["GAP"] = view_map->tileSet.gap;
+  j["SPRITES"] = view_map->tileSet.sprites;
+
+  std::ofstream o2(fmt::format("{}/tiles.json", path));
+  o2 << std::setw(4) << j << std::endl;
+}
+
 void Application::drawTilesetWindow() {
   ImGui::Begin("Tileset");
   std::vector<const char*> _ts;
@@ -394,7 +409,19 @@ void Application::drawTilesetWindow() {
     view_map->tilesCache.clear();
     needRedraw = true;
   }
-  ImGui::BulletText("Size: %dx%d\n\n", view_map->tileSet.size.first, view_map->tileSet.size.second);
+  ImGui::BulletText("Size: %dx%d; gap: %d\n", view_map->tileSet.size.first, view_map->tileSet.size.second, view_map->tileSet.gap);
+  ImGui::BulletText("Maps: %d\n", view_map->tileSet.maps.size());
+
+  if(ImGui::Button("Reload")) {
+    view_map->loadTileset(fmt::format("tilesets/{}", ts[ts_idx]));
+    view_map->tilesCache.clear();
+    needRedraw = true;
+  }
+  ImGui::SameLine();
+  if (ImGui::Button("Save")) {
+   saveTileset();
+  }
+  ImGui::Separator();
 
   if (ImGui::TreeNode(fmt::format("Colors [{}]", view_map->colors.size()).c_str())) {
     for (auto& el : view_map->colors.items()) {
@@ -455,12 +482,18 @@ void Application::drawTilesetWindow() {
   }
 
   if (ImGui::TreeNode("Preview")) {
-    auto size = view_map->tilesTextures[0].getSize();
-    sf::Sprite s;
-    s.setTexture(view_map->tilesTextures[0]);
-    ImGui::Image(s,
-      sf::Vector2f(size.x, size.y),
-      sf::Color::White, sf::Color::Transparent);
+    auto n = 0;
+    for (auto t : view_map->tilesTextures) {
+      auto size = t.getSize();
+      sf::Sprite s;
+      s.setTexture(view_map->tilesTextures[n]);
+      ImGui::Text(view_map->tileSet.maps[n].c_str());
+      ImGui::Image(s,
+        sf::Vector2f(size.x, size.y),
+        sf::Color::White, sf::Color::Transparent);
+      ImGui::Text("\n");
+      n++;
+    }
     ImGui::TreePop();
   }
 
@@ -574,6 +607,7 @@ void Application::genLocation(int s) {
   if (locationType == LocationType::CAVERN) {
     spec.type = LocationType::CAVERN;
     spec.floor = CellType::GROUND;
+    spec.cellFeatures = {CellFeature::CAVE};
     cave_pass = false;
   } else if (locationType == LocationType::EXTERIOR) {
     spec.type = LocationType::EXTERIOR;
