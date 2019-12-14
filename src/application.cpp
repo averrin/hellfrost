@@ -1,3 +1,4 @@
+#include <iostream>
 #include <thread>   // for access to this thread
 #include <utility>   // for access to this thread
 #include <chrono>   // for access to this thread
@@ -15,6 +16,7 @@
 #include <app/ui/tile.hpp>
 #include <lss/game/cell.hpp>
 #include <lss/generator/generator.hpp>
+#include "lss/generator/mapUtils.hpp"
 
 #include <app/style/theme.h>
 
@@ -79,6 +81,13 @@ void Application::setupGui() {
 }
 
 void Application::processEvent(sf::Event event) {
+  auto pos = window->mapPixelToCoords(sf::Mouse::getPosition(*window));
+  auto _x = int(pos.x/(view_map->tileSet.size.first*scale));
+  auto _y = int(pos.y/(view_map->tileSet.size.second*scale));
+  auto rx = _x+view_map->position.first;
+  auto ry = _y+view_map->position.second;
+
+
   ImGui::SFML::ProcessEvent(event);
   switch (event.type) {
   case sf::Event::KeyPressed:
@@ -104,6 +113,20 @@ void Application::processEvent(sf::Event event) {
     case sf::Keyboard::D:
       z -= 1;
       break;
+    case sf::Keyboard::F:
+    {
+      auto [cc, _z] = view_map->getCell(rx, ry, view_map->z);
+      mapUtils::updateCell(*cc, CellType::FLOOR, (*cc)->features);
+      view_map->tilesCache.clear();
+      break;
+    }
+    case sf::Keyboard::W:
+    {
+      auto [cc, _z] = view_map->getCell(rx, ry, view_map->z);
+      mapUtils::updateCell(*cc, CellType::WALL, (*cc)->features);
+      view_map->tilesCache.clear();
+      break;
+    }
     case sf::Keyboard::R:
       seed = rand();
       genLocation(seed);
@@ -123,12 +146,6 @@ void Application::processEvent(sf::Event event) {
     break;
     case sf::Event::MouseButtonPressed:
       if (event.mouseButton.button == sf::Mouse::Right) {
-        auto pos = window->mapPixelToCoords(sf::Mouse::getPosition(*window));
-        auto x = int(pos.x/(view_map->tileSet.size.first*scale));
-        auto y = int(pos.y/(view_map->tileSet.size.second*scale));
-        auto rx = x+view_map->position.first;
-        auto ry =  y+view_map->position.second;
-
         lockedPos = {rx, ry};
       } else
       if (event.mouseButton.button == sf::Mouse::Middle) {
@@ -253,6 +270,18 @@ void Application::drawCellInfo() {
       ImGui::Text("PassThrough: %s\n", cell->passThrough ? ICON_MDI_CHECKBOX_MARKED_OUTLINE : ICON_MDI_CHECKBOX_BLANK_OUTLINE);
       ImGui::Text("SeeThrough: %s\n", cell->seeThrough ? ICON_MDI_CHECKBOX_MARKED_OUTLINE : ICON_MDI_CHECKBOX_BLANK_OUTLINE);
       ImGui::Text("Features: %d\n", cell->features.size());
+
+      std::map<CellFeature, std::string> features = {
+        {CellFeature::BLOOD, "blood"},
+        {CellFeature::CAVE, "cave"},
+        {CellFeature::FROST, "frost"},
+        {CellFeature::ACID, "acid"},
+        {CellFeature::CORRUPT, "corrupt"}
+      };
+
+      for (auto f : cell->features) {
+       ImGui::BulletText(features[f].c_str());
+      }
       if (region) {
         auto objects = (*region)->location->getObjects(cell);
         drawObjects(objects);
@@ -277,7 +306,7 @@ void Application::drawObjects(std::vector<std::shared_ptr<Object>> objects) {
         if (ImGui::TreeNode("e", "%s Enemies", ICON_MDI_SWORD_CROSS)) {
           for (auto e : enemies) {
             if (ImGui::TreeNode((void*)(intptr_t)n, "%s %s", ICON_MDI_SWORD_CROSS, e->type.name.c_str())) {
-                ImGui::Text("Position: %d.%d", e->currentCell->x, e->currentCell->y);
+                ImGui::BulletText("Position: %d.%d", e->currentCell->x, e->currentCell->y);
                 ImGui::SameLine();
                 if (ImGui::SmallButton(ICON_MDI_TARGET)) {
                   centerObject(e);
@@ -294,7 +323,7 @@ void Application::drawObjects(std::vector<std::shared_ptr<Object>> objects) {
         if (ImGui::TreeNode("t", "%s Terrain", ICON_MDI_CUBE)) {
           for (auto t : terrain) {
             if (ImGui::TreeNode((void*)(intptr_t)n, "%s %s", ICON_MDI_CUBE, t->type.name.c_str())) {
-                ImGui::Text("Position: %d.%d", t->currentCell->x, t->currentCell->y);
+                ImGui::BulletText("Position: %d.%d", t->currentCell->x, t->currentCell->y);
                 ImGui::SameLine();
                 if (ImGui::SmallButton(ICON_MDI_TARGET)) {
                   centerObject(t);
@@ -311,11 +340,31 @@ void Application::drawObjects(std::vector<std::shared_ptr<Object>> objects) {
         if (ImGui::TreeNode("i", "%s Items", ICON_MDI_SWORD)) {
           for (auto i : items) {
             if (ImGui::TreeNode((void*)(intptr_t)n, "%s %s", ICON_MDI_SWORD, i->getTitle(true).c_str())) {
-                ImGui::Text("Type: %s", i->type.name.c_str());
-                ImGui::Text("Position: %d.%d", i->currentCell->x, i->currentCell->y);
+                ImGui::BulletText("Type: %s", i->type.name.c_str());
+                ImGui::BulletText("Category: %s", i->type.category.name.c_str());
+                ImGui::BulletText("Position: %d.%d", i->currentCell->x, i->currentCell->y);
                 ImGui::SameLine();
                 if (ImGui::SmallButton(ICON_MDI_TARGET)) {
                   centerObject(i);
+                }
+                ImGui::TreePop();
+            }
+            n++;
+          }
+          ImGui::TreePop();
+        }
+      }
+      auto doors = utils::castObjects<Door>(objects);
+      if (doors.size() > 0) {
+        if (ImGui::TreeNode("d", "%s Doors", ICON_MDI_PLUS)) {
+          for (auto d : doors) {
+            if (ImGui::TreeNode((void*)(intptr_t)n, "%s %s", ICON_MDI_PLUS, "door")) {
+                ImGui::BulletText("Hidden: %s", d->hidden ? ICON_MDI_CHECKBOX_MARKED_OUTLINE : ICON_MDI_CHECKBOX_BLANK_OUTLINE);
+                ImGui::BulletText("Locked: %s", d->locked ? ICON_MDI_CHECKBOX_MARKED_OUTLINE : ICON_MDI_CHECKBOX_BLANK_OUTLINE);
+                ImGui::BulletText("Position: %d.%d", d->currentCell->x, d->currentCell->y);
+                ImGui::SameLine();
+                if (ImGui::SmallButton(ICON_MDI_TARGET)) {
+                  centerObject(d);
                 }
                 ImGui::TreePop();
             }
@@ -332,7 +381,7 @@ void Application::drawObjectsWindow() {
   ImGui::End();
 }
 
-void Application::drawMainWindow() {
+void Application::drawTilesetWindow() {
   ImGui::Begin("Tileset");
   std::vector<const char*> _ts;
   std::transform(ts.begin(), ts.end(), std::back_inserter(_ts), [](auto s) {
@@ -345,9 +394,71 @@ void Application::drawMainWindow() {
     view_map->tilesCache.clear();
     needRedraw = true;
   }
-  ImGui::Text("Size: %dx%d\n", view_map->tileSet.size.first, view_map->tileSet.size.second);
+  ImGui::BulletText("Size: %dx%d\n\n", view_map->tileSet.size.first, view_map->tileSet.size.second);
+
+  if (ImGui::TreeNode("Colors")) {
+    for (auto& el : view_map->colors.items()) {
+        if (ImGui::TreeNode(el.key().c_str())) {
+          for (auto& e : el.value().items()) {
+            auto color = Color::fromHexString(e.value());
+            float col[4] = { color.r/255.f,  color.g/255.f, color.b/255.f, color.a/255.f,};
+            ImGui::Button(e.key().c_str());
+            ImGui::SameLine(220);
+            if (ImGui::ColorEdit4(e.key().c_str(), col, ImGuiColorEditFlags_NoInputs
+                                  | ImGuiColorEditFlags_NoLabel
+                                  | ImGuiColorEditFlags_AlphaPreview
+                                  | ImGuiColorEditFlags_AlphaBar)) {
+              auto c = Color(col[0]*255, col[1]*255, col[2]*255, col[3]*255);
+              view_map->colors[el.key()][e.key()] = c.hexA();
+              view_map->tilesCache.clear();
+              needRedraw = true;
+            }
+            ImGui::SameLine();
+            ImGui::Text(color.hexA().c_str());
+          }
+          ImGui::TreePop();
+        }
+    }
+    ImGui::TreePop();
+  }
+
+  if (ImGui::TreeNode("Sprites")) {
+    for (auto [k, v] : view_map->tileSet.sprites) {
+      sf::Sprite s;
+      s.setTexture(view_map->tilesTextures[v[0]]);
+      s.setTextureRect(view_map->getTileRect(v[1], v[2]));
+      ImGui::Image(s,
+        sf::Vector2f(view_map->tileSet.size.first, view_map->tileSet.size.second),
+        sf::Color::White, sf::Color::Transparent);
+      ImGui::SameLine();
+      ImGui::Button(k.c_str());
+      ImGui::SameLine(220);
+      ImGui::SetNextItemWidth(80);
+      if (ImGui::InputInt(fmt::format("##{}{}", k, 0).c_str(), &(view_map->tileSet.sprites[k][0]))) {
+        view_map->tilesCache.clear();
+        needRedraw = true;
+      }
+      ImGui::SameLine();
+      ImGui::SetNextItemWidth(80);
+      if (ImGui::InputInt(fmt::format("##{}{}", k, 1).c_str(), &(view_map->tileSet.sprites[k][1]))) {
+        view_map->tilesCache.clear();
+        needRedraw = true;
+      }
+      ImGui::SameLine();
+      ImGui::SetNextItemWidth(80);
+      if (ImGui::InputInt(fmt::format("##{}{}", k, 2).c_str(), &(view_map->tileSet.sprites[k][2]))) {
+        view_map->tilesCache.clear();
+        needRedraw = true;
+      }
+    }
+    ImGui::TreePop();
+  }
+
   ImGui::End();
 
+}
+
+void Application::drawMainWindow() {
   ImGui::Begin("Viewport");
   ImGui::Text("Cache len: %d\n", view_map->tilesCache.size());
   ImGui::Text("Redraws: %d\n", redraws);
@@ -381,11 +492,25 @@ void Application::drawMainWindow() {
     if (vW > 200) vW = 200;
     if (vH > 200) vH = 200;
   }
+  ImGui::SameLine();
+  if (ImGui::SmallButton(ICON_MDI_FORMAT_SIZE)) {
+    scale = 1;
+    vW = view_map->width / scale;
+    vH = view_map->height / scale;
+    needRedraw = true;
+  }
 
   ImGui::End();
 
   ImGui::Begin("Location");
   ImGui::Text("Seed: %d\n", seed);
+  ImGui::SameLine();
+  if (ImGui::SmallButton(ICON_MDI_DICE_3)) {
+    seed = rand();
+    genLocation(seed);
+    needRedraw = true;
+  }
+  ImGui::Separator();
   std::vector<const char*> _lts;
   std::transform(lts.begin(), lts.end(), std::back_inserter(_lts), [](auto s) {
     char*r = new char[s.size()+1];
@@ -612,6 +737,7 @@ int Application::serve() {
     drawStatusBar(viewport->Size.x, 16.0f, 0.0f, viewport->Size.y - 24);
     drawCellInfo();
     drawMainWindow();
+    drawTilesetWindow();
     drawObjectsWindow();
 
     ImGui::SFML::Render(*window);

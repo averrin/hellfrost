@@ -31,6 +31,7 @@ public:
         void drawDocking();
         void drawMainWindow();
         void drawObjectsWindow();
+        void drawTilesetWindow();
         void drawCellInfo();
         void drawObjects(std::vector<std::shared_ptr<Object>>);
         void centerObject(std::shared_ptr<Object>);

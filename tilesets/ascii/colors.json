@@ -57,7 +57,7 @@
     "BAT": "#808080",
     "SNAKE": "#808080",
     "VIPER": "#006400",
-    "BAT_LARGE": "#a9a9a9",
+    "LARGE_BAT": "#a9a9a9",
     "GOBLIN_ROCKTHROWER": "#5050e0",
     "GOBLIN": "#00f000",
     "CULTIST": "#881111",
@@ -70,6 +70,7 @@
     "GOBLIN_LIEUTENANT": "#008b8b",
     "GOBLIN_ROGUE": "#2f4f4f",
     "ANT": "#8f4f4f",
+    "GIANT_ANT": "#8f4f4f",
     "ANT_QUEEN": "#8f6f4f",
 
     "SKELETON": "#fafafa",

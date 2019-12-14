@@ -43,16 +43,15 @@ public:
 };
 
 class Viewport {
+  std::shared_ptr<R::Generator> gen = std::make_shared<R::Generator>();
+
+public:
   sf::IntRect getTileRect(int x, int y) {
     return sf::IntRect((tileSet.size.first + tileSet.gap) * x,
                        (tileSet.size.second + tileSet.gap) * y,
                        tileSet.size.first, tileSet.size.second);
   }
 
-
-  std::shared_ptr<R::Generator> gen = std::make_shared<R::Generator>();
-
-public:
   void loadTileset(std::string_view path) {
     std::ifstream file(fmt::format("{}/{}", path, "tiles.json"));
     json tilesSpec;
@@ -149,12 +148,16 @@ std::shared_ptr<sf::Sprite> makeSprite(std::string cat, std::string key) {
     auto spec = tileSet.sprites["UNKNOWN"];
     if (tileSet.sprites.find(key) != tileSet.sprites.end()) {
       spec = tileSet.sprites[key];
+    } else  {
+      fmt::print("Missed sprite spec: {}: {}\n", cat, key);
     }
     auto s = std::make_shared<sf::Sprite>();
     s->setTexture(tilesTextures[spec[0]]);
     s->setTextureRect(getTileRect(spec[1], spec[2]));
     if (colors[cat].contains(key)) {
       s->setColor(getColor(colors[cat][key]));
+    } else {
+      fmt::print("Missed color: {}: {}\n", cat, key);
     }
     return s;
 }
@@ -165,7 +168,7 @@ std::shared_ptr<sf::Sprite> makeSprite(std::string cat, std::string key) {
     y += position.second;
 
     auto [c, rz] = getCell(x, y, z);
-    if (!c || (*c)->type == CellType::UNKNOWN) {
+    if (!c /*|| (*c)->type == CellType::UNKNOWN*/) {
       return std::nullopt;
     }
     auto cell = *c;
@@ -175,6 +178,9 @@ std::shared_ptr<sf::Sprite> makeSprite(std::string cat, std::string key) {
     // if (t != tilesCache.end() && !t->damaged) return t->second;
     if (t != tilesCache.end()) return t->second;
     auto [region, _z] = getRegion(x, y, rz);
+    if (cell->type == CellType::UNKNOWN && region && (*region)->location->type.type != LocationType::EXTERIOR) {
+      return std::nullopt;
+    }
 
     auto tile = std::make_shared<Tile>();
     auto fgColor = sf::Color(220,220,220);
@@ -185,7 +191,7 @@ std::shared_ptr<sf::Sprite> makeSprite(std::string cat, std::string key) {
       sprite_spec = tileSet.sprites["UPSTAIRS"];
     } else if (cell->type == CellType::DOWNSTAIRS) {
       sprite_spec = tileSet.sprites["DOWNSTAIRS"];
-    } else if (cell->type == CellType::WATER) {
+    } else if (cell->type == CellType::WATER || (cell->type == CellType::UNKNOWN && region && (*region)->location->type.type == LocationType::EXTERIOR)) {
       sprite_spec = tileSet.sprites["WATER"];
       fgColor = getColor(colors["ENV"]["WATER"]);
     } else if (cell->type == CellType::VOID) {

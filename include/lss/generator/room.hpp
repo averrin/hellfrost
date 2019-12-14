@@ -346,11 +346,11 @@ namespace RoomTemplates {
 
       auto cell = room->getRandomCell(CellType::FLOOR);
 
-      // auto box = LootBoxes::DUNGEON_3;
-      // for (auto item : box.open(true)) {
-      //   item->setCurrentCell(*cell);
-      //   location->addObject<Item>(item);
-      // }
+      auto box = LootBoxes::DUNGEON_3;
+      for (auto item : box.open(true)) {
+        item->setCurrentCell(*cell);
+        location->addObject<Item>(item);
+      }
 
       // for (auto c: innerRoom->cells) {
       //   mapUtils::updateCell(c, CellType::FLOOR, {CellFeature::BLOOD});
