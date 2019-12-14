@@ -396,9 +396,9 @@ void Application::drawTilesetWindow() {
   }
   ImGui::BulletText("Size: %dx%d\n\n", view_map->tileSet.size.first, view_map->tileSet.size.second);
 
-  if (ImGui::TreeNode("Colors")) {
+  if (ImGui::TreeNode(fmt::format("Colors [{}]", view_map->colors.size()).c_str())) {
     for (auto& el : view_map->colors.items()) {
-        if (ImGui::TreeNode(el.key().c_str())) {
+        if (ImGui::TreeNode(fmt::format("{} [{}]", el.key().c_str(), el.value().size()).c_str())) {
           for (auto& e : el.value().items()) {
             auto color = Color::fromHexString(e.value());
             float col[4] = { color.r/255.f,  color.g/255.f, color.b/255.f, color.a/255.f,};
@@ -422,7 +422,7 @@ void Application::drawTilesetWindow() {
     ImGui::TreePop();
   }
 
-  if (ImGui::TreeNode("Sprites")) {
+  if (ImGui::TreeNode(fmt::format("Sprites [{}]", view_map->tileSet.sprites.size()).c_str())) {
     for (auto [k, v] : view_map->tileSet.sprites) {
       sf::Sprite s;
       s.setTexture(view_map->tilesTextures[v[0]]);
@@ -451,6 +451,16 @@ void Application::drawTilesetWindow() {
         needRedraw = true;
       }
     }
+    ImGui::TreePop();
+  }
+
+  if (ImGui::TreeNode("Preview")) {
+    auto size = view_map->tilesTextures[0].getSize();
+    sf::Sprite s;
+    s.setTexture(view_map->tilesTextures[0]);
+    ImGui::Image(s,
+      sf::Vector2f(size.x, size.y),
+      sf::Color::White, sf::Color::Transparent);
     ImGui::TreePop();
   }
 
