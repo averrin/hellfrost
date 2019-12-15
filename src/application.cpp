@@ -55,10 +55,10 @@ int ts_idx = 0;
 auto ts = std::vector<std::string>{"ascii", "vettlingr", "esoteric", "spacefox"};
 std::optional<std::pair<int, int>> lockedPos = std::nullopt;
 
-int lts_idx = 0;
+int lts_idx = 2;
 auto lts = std::vector<std::string>{"dungeon", "cavern", "exterior"};
 auto lt = std::vector<LocationType>{LocationType::DUNGEON, LocationType::CAVERN, LocationType::EXTERIOR};
-auto locationType = LocationType::DUNGEON;
+auto locationType = LocationType::EXTERIOR;
 
 void Application::setupGui() {
 
@@ -546,7 +546,10 @@ void Application::drawMainWindow() {
   ImGui::End();
 
   ImGui::Begin("Location");
-  ImGui::Text("Seed: %d\n", seed);
+  if (ImGui::InputInt("Seed", &seed)) {
+    genLocation(seed);
+    needRedraw = true;
+  }
   ImGui::SameLine();
   if (ImGui::SmallButton(ICON_MDI_DICE_3)) {
     seed = rand();

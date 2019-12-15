@@ -767,6 +767,79 @@ void makePassages(std::shared_ptr<Location> location) {
   }
 }
 
+void makeExterior(std::shared_ptr<Location> location) {
+  dlog("place caves");
+  auto rc = rand() % 20 + 35;
+
+  location->cells = mapUtils::fill(HEIGHT*2, WIDTH*2, CellType::UNKNOWN);
+  for (auto n = 0; n < rc; n++) {
+    auto room = Room::makeRoom(34, 12, 34, 12, CellType::WALL);
+
+    for (auto c : room->cells) {
+      if (R::R() > 0.45) {
+        c->type = CellType::GROUND;
+        c->passThrough = true;
+      }
+    }
+    auto ry = rand() % (location->cells.size() - room->height - 8) + 8;
+    auto rx = rand() % (location->cells.front().size() - room->width - 8) + 8;
+    mapUtils::paste(room->cells, location, rx, ry);
+    room->x = rx;
+    room->y = ry;
+    room->threat = rand() % 4;
+    room->features.push_back(RoomFeature::CAVE);
+    location->rooms.push_back(room);
+
+    for (auto c : room->cells) {
+      c->room = room;
+    }
+  }
+  fixOverlapped(location);
+
+    makePassages(location);
+
+      for (auto n = 0; n < rand() % 4 + 2; n++) {
+        auto _cells = location->cells;
+        std::shuffle(_cells.begin(), _cells.end(), std::default_random_engine(rand()));
+        for (auto r : _cells) {
+          std::shuffle(r.begin(), r.end(), std::default_random_engine(rand()));
+          for (auto c : r) {
+            if (c->type == CellType::UNKNOWN) {
+              auto n = location->getNeighbors(c);
+              auto fn =
+                  std::count_if(n.begin(), n.end(), [=](std::shared_ptr<Cell> nc) {
+                    return nc->type != CellType::UNKNOWN;
+                  });
+              if (fn >= 4 && rand() % 10 < 8 || fn == 3) {
+                // c->type = CellType::GROUND;
+                mapUtils::updateCell(location->cells[c->y][c->x], CellType::GROUND, c->features);
+              }
+            } else {
+              auto n = location->getNeighbors(c);
+              auto fn =
+                  std::count_if(n.begin(), n.end(), [=](std::shared_ptr<Cell> nc) {
+                    return nc->type == CellType::UNKNOWN;
+                  });
+                  if (fn >= 4) {
+                    c->type = CellType::UNKNOWN;
+                    // mapUtils::updateCell(location->cells[y][x], CellType::UNKNOWN, c->features);
+                  }
+
+            }
+          }
+        }
+      }
+
+        for (auto r : location->cells) {
+          for (auto c : r) {
+            if (c->type != CellType::UNKNOWN) {
+              mapUtils::updateCell(location->cells[c->y][c->x], CellType::GROUND, c->features);
+            }
+          }
+        }
+
+}
+
 void placeRooms(std::shared_ptr<Location> location) {
   dlog("place rooms");
   auto rc = rand() % 12 + 7;
@@ -1022,9 +1095,15 @@ std::shared_ptr<Location> Generator::getLocation(LocationSpec spec) {
     timings["placeCaves"] = end - start;
   } else if (spec.type == LocationType::EXTERIOR) {
     start = std::chrono::system_clock::now();
-    placeCaves(location);
+    // placeCaves(location);
+    //
+    // location->cells = mapUtils::fill(HEIGHT, WIDTH, CellType::UNKNOWN);
+    // auto room = Room::makeBlob(location, 100, 90, 100, 90, CellType::GROUND, CellType::UNKNOWN, true);
+    // mapUtils::paste(room->cells, location, 0, 0);
+    makeExterior(location);
     end = std::chrono::system_clock::now();
-    timings["placeCaves"] = end - start;
+    timings["gen ground"] = end - start;
+    return location;
   }
 
   start = std::chrono::system_clock::now();
@@ -1086,20 +1165,23 @@ std::shared_ptr<Location> Generator::getLocation(LocationSpec spec) {
   }
 
   start = std::chrono::system_clock::now();
-  auto success = placeStairs(location);
 
-  if (!success) {
-    log.info(lu::green("MAPGEN"), "regen location");
-    dlog("regen location");
-    return getLocation(spec);
+  if (spec.type != LocationType::EXTERIOR) {
+    auto success = placeStairs(location);
+
+    if (!success) {
+      log.info(lu::green("MAPGEN"), "regen location");
+      dlog("regen location");
+      return getLocation(spec);
+    }
+    end = std::chrono::system_clock::now();
+    timings["placeStairs"] = end - start;
+
+    start = std::chrono::system_clock::now();
+    placeWalls(location);
+    end = std::chrono::system_clock::now();
+    timings["placeWalls"] = end - start;
   }
-  end = std::chrono::system_clock::now();
-  timings["placeStairs"] = end - start;
-
-  start = std::chrono::system_clock::now();
-  placeWalls(location);
-  end = std::chrono::system_clock::now();
-  timings["placeWalls"] = end - start;
 
   if (spec.type == LocationType::DUNGEON) {
     start = std::chrono::system_clock::now();
