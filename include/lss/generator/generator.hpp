@@ -6,8 +6,15 @@
 class Generator {
   LibLog::Logger &log = LibLog::Logger::getInstance();
 public:
-  Generator();
+    Generator(std::map<std::string, float> p): probabilities(p) {}
   std::shared_ptr<Location> getLocation(LocationSpec);
+  std::map<std::string, float> probabilities;
+
+
+  void makeCavePassage(std::shared_ptr<Location> location);
+  void placeCaves(std::shared_ptr<Location> location);
+  void makeExterior(std::shared_ptr<Location> location);
+  void placeDoors(std::shared_ptr<Location> location);
   // std::shared_ptr<Location>
 //   getRandomLocation(std::shared_ptr<Player>, int depth = -1,
 //                     std::shared_ptr<Cell> enter = nullptr);

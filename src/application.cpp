@@ -28,6 +28,8 @@ Application::Application(std::string app_name, std::string version, int s)
   seed = s;
   fmt::print("Seed: {}\n", seed);
   srand(seed);
+
+  loadSpec();
   setupGui();
 }
 
@@ -286,6 +288,7 @@ void Application::drawCellInfo() {
         auto objects = (*region)->location->getObjects(cell);
         drawObjects(objects);
       }
+
       ImGui::End();
     }
 }
@@ -597,8 +600,54 @@ void Application::drawMainWindow() {
       needRedraw = true;
     }
   }
-
   ImGui::End();
+
+  ImGui::Begin("Specification");
+  if(ImGui::Button("Apply")) {
+    view_map->tilesCache.clear();
+    genLocation(seed);
+    needRedraw = true;
+  }
+  ImGui::SameLine();
+  if(ImGui::Button("Reload")) {
+    loadSpec();
+
+    view_map->tilesCache.clear();
+    genLocation(seed);
+    needRedraw = true;
+  }
+  ImGui::SameLine();
+  if (ImGui::Button("Save")) {
+    saveSpec();
+  }
+  ImGui::Separator();
+
+  if (ImGui::CollapsingHeader("Probabilities")) {
+    for (auto [k, _] : generator->probabilities) {
+      ImGui::SetNextItemWidth(80);
+      ImGui::InputFloat(k.c_str(), &generator->probabilities[k]);
+    }
+  }
+  ImGui::End();
+}
+
+void Application::saveSpec() {
+    std::ofstream file(fmt::format("location.bin"));
+    json j;
+    j["PROBABILITIES"] = generator->probabilities;
+    auto bj = json::to_bson(j);
+    std::copy(bj.begin(), bj.end(), std::ostreambuf_iterator(file));
+}
+
+void Application::loadSpec() {
+    std::ifstream file(fmt::format("location.bin"));
+    std::istreambuf_iterator iter(file);
+    std::vector<char> bj;
+    std::copy(iter, std::istreambuf_iterator<char>{}, std::back_inserter(bj));
+    json p = json::from_bson(bj);
+
+    auto probs = p["PROBABILITIES"].get<std::map<std::string, float>>();
+    generator = std::make_shared<Generator>(probs);
 }
 
 void Application::genLocation(int s) {
@@ -656,6 +705,7 @@ void Application::genLocation(int s) {
   }
 
   srand(s);
+
   auto l = generator->getLocation(spec);
   log.stop(label);
 
@@ -674,7 +724,6 @@ void Application::genLocation(int s) {
 int Application::serve() {
   log.info("serve");
   sf::Clock deltaClock;
-
 
   std::shared_ptr<R::Generator> gen = std::make_shared<R::Generator>();
 

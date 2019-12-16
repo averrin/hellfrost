@@ -84,9 +84,10 @@
     },
     "TERRAIN": {
         "ALTAR": "#555",
-        "BUSH": "#33cc11",
+        "BUSH": "#2cb10eff",
         "CRATE": "#7d7369",
         "STATUE": "#f0f0ff",
-        "TORCH_STAND": "#ffa500"
+        "TORCH_STAND": "#ffa500",
+        "TREE": "#348e48ff"
     }
 }

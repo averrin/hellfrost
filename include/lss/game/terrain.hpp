@@ -79,6 +79,7 @@ const auto STATUE = TerrainSpec{
     "statue", false, false, -1, true, LightSpec{1.5, LightType::MAGIC}};
 const auto ALTAR = TerrainSpec{"altar", true, true, -1, false};
 const auto CRATE = TerrainSpec{"crate", true, false};
+const auto TREE = TerrainSpec{"tree", false, false};
 const auto BUSH = TerrainSpec{"bush", false, true};
 const auto FIREBALL =
     TerrainSpec{"fireball", true,  true,

@@ -33,6 +33,8 @@ public:
         void drawObjectsWindow();
         void drawTilesetWindow();
 
+        void loadSpec();
+        void saveSpec();
         void saveTileset();
         void drawCellInfo();
         void drawObjects(std::vector<std::shared_ptr<Object>>);
