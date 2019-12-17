@@ -8,7 +8,7 @@ struct Trait {
   friend bool operator==(Trait &t1, const Trait &t2) {
     return t1.name == t2.name;
   }
-  friend bool operator<(Trait &t1, const Trait &t2) {
+  friend bool operator<(const Trait &t1, const Trait &t2) {
     return t1.name < t2.name;
   }
 };

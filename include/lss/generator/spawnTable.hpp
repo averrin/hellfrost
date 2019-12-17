@@ -5,7 +5,7 @@
 #include <map>
 
 namespace SpawnTable {
-const std::map<int, std::map<const EnemySpec, float>> DUNGEON = {
+const std::map<int, std::map<EnemySpec, float>> DUNGEON = {
     {0,
      {
          {EnemyType::RAT, 0.4},

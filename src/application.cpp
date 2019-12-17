@@ -3,7 +3,7 @@
 #include <utility>   // for access to this thread
 #include <chrono>   // for access to this thread
 
-#include "app/application.hpp"
+#include <app/application.hpp>
 
 #include <imgui-sfml/imgui-SFML.h>
 #include <imgui/imgui.h>
@@ -16,18 +16,41 @@
 #include <app/ui/tile.hpp>
 #include <lss/game/cell.hpp>
 #include <lss/generator/generator.hpp>
-#include "lss/generator/mapUtils.hpp"
+#include <lss/generator/mapUtils.hpp>
 
 #include <app/style/theme.h>
+#include <entt/entt.hpp>
 
 // static ImGuiDockNodeFlags opt_flags = ImGuiDockNodeFlags_PassthruCentralNode;
 static ImGuiDockNodeFlags opt_flags = ImGuiDockNodeFlags_PassthruCentralNode;
 
-Application::Application(std::string app_name, std::string version, int s)
-    : APP_NAME(app_name), VERSION(version) {
+#ifdef __APPLE__
+  float GUI_SCALE = 2.f;
+#else
+  float GUI_SCALE = 1.f;
+#endif
+
+auto DEFAULT_TILESET = "ascii";
+int ts_idx = 0;
+std::vector<std::string> ts;
+Application::Application(std::string app_name, fs::path path, std::string version, int s)
+    : APP_NAME(app_name), VERSION(version), PATH(path) {
   seed = s;
   fmt::print("Seed: {}\n", seed);
+  fmt::print("Path: {}\n", PATH.string());
   srand(seed);
+
+  auto n = 0;
+  for (auto entity : fs::directory_iterator(PATH / "tilesets")) {
+    if (fs::is_directory(entity)) {
+      auto tileset = entity.path().filename().string();
+      if (tileset == DEFAULT_TILESET) {
+        ts_idx = n;
+      }
+      ts.push_back(tileset);
+      n++;
+    }
+  }
 
   loadSpec();
   setupGui();
@@ -52,13 +75,10 @@ bool corrupt = false;
 bool ice = false;
 int vW;
 int vH;
-int ts_idx = 0;
-//TODO: read sets from folder
-auto ts = std::vector<std::string>{"ascii", "vettlingr", "esoteric", "spacefox"};
 std::optional<std::pair<int, int>> lockedPos = std::nullopt;
 
 int lts_idx = 2;
-auto lts = std::vector<std::string>{"dungeon", "cavern", "exterior"};
+std::vector<std::string> lts = {"dungeon", "cavern", "exterior"};
 auto lt = std::vector<LocationType>{LocationType::DUNGEON, LocationType::CAVERN, LocationType::EXTERIOR};
 auto locationType = LocationType::EXTERIOR;
 
@@ -70,8 +90,9 @@ void Application::setupGui() {
   Theme::Init();
 
   ImGuiIO &io = ImGui::GetIO();
+  io.FontGlobalScale = GUI_SCALE;
 
- window = new sf::RenderWindow(sf::VideoMode::getDesktopMode(), APP_NAME,
+  window = new sf::RenderWindow(sf::VideoMode::getDesktopMode(), APP_NAME,
                                 sf::Style::Default, settings);
   window->setVerticalSyncEnabled(true);
 
@@ -84,8 +105,8 @@ void Application::setupGui() {
 
 void Application::processEvent(sf::Event event) {
   auto pos = window->mapPixelToCoords(sf::Mouse::getPosition(*window));
-  auto _x = int(pos.x/(view_map->tileSet.size.first*scale));
-  auto _y = int(pos.y/(view_map->tileSet.size.second*scale));
+  auto _x = int(pos.x/(view_map->tileSet.size.first*scale*GUI_SCALE));
+  auto _y = int(pos.y/(view_map->tileSet.size.second*scale*GUI_SCALE));
   auto rx = _x+view_map->position.first;
   auto ry = _y+view_map->position.second;
 
@@ -161,7 +182,7 @@ void Application::processEvent(sf::Event event) {
 void Application::drawDocking() {
     ImGuiViewport *viewport = ImGui::GetMainViewport();
     ImGuiWindowFlags window_flags =
-        ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoDocking;
+        /*ImGuiWindowFlags_MenuBar | */ImGuiWindowFlags_NoDocking;
 
     // When using ImGuiDockNodeFlags_PassthruCentralNode, DockSpace() will
     // render our background and handle the pass-thru hole, so we ask Begin() to
@@ -218,7 +239,7 @@ void Application::drawStatusBar(float width, float height, float pos_x,
   // DrawInsideStatusBar(width - 45.0f, height);
 
   // Draw the common stuff
-  ImGui::SameLine(width - 60.0f);
+  ImGui::SameLine(width - 60.0f*GUI_SCALE);
   Font font(Font::FAMILY_MONOSPACE);
   font.Normal().Regular().SmallSize();
   ImGui::PushFont(font.ImGuiFont());
@@ -232,11 +253,11 @@ bool h_v = true;
 void Application::drawCellInfo() {
     sf::Vector2<float> pos =
         window->mapPixelToCoords(sf::Mouse::getPosition(*window));
-    auto x = int(pos.x/(view_map->tileSet.size.first*scale));
-    auto y = int(pos.y/(view_map->tileSet.size.second*scale));
+    auto x = int(pos.x/(view_map->tileSet.size.first*scale*GUI_SCALE));
+    auto y = int(pos.y/(view_map->tileSet.size.second*scale*GUI_SCALE));
 
     sf::RectangleShape bg;
-    bg.setSize(sf::Vector2f(view_map->tileSet.size.first, view_map->tileSet.size.second)*scale);
+    bg.setSize(sf::Vector2f(view_map->tileSet.size.first, view_map->tileSet.size.second)*scale*GUI_SCALE);
     bg.setFillColor(sf::Color::Transparent);
     bg.setOutlineColor(sf::Color(200,124,70));
     auto rx = x+view_map->position.first;
@@ -261,7 +282,7 @@ void Application::drawCellInfo() {
     bg.setPosition(sf::Vector2f(
                      x*view_map->tileSet.size.first,
                      y*view_map->tileSet.size.second
-    )*scale);
+    )*scale*GUI_SCALE);
     window->draw(bg);
 
     if (cc) {
@@ -271,7 +292,7 @@ void Application::drawCellInfo() {
       ImGui::Text("Type: %s\n", cell->type.name.c_str());
       ImGui::Text("PassThrough: %s\n", cell->passThrough ? ICON_MDI_CHECKBOX_MARKED_OUTLINE : ICON_MDI_CHECKBOX_BLANK_OUTLINE);
       ImGui::Text("SeeThrough: %s\n", cell->seeThrough ? ICON_MDI_CHECKBOX_MARKED_OUTLINE : ICON_MDI_CHECKBOX_BLANK_OUTLINE);
-      ImGui::Text("Features: %d\n", cell->features.size());
+      ImGui::Text("Features: %lu\n", cell->features.size());
 
       std::map<CellFeature, std::string> features = {
         {CellFeature::BLOOD, "blood"},
@@ -282,7 +303,7 @@ void Application::drawCellInfo() {
       };
 
       for (auto f : cell->features) {
-       ImGui::BulletText(features[f].c_str());
+       ImGui::BulletText("%s", features[f].c_str());
       }
       if (region) {
         auto objects = (*region)->location->getObjects(cell);
@@ -295,14 +316,14 @@ void Application::drawCellInfo() {
 
 void Application::centerObject(std::shared_ptr<Object> o) {
     lockedPos = {o->currentCell->x, o->currentCell->y};
-    x = o->currentCell->x-view_map->width/2;
-    y = o->currentCell->y-view_map->height/2;
+    x = o->currentCell->x-view_map->width/2/GUI_SCALE;
+    y = o->currentCell->y-view_map->height/2/GUI_SCALE;
     view_map->position = {x, y};
     needRedraw = true;
 }
 
 void Application::drawObjects(std::vector<std::shared_ptr<Object>> objects) {
-      ImGui::Text("%s Objects: %d\n", ICON_MDI_CUBE_OUTLINE, objects.size());
+      ImGui::Text("%s Objects: %lu\n", ICON_MDI_CUBE_OUTLINE, objects.size());
       auto enemies = utils::castObjects<Enemy>(objects);
       auto n = 0;
       if (enemies.size() > 0) {
@@ -385,8 +406,8 @@ void Application::drawObjectsWindow() {
 }
 
 void Application::saveTileset() {
-  auto path = fmt::format("tilesets/{}", ts[ts_idx]);
-  std::ofstream o(fmt::format("{}/colors.json", path));
+  auto path = PATH / fs::path("tilesets") / ts[ts_idx];
+  std::ofstream o(path / "colors.json");
   o << std::setw(4) << view_map->colors << std::endl;
 
   json j;
@@ -395,7 +416,7 @@ void Application::saveTileset() {
   j["GAP"] = view_map->tileSet.gap;
   j["SPRITES"] = view_map->tileSet.sprites;
 
-  std::ofstream o2(fmt::format("{}/tiles.json", path));
+  std::ofstream o2(path / "tiles.json");
   o2 << std::setw(4) << j << std::endl;
 }
 
@@ -408,15 +429,17 @@ void Application::drawTilesetWindow() {
     return r;
   });
   if (ImGui::Combo("Tileset", &ts_idx, _ts.data(), ts.size())) {
-    view_map->loadTileset(fmt::format("tilesets/{}", ts[ts_idx]));
+    auto path = PATH / fs::path("tilesets") / ts[ts_idx];
+    view_map->loadTileset(path);
     view_map->tilesCache.clear();
     needRedraw = true;
   }
   ImGui::BulletText("Size: %dx%d; gap: %d\n", view_map->tileSet.size.first, view_map->tileSet.size.second, view_map->tileSet.gap);
-  ImGui::BulletText("Maps: %d\n", view_map->tileSet.maps.size());
+  ImGui::BulletText("Maps: %lu\n", view_map->tileSet.maps.size());
 
   if(ImGui::Button("Reload")) {
-    view_map->loadTileset(fmt::format("tilesets/{}", ts[ts_idx]));
+    auto path = PATH / fs::path("tilesets") / ts[ts_idx];
+    view_map->loadTileset(path);
     view_map->tilesCache.clear();
     needRedraw = true;
   }
@@ -444,7 +467,7 @@ void Application::drawTilesetWindow() {
               needRedraw = true;
             }
             ImGui::SameLine();
-            ImGui::Text(color.hexA().c_str());
+            ImGui::Text("%s", color.hexA().c_str());
           }
           ImGui::TreePop();
         }
@@ -490,7 +513,7 @@ void Application::drawTilesetWindow() {
       auto size = t.getSize();
       sf::Sprite s;
       s.setTexture(view_map->tilesTextures[n]);
-      ImGui::Text(view_map->tileSet.maps[n].c_str());
+      ImGui::Text("%s", view_map->tileSet.maps[n].c_str());
       ImGui::Image(s,
         sf::Vector2f(size.x, size.y),
         sf::Color::White, sf::Color::Transparent);
@@ -506,12 +529,12 @@ void Application::drawTilesetWindow() {
 
 void Application::drawMainWindow() {
   ImGui::Begin("Viewport");
-  ImGui::Text("Cache len: %d\n", view_map->tilesCache.size());
+  ImGui::Text("Cache len: %lu\n", view_map->tilesCache.size());
   ImGui::Text("Redraws: %d\n", redraws);
   ImGui::Text("Tiles updated: %d\n\n", tilesUpdated);
   if (ImGui::SliderInt("viewport->width", &view_map->width, 10, 200)) {
     needRedraw = true;
-    vW = view_map->width / scale;
+    vW = view_map->width / scale*GUI_SCALE;
     if (vW > 200) vW = 200;
   }
   if (ImGui::SliderInt("viewport->height", &view_map->height, 10, 200)) {
@@ -632,7 +655,7 @@ void Application::drawMainWindow() {
 }
 
 void Application::saveSpec() {
-    std::ofstream file(fmt::format("location.bin"));
+    std::ofstream file(PATH / "location.bin");
     json j;
     j["PROBABILITIES"] = generator->probabilities;
     auto bj = json::to_bson(j);
@@ -640,7 +663,7 @@ void Application::saveSpec() {
 }
 
 void Application::loadSpec() {
-    std::ifstream file(fmt::format("location.bin"));
+    std::ifstream file(PATH / "location.bin");
     std::istreambuf_iterator iter(file);
     std::vector<char> bj;
     std::copy(iter, std::istreambuf_iterator<char>{}, std::back_inserter(bj));
@@ -735,7 +758,7 @@ int Application::serve() {
 
   genLocation(seed);
 
-  view_map->loadTileset(fmt::format("tilesets/{}", ts[ts_idx]));
+  view_map->loadTileset(PATH / "tilesets" / ts[ts_idx]);
 
   auto c = Color::fromHexString(view_map->colors["PALETTE"]["BACKGROUND"]);
   auto bgColor = sf::Color(c.r, c.g, c.b, c.a);
@@ -786,14 +809,31 @@ int Application::serve() {
     if (needRedraw) {
       canvas->clear(bgColor);
       log.start("tiles", true);
-      for (auto ly = 0; ly < vH; ly++) {
-        for (auto lx = 0; lx < vW; lx++) {
+      std::list<int> h(vH);
+      std::iota(h.begin(), h.end(), 0);
+      std::list<int> w(vW);
+      std::iota(w.begin(), w.end(), 0);
+// #ifdef __APPLE__
+      for (auto ly : h) {
+        for (auto lx : w) {
           auto t = view_map->getTile(lx, ly, view_map->z);
           if (t) {
             renderTile(canvas, *t);
           }
         }
       }
+// #else
+//       #include <execution>
+//       #include <algorithm>
+//       std::for_each(std::execution::par, h.begin(), h.end(), [&](auto ly){
+//         std::for_each(std::execution::par, w.begin(), w.end(), [&, =ly](auto lx){
+//           auto t = view_map->getTile(lx, ly, view_map->z);
+//           if (t) {
+//             renderTile(canvas, *t);
+//           }
+//         });
+//       });
+// #endif
       log.stop("tiles", 50);
       needRedraw = false;
       canvas->display();
@@ -805,11 +845,11 @@ int Application::serve() {
         auto t = view_map->getTile(d.first, d.second, view_map->z);
         if (t) {
           sf::RectangleShape bg;
-          bg.setSize(sf::Vector2f(view_map->tileSet.size.first, view_map->tileSet.size.second)*scale);
+          bg.setSize(sf::Vector2f(view_map->tileSet.size.first, view_map->tileSet.size.second)*scale*GUI_SCALE);
           bg.setFillColor(bgColor);
-          bg.setPosition((*t)->pos*scale);
-          bg.move(-view_map->tileSet.size.first*view_map->position.first*scale,
-                    -view_map->tileSet.size.second*view_map->position.second*scale );
+          bg.setPosition((*t)->pos*scale*GUI_SCALE);
+          bg.move(-view_map->tileSet.size.first*view_map->position.first*scale*GUI_SCALE,
+                    -view_map->tileSet.size.second*view_map->position.second*scale*GUI_SCALE );
           renderTile(canvas, *t);
           canvas->display();
           cacheTex->display();
@@ -852,22 +892,22 @@ int Application::serve() {
 void Application::renderTile(std::shared_ptr<sf::RenderTexture> canvas, std::shared_ptr<Tile> t) {
   sf::RectangleShape bg;
   if (t->hasBackground) {
-    bg.setSize(sf::Vector2f(view_map->tileSet.size.first, view_map->tileSet.size.second)*scale);
+    bg.setSize(sf::Vector2f(view_map->tileSet.size.first, view_map->tileSet.size.second)*scale*GUI_SCALE);
     bg.setFillColor(t->bgColor);
-    bg.setPosition(t->pos*scale);
-    bg.move(-view_map->tileSet.size.first*view_map->position.first*scale,
-              -view_map->tileSet.size.second*view_map->position.second*scale );
+    bg.setPosition(t->pos*scale*GUI_SCALE);
+    bg.move(-view_map->tileSet.size.first*view_map->position.first*scale*GUI_SCALE,
+              -view_map->tileSet.size.second*view_map->position.second*scale*GUI_SCALE );
     if (t->sprites.size() == 0 || t->bgLayer == 0) {
       canvas->draw(bg);
     }
   }
   auto n = 0;
   for (auto sprite : t->sprites) {
-    sprite->setPosition(t->pos*scale);
-    sprite->move(-view_map->tileSet.size.first*view_map->position.first*scale,
-              -view_map->tileSet.size.second*view_map->position.second*scale );
+    sprite->setPosition(t->pos*scale*GUI_SCALE);
+    sprite->move(-view_map->tileSet.size.first*view_map->position.first*scale*GUI_SCALE,
+              -view_map->tileSet.size.second*view_map->position.second*scale*GUI_SCALE );
     auto s = *sprite;
-    s.setScale(sf::Vector2f(scale, scale));
+    s.setScale(sf::Vector2f(scale*GUI_SCALE, scale*GUI_SCALE));
     canvas->draw(s);
     n++;
     if (n == t->bgLayer && t->hasBackground) {
@@ -878,9 +918,9 @@ void Application::renderTile(std::shared_ptr<sf::RenderTexture> canvas, std::sha
   rectangle.setOutlineColor(sf::Color(255,12,12));
   rectangle.setOutlineThickness(1);
   rectangle.setFillColor(sf::Color(255,12,12, 0));
-  rectangle.setSize(sf::Vector2f(view_map->tileSet.size.first, view_map->tileSet.size.second)*scale);
-  rectangle.setPosition(t->pos*scale);
-    rectangle.move(-view_map->tileSet.size.first*view_map->position.first*scale,
-              -view_map->tileSet.size.second*view_map->position.second*scale );
+  rectangle.setSize(sf::Vector2f(view_map->tileSet.size.first, view_map->tileSet.size.second)*scale*GUI_SCALE);
+  rectangle.setPosition(t->pos*scale*GUI_SCALE);
+    rectangle.move(-view_map->tileSet.size.first*view_map->position.first*scale*GUI_SCALE,
+              -view_map->tileSet.size.second*view_map->position.second*scale*GUI_SCALE );
   // canvas->draw(rectangle);
 }

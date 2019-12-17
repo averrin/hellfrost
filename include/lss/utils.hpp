@@ -7,10 +7,10 @@
 #include <set>
 #include <sstream>
 #include <string>
+#include <array>
 #include <vector>
 
 #include <fmt/format.h>
-#include <rang.hpp>
 #include <liblog/liblog.hpp>
 
 #include <lss/game/direction.hpp>

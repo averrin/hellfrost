@@ -1,7 +1,6 @@
 #include <chrono>
 #include <fmt/format.h>
 #include <iostream>
-#include <rang.hpp>
 #include <set>
 
 // #include "EventBus/EventBus.hpp"
@@ -19,9 +18,10 @@
 #include "lss/generator/lootTable.hpp"
 #include "lss/generator/mapUtils.hpp"
 #include "lss/utils.hpp"
+#include <liblog/liblog.hpp>
 
 #ifndef GEN_DEBUG
-#define GEN_DEBUG true
+#define GEN_DEBUG false
 #endif
 
 void dlog(std::string msg) {
@@ -433,7 +433,7 @@ void placeLoot(std::shared_ptr<Location> location, int threat) {
 
 void placeEnemies(std::shared_ptr<Location> location, int threat) {
   dlog("place enemies");
-  std::map<const EnemySpec, float> table;
+  std::map<EnemySpec, float> table;
   auto pather = new micropather::MicroPather(location.get());
   micropather::MPVector<void *> path;
   float totalCost = 0;
@@ -1042,13 +1042,6 @@ std::shared_ptr<Location> Generator::getLocation(LocationSpec spec) {
 
   auto location = std::make_shared<Location>(spec);
   location->depth = spec.threat;
-  if (GEN_DEBUG) {
-    std::cout << rang::fg::yellow
-              << (spec.type == LocationType::DUNGEON ? "DUN" : "CAV")
-              << location->getFeaturesTag() << "  " << location->depth
-              << rang::style::reset << " gen started" << rang::style::reset
-              << '\n';
-  }
 
   if (spec.type == LocationType::DUNGEON) {
     start = std::chrono::system_clock::now();
@@ -1237,14 +1230,5 @@ std::shared_ptr<Location> Generator::getLocation(LocationSpec spec) {
   auto t1 = std::chrono::system_clock::now();
   using milliseconds = std::chrono::duration<double, std::milli>;
   milliseconds ms = t1 - t0;
-  if (GEN_DEBUG) {
-    std::cout << rang::fg::blue
-              << (spec.type == LocationType::DUNGEON ? "DUN" : "CAV")
-              << location->getFeaturesTag() << "  " << location->depth
-              << rang::style::reset
-              << " location gen time taken: " << rang::fg::green << ms.count()
-              << rang::style::reset << '\n';
-    std::cout << lu::join(timeMarks, ", ") << std::endl;
-  }
   return location;
 }

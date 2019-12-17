@@ -20,6 +20,18 @@
 #include <lss/game/enemy.hpp>
 #include <lss/utils.hpp>
 
+#if defined(__cplusplus) && __cplusplus >= 201703L && defined(__has_include)
+#if __has_include(<filesystem>)
+#define GHC_USE_STD_FS
+#include <experimental/filesystem>
+namespace fs = std::experimental::filesystem;
+#endif
+#endif
+#ifndef GHC_USE_STD_FS
+#include <filesystem.hpp>
+namespace fs = ghc::filesystem;
+#endif
+
 using json = nlohmann::json;
 using Color = LibColor::Color;
 
@@ -52,8 +64,8 @@ public:
                        tileSet.size.first, tileSet.size.second);
   }
 
-  void loadTileset(std::string_view path) {
-    std::ifstream file(fmt::format("{}/{}", path, "tiles.json"));
+  void loadTileset(fs::path path) {
+    std::ifstream file(path / "tiles.json");
     json tilesSpec;
     file >> tilesSpec;
     tileSet = TileSet{
@@ -63,13 +75,13 @@ public:
       tilesSpec["SPRITES"],
     };
 
-    std::ifstream cfile(fmt::format("{}/{}", path, "colors.json"));
+    std::ifstream cfile(path / "colors.json");
     cfile >> colors;
 
     tilesTextures.clear();
     for (auto t_path : tileSet.maps) {
       sf::Texture t;
-      t.loadFromFile(fmt::format("{}/{}", path,  t_path));
+      t.loadFromFile(path / t_path);
       tilesTextures.push_back(t);
     }
 

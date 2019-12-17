@@ -41,7 +41,7 @@
         "VOID": "#333333",
         "WALL": "#6d6359",
         "WALL_CAVE": "#6B4F20cc",
-        "WATER": "#4444aa"
+        "WATER": "#484886d9"
     },
     "ITEMS": {
         "AMULET": "#9043c7ff",

@@ -1,7 +1,6 @@
 #include <algorithm>
 #include <chrono>
 #include <memory>
-#include <rang.hpp>
 
 #include "EventBus/EventBus.hpp"
 // #include "lss/game/enemy.hpp"

@@ -6,6 +6,19 @@
 
 #include <liblog/liblog.hpp>
 
+#if defined(__cplusplus) && __cplusplus >= 201703L && defined(__has_include)
+#if __has_include(<filesystem>)
+#define GHC_USE_STD_FS
+#include <experimental/filesystem>
+namespace fs = std::experimental::filesystem;
+#endif
+#endif
+#ifndef GHC_USE_STD_FS
+#include <filesystem.hpp>
+namespace fs = ghc::filesystem;
+#endif
+
+
 class Tile;
 class Viewport;
 class Generator;
@@ -14,13 +27,14 @@ class Application {
         bool needRedraw = true;
         std::vector<std::pair<int, int>> damage;
 public:
-        Application(std::string, std::string, int);
+        Application(std::string, fs::path, std::string, int);
         ~Application() = default;
 
         void setupGui();
 
         std::string APP_NAME;
         std::string VERSION;
+        fs::path PATH;
 
         sf::RenderWindow *window;
         std::shared_ptr<sf::RenderTexture> cacheTex;
