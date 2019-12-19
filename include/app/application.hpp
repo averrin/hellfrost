@@ -3,25 +3,19 @@
 #include <string>
 #include <SFML/Graphics/RenderWindow.hpp>
 #include <SFML/Graphics.hpp>
+#include <entt/entt.hpp>
 
 #include <liblog/liblog.hpp>
-
-#if defined(__cplusplus) && __cplusplus >= 201703L && defined(__has_include)
-#if __has_include(<filesystem>)
-#define GHC_USE_STD_FS
-#include <experimental/filesystem>
-namespace fs = std::experimental::filesystem;
-#endif
-#endif
-#ifndef GHC_USE_STD_FS
-#include <filesystem.hpp>
-namespace fs = ghc::filesystem;
-#endif
+#include <lss/gameManager.hpp>
+#include <app/ui/tile.hpp>
+#include <imgui_entt_entity_editor.hpp>
 
 
-class Tile;
-class Viewport;
-class Generator;
+struct event_emitter: entt::emitter<event_emitter> {};
+struct redraw_event {};
+struct center_event {int x; int y;};
+struct damage_event {int x; int y;};
+
 class Object;
 class Application {
         bool needRedraw = true;
@@ -36,6 +30,8 @@ public:
         std::string VERSION;
         fs::path PATH;
 
+        std::unique_ptr<GameManager> gm;
+        MM::ImGuiEntityEditor<decltype(gm->registry)> editor;
         sf::RenderWindow *window;
         std::shared_ptr<sf::RenderTexture> cacheTex;
         std::shared_ptr<Viewport> view_map;
@@ -47,21 +43,21 @@ public:
         void drawObjectsWindow();
         void drawTilesetWindow();
 
-        void loadSpec();
-        void saveSpec();
+        void drawEntityInfo(entt::entity);
+
         void saveTileset();
         void drawCellInfo();
         void drawObjects(std::vector<std::shared_ptr<Object>>);
         void centerObject(std::shared_ptr<Object>);
+                void genLocation(int);
+                int seed;
 
         void renderTile(std::shared_ptr<sf::RenderTexture>, std::shared_ptr<Tile>);
+        void renderEntity(std::shared_ptr<sf::RenderTexture> canvas, entt::entity e) ;
+
         LibLog::Logger &log = LibLog::Logger::getInstance();
-        int seed;
         int redraws;
         int tilesUpdated;
-        void genLocation(int);
-
-        std::shared_ptr<Generator> generator;
 };
 
 

@@ -65,6 +65,7 @@ add_executable(${EXE_NAME}
   ${PROJECT_PATH}/src/game/equipment.cpp
   ${PROJECT_PATH}/src/game/slot.cpp
   ${PROJECT_PATH}/src/generator/generator.cpp
+  ${PROJECT_PATH}/src/game/gameManager.cpp
 
   ${PROJECT_PATH}/include/app/style/theme.cpp
 

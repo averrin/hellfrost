@@ -97,7 +97,7 @@ Creature::getPrimaryDmg() {
       [](std::shared_ptr<Slot> s) {
         return s->item != nullptr &&
                std::find(s->acceptTypes.begin(), s->acceptTypes.end(),
-                         WEAPON) != s->acceptTypes.end();
+                         WearableType::WEAPON) != s->acceptTypes.end();
       });
   if (primarySlot != equipment->slots.end()) {
     auto primaryWeapon = (*primarySlot)->item;
@@ -122,7 +122,7 @@ Creature::getSecondaryDmg(std::shared_ptr<Slot> primarySlot) {
         equipment->slots.begin(), equipment->slots.end(),
         [](std::shared_ptr<Slot> s) {
           return std::find(s->acceptTypes.begin(), s->acceptTypes.end(),
-                           WEAPON) != s->acceptTypes.end();
+                           WearableType::WEAPON) != s->acceptTypes.end();
         });
   }
   auto secondarySlot = std::find_if(
@@ -130,7 +130,7 @@ Creature::getSecondaryDmg(std::shared_ptr<Slot> primarySlot) {
       [primarySlot](std::shared_ptr<Slot> s) {
         return s->item != nullptr && s != primarySlot &&
                std::find(s->acceptTypes.begin(), s->acceptTypes.end(),
-                         WEAPON_LIGHT) != s->acceptTypes.end();
+                         WearableType::WEAPON_LIGHT) != s->acceptTypes.end();
       });
   if (secondarySlot == equipment->slots.end()) {
     return std::nullopt;
@@ -191,9 +191,9 @@ std::shared_ptr<Damage> Creature::getDamage(std::shared_ptr<Object>) {
                    s->item->type.wearableType !=
                        WearableType::WEAPON_TWOHANDED &&
                    std::find(s->acceptTypes.begin(), s->acceptTypes.end(),
-                             WEAPON_LIGHT) != s->acceptTypes.end() &&
+                             WearableType::WEAPON_LIGHT) != s->acceptTypes.end() &&
                    std::find(s->acceptTypes.begin(), s->acceptTypes.end(),
-                             WEAPON) == s->acceptTypes.end();
+                             WearableType::WEAPON) == s->acceptTypes.end();
           }) > 0;
   auto secondaryDmg = getSecondaryDmg(nullptr);
   if (secondaryDmg != std::nullopt && haveLeft) {
@@ -596,9 +596,9 @@ std::string Creature::getDmgDesc() {
                    s->item->type.wearableType !=
                        WearableType::WEAPON_TWOHANDED &&
                    std::find(s->acceptTypes.begin(), s->acceptTypes.end(),
-                             WEAPON_LIGHT) != s->acceptTypes.end() &&
+                             WearableType::WEAPON_LIGHT) != s->acceptTypes.end() &&
                    std::find(s->acceptTypes.begin(), s->acceptTypes.end(),
-                             WEAPON) == s->acceptTypes.end();
+                             WearableType::WEAPON) == s->acceptTypes.end();
           }) > 0;
 
   if (primaryDmg != std::nullopt && haveLeft) {

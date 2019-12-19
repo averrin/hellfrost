@@ -25,16 +25,16 @@ Enemy::Enemy(EnemySpec t) : Creature(), type(t) {
   equipment = std::make_shared<Equipment>();
   equipment->slots = {
       std::make_shared<Slot>(
-          "Hand", std::vector<WearableType>{WEAPON, WEAPON_LIGHT,
-                                            WEAPON_TWOHANDED, SHIELD}),
+          "Hand", std::vector<WearableType>{WearableType::WEAPON, WearableType::WEAPON_LIGHT,
+                                            WearableType::WEAPON_TWOHANDED, WearableType::SHIELD}),
       std::make_shared<Slot>(
-          "Hand", std::vector<WearableType>{WEAPON, WEAPON_LIGHT,
-                                            WEAPON_TWOHANDED, SHIELD}),
-      std::make_shared<Slot>("Body", std::vector<WearableType>{BODY}),
-      std::make_shared<Slot>("Light", std::vector<WearableType>{LIGHT}),
-      std::make_shared<Slot>("Special", std::vector<WearableType>{ENEMY}),
-      std::make_shared<Slot>("Special", std::vector<WearableType>{ENEMY}),
-      std::make_shared<Slot>("Special", std::vector<WearableType>{ENEMY}),
+          "Hand", std::vector<WearableType>{WearableType::WEAPON, WearableType::WEAPON_LIGHT,
+                                            WearableType::WEAPON_TWOHANDED, WearableType::SHIELD}),
+      std::make_shared<Slot>("Body", std::vector<WearableType>{WearableType::BODY}),
+      std::make_shared<Slot>("Light", std::vector<WearableType>{WearableType::LIGHT}),
+      std::make_shared<Slot>("Special", std::vector<WearableType>{WearableType::ENEMY}),
+      std::make_shared<Slot>("Special", std::vector<WearableType>{WearableType::ENEMY}),
+      std::make_shared<Slot>("Special", std::vector<WearableType>{WearableType::ENEMY}),
   };
   for (auto i : type.equipped) {
     inventory.push_back(i);

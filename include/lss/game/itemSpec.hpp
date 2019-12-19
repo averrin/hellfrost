@@ -1,9 +1,15 @@
 #ifndef __ITEMSPEC_H_
 #define __ITEMSPEC_H_
 #include "lss/game/wearableType.hpp"
+#include <lss/deps.hpp>
 #include <string>
 
 struct ItemCategory {
+  friend class cereal::access;
+  template<class Archive>
+  void serialize(Archive & ar) {
+      ar( name );
+  };
   std::string name;
   friend bool operator!=(ItemCategory &lhs, const ItemCategory &rhs) {
     return lhs.name != rhs.name;
@@ -24,10 +30,15 @@ static const ItemCategory USABLE = {"Usable"};
 } // namespace ItemCategories
 
 struct ItemSpec {
+    friend class cereal::access;
+    template<class Archive>
+    void serialize(Archive & ar) {
+        ar( name, category, wearableType, durability, identified );
+    };
 public:
   std::string name = "";
   ItemCategory category;
-  WearableType wearableType = INVALID;
+  WearableType wearableType = WearableType::INVALID;
   int durability = -1;
   bool identified = false;
 

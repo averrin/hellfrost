@@ -1,7 +1,7 @@
 #ifndef __WEARABLETYPE_H_
 #define __WEARABLETYPE_H_
 
-enum WearableType {
+enum class WearableType {
   INVALID,
   HEAD,
   NECK,

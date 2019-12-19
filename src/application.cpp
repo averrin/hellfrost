@@ -13,13 +13,11 @@
 #include <app/style/theme.h>
 #include <SFML/Graphics.hpp>
 
-#include <app/ui/tile.hpp>
 #include <lss/game/cell.hpp>
 #include <lss/generator/generator.hpp>
 #include <lss/generator/mapUtils.hpp>
 
 #include <app/style/theme.h>
-#include <entt/entt.hpp>
 
 // static ImGuiDockNodeFlags opt_flags = ImGuiDockNodeFlags_PassthruCentralNode;
 static ImGuiDockNodeFlags opt_flags = ImGuiDockNodeFlags_PassthruCentralNode;
@@ -30,15 +28,14 @@ static ImGuiDockNodeFlags opt_flags = ImGuiDockNodeFlags_PassthruCentralNode;
   float GUI_SCALE = 1.f;
 #endif
 
+auto DATA_FILE = "location.bin";
 auto DEFAULT_TILESET = "ascii";
 int ts_idx = 0;
 std::vector<std::string> ts;
 Application::Application(std::string app_name, fs::path path, std::string version, int s)
     : APP_NAME(app_name), VERSION(version), PATH(path) {
-  seed = s;
   fmt::print("Seed: {}\n", seed);
   fmt::print("Path: {}\n", PATH.string());
-  srand(seed);
 
   auto n = 0;
   for (auto entity : fs::directory_iterator(PATH / "tilesets")) {
@@ -52,7 +49,9 @@ Application::Application(std::string app_name, fs::path path, std::string versio
     }
   }
 
-  loadSpec();
+  gm = std::make_unique<GameManager>(PATH / DATA_FILE);
+  gm->setSeed(s);
+  seed = gm->seed;
   setupGui();
 }
 
@@ -81,6 +80,101 @@ int lts_idx = 2;
 std::vector<std::string> lts = {"dungeon", "cavern", "exterior"};
 auto lt = std::vector<LocationType>{LocationType::DUNGEON, LocationType::CAVERN, LocationType::EXTERIOR};
 auto locationType = LocationType::EXTERIOR;
+event_emitter emitter;
+
+namespace Widgets {
+	void Position(::position& p) {
+      ImGui::SetNextItemWidth(80*GUI_SCALE);
+      if (ImGui::InputInt("x##Position", &p.x)) {
+        emitter.publish<redraw_event>();
+      }
+      ImGui::SameLine();
+      ImGui::SetNextItemWidth(80*GUI_SCALE);
+      if(ImGui::InputInt("y##Position", &p.y)) {
+        emitter.publish<redraw_event>();
+      }
+      ImGui::SameLine();
+      ImGui::SetNextItemWidth(80*GUI_SCALE);
+      if(ImGui::InputInt("z##Position", &p.z)) {
+        emitter.publish<redraw_event>();
+      }
+      ImGui::SameLine();
+    if(ImGui::Button(ICON_MDI_TARGET)) {
+      emitter.publish<center_event>(p.x, p.y);
+    }
+	}
+	void Renderable(::position& p, ::renderable& r, std::shared_ptr<Viewport> view_map) {
+    auto k = r.spriteKey;
+    auto v = view_map->tileSet.sprites[k];
+      sf::Sprite s;
+      s.setTexture(view_map->tilesTextures[v[0]]);
+      s.setTextureRect(view_map->getTileRect(v[1], v[2]));
+      ImGui::Image(s,
+        sf::Vector2f(view_map->tileSet.size.first*GUI_SCALE, view_map->tileSet.size.second*GUI_SCALE),
+        sf::Color::White, sf::Color::Transparent);
+      ImGui::SameLine();
+      std::vector<const char*> _ts;
+      int s_idx = 0;
+      auto n = 0;
+      std::transform(view_map->tileSet.sprites.begin(), view_map->tileSet.sprites.end(), std::back_inserter(_ts), [&](auto sk) {
+        if (sk.first == r.spriteKey) {
+          s_idx = n;
+        }
+        char*r = new char[sk.first.size()+1];
+        std::strcpy(r, sk.first.c_str());
+        n++;
+        return r;
+      });
+      if (ImGui::Combo("Sprite", &s_idx, _ts.data(), _ts.size())) {
+       r.spriteKey = std::string(_ts[s_idx]);
+        emitter.publish<damage_event>(p.x, p.y);
+      }
+
+      ImGui::SetNextItemWidth(150);
+      char*fg = new char[r.fgColor.size()+1];
+      std::strcpy(fg, r.fgColor.c_str());
+      if (ImGui::InputText("Color", fg, 10)) {
+        r.fgColor = std::string(fg);
+        emitter.publish<damage_event>(p.x, p.y);
+      }
+      ImGui::SameLine();
+      auto color = Color::fromHexString(r.fgColor);
+      float col[4] = { color.r/255.f,  color.g/255.f, color.b/255.f, color.a/255.f,};
+      if (ImGui::ColorEdit4(r.fgColor.c_str(), col, ImGuiColorEditFlags_NoInputs
+                            | ImGuiColorEditFlags_NoLabel
+                            | ImGuiColorEditFlags_AlphaPreview
+                            | ImGuiColorEditFlags_AlphaBar)) {
+        auto c = Color(col[0]*255, col[1]*255, col[2]*255, col[3]*255);
+        r.fgColor = c.hexA();
+        emitter.publish<damage_event>(p.x, p.y);
+      }
+
+      if(ImGui::Checkbox("Has BG", &r.hasBg)) {
+        emitter.publish<damage_event>(p.x, p.y);
+      }
+      if (r.hasBg) {
+        ImGui::SameLine();
+        ImGui::SetNextItemWidth(150);
+        char*bg = new char[r.bgColor.size()+1];
+        std::strcpy(fg, r.bgColor.c_str());
+        if (ImGui::InputText("BG Color", fg, 10)) {
+          r.bgColor = std::string(fg);
+          emitter.publish<damage_event>(p.x, p.y);
+        }
+        ImGui::SameLine();
+        color = Color::fromHexString(r.bgColor);
+        float bcol[4] = { color.r/255.f,  color.g/255.f, color.b/255.f, color.a/255.f,};
+        if (ImGui::ColorEdit4(r.bgColor.c_str(), bcol, ImGuiColorEditFlags_NoInputs
+                              | ImGuiColorEditFlags_NoLabel
+                              | ImGuiColorEditFlags_AlphaPreview
+                              | ImGuiColorEditFlags_AlphaBar)) {
+          auto c = Color(col[0]*255, bcol[1]*255, bcol[2]*255, bcol[3]*255);
+          r.bgColor = c.hexA();
+          emitter.publish<damage_event>(p.x, p.y);
+        }
+      }
+	}
+} // Widgets
 
 void Application::setupGui() {
 
@@ -101,6 +195,40 @@ void Application::setupGui() {
   io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
 
   window->resetGLStates();
+
+  editor.registerTrivial<position>(gm->registry, "Position");
+  editor.registerTrivial<renderable>(gm->registry, "Renderable");
+
+  editor.registerComponentWidgetFn(
+    gm->registry.type<position>(),
+    [&](entt::registry& reg, auto e) {
+      auto& p = reg.get<position>(e);
+      Widgets::Position(p);
+    });
+  editor.registerComponentWidgetFn(
+    gm->registry.type<renderable>(),
+    [&](entt::registry& reg, auto e) {
+      auto& r = reg.get<renderable>(e);
+      auto& p = reg.get<position>(e);
+      Widgets::Renderable(p, r, view_map);
+    });
+
+  emitter.on<center_event>([&](const auto &p, auto &em){
+    lockedPos = {p.x, p.y};
+    x = p.x-view_map->width/2/GUI_SCALE;
+    y = p.y-view_map->height/2/GUI_SCALE;
+    view_map->position = {x, y};
+    needRedraw = true;
+  });
+
+  emitter.on<damage_event>([&](const auto &p, auto &em){
+    auto rx = p.x-view_map->position.first;
+    auto ry = p.y-view_map->position.second;
+    damage.push_back({rx,ry});
+  });
+  emitter.on<redraw_event>([&](const auto &p, auto &em){
+    needRedraw = true;
+  });
 }
 
 void Application::processEvent(sf::Event event) {
@@ -203,7 +331,7 @@ void Application::drawDocking() {
       window_flags |= ImGuiWindowFlags_NoBackground;
 
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
-    ImGui::Begin("DockSpace Demo", nullptr, window_flags);
+    ImGui::Begin("DockSpace", nullptr, window_flags);
     ImGui::PopStyleVar();
 
     ImGui::PopStyleVar(2);
@@ -239,7 +367,7 @@ void Application::drawStatusBar(float width, float height, float pos_x,
   // DrawInsideStatusBar(width - 45.0f, height);
 
   // Draw the common stuff
-  ImGui::SameLine(width - 60.0f*GUI_SCALE);
+  ImGui::SameLine(width - 64.0f*GUI_SCALE);
   Font font(Font::FAMILY_MONOSPACE);
   font.Normal().Regular().SmallSize();
   ImGui::PushFont(font.ImGuiFont());
@@ -247,8 +375,6 @@ void Application::drawStatusBar(float width, float height, float pos_x,
   ImGui::PopFont();
   ImGui::End();
 }
-
-bool h_v = true;
 
 void Application::drawCellInfo() {
     sf::Vector2<float> pos =
@@ -303,11 +429,25 @@ void Application::drawCellInfo() {
       };
 
       for (auto f : cell->features) {
-       ImGui::BulletText("%s", features[f].c_str());
+        ImGui::BulletText("%s", features[f].c_str());
       }
       if (region) {
         auto objects = (*region)->location->getObjects(cell);
         drawObjects(objects);
+      }
+
+      auto ents = gm->registry.view<position>();
+
+      if (ents.size() > 0) {
+        if (ImGui::TreeNode("ents", "%s Entities", ICON_MDI_CUBE_OUTLINE)) {
+          for (auto e : ents) {
+            auto p = gm->registry.get<position>(e);
+            if (cell->x == p.x && cell->y == p.y) {
+              drawEntityInfo(e);
+            }
+          }
+          ImGui::TreePop();
+        }
       }
 
       ImGui::End();
@@ -402,7 +542,29 @@ void Application::drawObjects(std::vector<std::shared_ptr<Object>> objects) {
 void Application::drawObjectsWindow() {
   ImGui::Begin("Objects");
   drawObjects(view_map->regions.front()->location->objects);
+
+  auto ents = gm->registry.view<ingame>();
+  if (ImGui::TreeNode("ents", "%s Entities: %lu", ICON_MDI_CUBE_OUTLINE, ents.size())) {
+    if (ImGui::Button("New Entity")) {
+      auto e = gm->registry.create();
+      gm->registry.assign<ingame>(e);
+    }
+
+    for (auto e : ents) {
+      drawEntityInfo(e);
+    }
+    ImGui::TreePop();
+  }
   ImGui::End();
+}
+
+void Application::drawEntityInfo(entt::entity e) {
+    auto t = "Entity";
+    auto title = fmt::format("{} {}: {}", ICON_MDI_CUBE_OUTLINE, t, (int)gm->registry.entity(e));
+    if (ImGui::TreeNode(title.c_str())) {
+      editor.renderImGui(gm->registry, e);
+      ImGui::TreePop();
+    }
 }
 
 void Application::saveTileset() {
@@ -628,12 +790,14 @@ void Application::drawMainWindow() {
   ImGui::Begin("Specification");
   if(ImGui::Button("Apply")) {
     view_map->tilesCache.clear();
+    gm->reset();
     genLocation(seed);
     needRedraw = true;
   }
   ImGui::SameLine();
   if(ImGui::Button("Reload")) {
-    loadSpec();
+    gm->loadData();
+    gm->reset();
 
     view_map->tilesCache.clear();
     genLocation(seed);
@@ -641,39 +805,36 @@ void Application::drawMainWindow() {
   }
   ImGui::SameLine();
   if (ImGui::Button("Save")) {
-    saveSpec();
+    gm->saveData();
   }
   ImGui::Separator();
 
   if (ImGui::CollapsingHeader("Probabilities")) {
-    for (auto [k, _] : generator->probabilities) {
+    for (auto [k, _] : gm->data->probability) {
       ImGui::SetNextItemWidth(80);
-      ImGui::InputFloat(k.c_str(), &generator->probabilities[k]);
+      ImGui::InputFloat(k.c_str(), &gm->data->probability[k]);
+    }
+  }
+  if (ImGui::CollapsingHeader("Item specs")) {
+    for (auto spec : gm->data->itemSpecs) {
+      char*name = new char[spec.name.size()+1];
+      std::strcpy(name, spec.name.c_str());
+      if (ImGui::TreeNode(name)) {
+        if (ImGui::InputText("Name", name, spec.name.size()+1)) {
+        }
+        ImGui::TreePop();
+        ImGui::Text(spec.category.name.c_str());
+        ImGui::InputInt("Durability", &spec.durability);
+        ImGui::Checkbox("Identified", &spec.identified);
+      }
     }
   }
   ImGui::End();
 }
 
-void Application::saveSpec() {
-    std::ofstream file(PATH / "location.bin");
-    json j;
-    j["PROBABILITIES"] = generator->probabilities;
-    auto bj = json::to_bson(j);
-    std::copy(bj.begin(), bj.end(), std::ostreambuf_iterator(file));
-}
-
-void Application::loadSpec() {
-    std::ifstream file(PATH / "location.bin");
-    std::istreambuf_iterator iter(file);
-    std::vector<char> bj;
-    std::copy(iter, std::istreambuf_iterator<char>{}, std::back_inserter(bj));
-    json p = json::from_bson(bj);
-
-    auto probs = p["PROBABILITIES"].get<std::map<std::string, float>>();
-    generator = std::make_shared<Generator>(probs);
-}
-
 void Application::genLocation(int s) {
+  gm->setSeed(s);
+
   auto label = "Generate location";
   log.start(label);
   auto spec = LocationSpec{"Dungeon"};
@@ -727,21 +888,17 @@ void Application::genLocation(int s) {
     n++;
   }
 
-  srand(s);
-
-  auto l = generator->getLocation(spec);
+  gm->gen(spec);
   log.stop(label);
-
-  auto location = std::make_shared<Region>();
-  location->cells = l->cells;
-  location->position = {0,0};
-  location->active = true;
-  location->location = l;
-
   view_map->regions.clear();
   view_map->tilesCache.clear();
-  view_map->regions.push_back(location);
 
+  auto location = std::make_shared<Region>();
+  location->cells = gm->location->cells;
+  location->position = {0,0};
+  location->active = true;
+  location->location = gm->location;
+  view_map->regions.push_back(location);
 }
 
 int Application::serve() {
@@ -750,7 +907,7 @@ int Application::serve() {
 
   std::shared_ptr<R::Generator> gen = std::make_shared<R::Generator>();
 
-  view_map =  std::make_shared<Viewport>();
+  view_map = std::make_shared<Viewport>();
   view_map->position = std::make_pair(x, y);
 
   vW = view_map->width / scale;
@@ -822,6 +979,11 @@ int Application::serve() {
           }
         }
       }
+
+      auto ents = gm->registry.group(entt::get<position, renderable>);
+      for (auto e : ents) {
+        renderEntity(canvas, e);
+      }
 // #else
 //       #include <execution>
 //       #include <algorithm>
@@ -850,7 +1012,20 @@ int Application::serve() {
           bg.setPosition((*t)->pos*scale*GUI_SCALE);
           bg.move(-view_map->tileSet.size.first*view_map->position.first*scale*GUI_SCALE,
                     -view_map->tileSet.size.second*view_map->position.second*scale*GUI_SCALE );
+          canvas->draw(bg);
           renderTile(canvas, *t);
+
+          auto ents = gm->registry.group(entt::get<position, renderable>);
+          for (auto e : ents) {
+            auto p = gm->registry.get<position>(e);
+            // fmt::print("{}.{} != {}.{}\n", p.x, p.y, d.first, d.second);
+            auto rx = p.x-view_map->position.first;
+            auto ry = p.y-view_map->position.second;
+            if (rx == d.first && ry == d.second) {
+              renderEntity(canvas, e);
+              break;
+            }
+          }
           canvas->display();
           cacheTex->display();
           rectangle.setTexture(&(canvas->getTexture()));
@@ -870,7 +1045,7 @@ int Application::serve() {
     ImGuiViewport *viewport = ImGui::GetMainViewport();
 
     drawDocking();
-    drawStatusBar(viewport->Size.x, 16.0f, 0.0f, viewport->Size.y - 24);
+    drawStatusBar(viewport->Size.x, 16.0f*GUI_SCALE, 0.0f, viewport->Size.y - 24);
     drawCellInfo();
     drawMainWindow();
     drawTilesetWindow();
@@ -887,6 +1062,27 @@ int Application::serve() {
   log.info("shutdown");
   ImGui::SFML::Shutdown();
   return 0;
+}
+
+void Application::renderEntity(std::shared_ptr<sf::RenderTexture> canvas, entt::entity e) {
+    auto [pos, render] = gm->registry.get<position, renderable>(e);
+    if (render.hasBg) {
+      sf::RectangleShape bg;
+      bg.setSize(sf::Vector2f(view_map->tileSet.size.first, view_map->tileSet.size.second)*scale*GUI_SCALE);
+      bg.setFillColor(view_map->getColor(render.bgColor));
+      bg.setPosition(sf::Vector2f(pos.x*view_map->tileSet.size.first, pos.y*view_map->tileSet.size.second)*scale*GUI_SCALE);
+      bg.move(-view_map->tileSet.size.first*view_map->position.first*scale*GUI_SCALE,
+              -view_map->tileSet.size.second*view_map->position.second*scale*GUI_SCALE );
+      canvas->draw(bg);
+    }
+    auto sprite = view_map->makeSprite("", render.spriteKey);
+    sprite->setColor(view_map->getColor(render.fgColor));
+    sprite->setPosition(sf::Vector2f(pos.x*view_map->tileSet.size.first, pos.y*view_map->tileSet.size.second)*scale*GUI_SCALE);
+    sprite->move(-view_map->tileSet.size.first*view_map->position.first*scale*GUI_SCALE,
+              -view_map->tileSet.size.second*view_map->position.second*scale*GUI_SCALE );
+    auto s = *sprite;
+    s.setScale(sf::Vector2f(scale*GUI_SCALE, scale*GUI_SCALE));
+    canvas->draw(s);
 }
 
 void Application::renderTile(std::shared_ptr<sf::RenderTexture> canvas, std::shared_ptr<Tile> t) {

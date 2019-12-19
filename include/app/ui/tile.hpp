@@ -7,7 +7,6 @@
 #include <map>
 #include <memory>
 #include <fstream>
-#include <json.hpp>
 #include <SFML/Graphics.hpp>
 #include <librandom/random.hpp>
 #include <libcolor/libcolor.hpp>
@@ -20,19 +19,6 @@
 #include <lss/game/enemy.hpp>
 #include <lss/utils.hpp>
 
-#if defined(__cplusplus) && __cplusplus >= 201703L && defined(__has_include)
-#if __has_include(<filesystem>)
-#define GHC_USE_STD_FS
-#include <experimental/filesystem>
-namespace fs = std::experimental::filesystem;
-#endif
-#endif
-#ifndef GHC_USE_STD_FS
-#include <filesystem.hpp>
-namespace fs = ghc::filesystem;
-#endif
-
-using json = nlohmann::json;
 using Color = LibColor::Color;
 
 struct TileSet {
@@ -169,7 +155,7 @@ std::shared_ptr<sf::Sprite> makeSprite(std::string cat, std::string key) {
     if (colors[cat].contains(key)) {
       s->setColor(getColor(colors[cat][key]));
     } else {
-      fmt::print("Missed color: {}: {}\n", cat, key);
+      // fmt::print("Missed color: {}: {}\n", cat, key);
     }
     return s;
 }
@@ -224,47 +210,47 @@ std::shared_ptr<sf::Sprite> makeSprite(std::string cat, std::string key) {
         fgColor = getColor(colors["ENV"]["FLOOR"]);
       }
 
-      if (region) {
-        auto doors = utils::castObjects<Door>((*region)->location->getObjects(cell));
-        if (doors.size() != 0) {
-          if (doors.front()->hidden) {
-            sprite_spec = getWallSpec(cell);
-            fgColor = getColor(colors["ENV"]["WALL"]);
-            if (cell->hasFeature(CellFeature::CAVE)) {
-              fgColor = getColor(colors["ENV"]["WALL_CAVE"]);
-            }
-          } else {
-            sprite_spec = tileSet.sprites["DOOR"];
-            fgColor = getColor(colors["ENV"]["DOOR"]);
-          }
-        } else {
-          auto terrain = utils::castObjects<Terrain>((*region)->location->getObjects(cell));
-          if (terrain.size() != 0) {
-              auto key = terrain.front()->type.name;
-              std::transform(key.begin(), key.end(), key.begin(), ::toupper);
-              std::replace(key.begin(), key.end(), ' ', '_');
-              tile->sprites.push_back(makeSprite("TERRAIN", key));
-          } else {
-            auto enemies = utils::castObjects<Enemy>((*region)->location->getObjects(cell));
-            if (enemies.size() != 0) {
-                auto key = enemies.front()->type.name;
-                std::transform(key.begin(), key.end(), key.begin(), ::toupper);
-                std::replace(key.begin(), key.end(), ' ', '_');
-                // fmt::print("{}\n", key);
-                tile->sprites.push_back(makeSprite("ENEMY", key));
-            } else {
-              auto items = utils::castObjects<Item>((*region)->location->getObjects(cell));
-              if (items.size() != 0) {
-                  auto key = items.front()->type.name;
-                  std::transform(key.begin(), key.end(), key.begin(), ::toupper);
-                  std::replace(key.begin(), key.end(), ' ', '_');
-                  // fmt::print("{}\n", key);
-                  tile->sprites.push_back(makeSprite("ITEMS", key));
-              }
-            }
-          }
-        }
-      }
+      // if (region) {
+      //   auto doors = utils::castObjects<Door>((*region)->location->getObjects(cell));
+      //   if (doors.size() != 0) {
+      //     if (doors.front()->hidden) {
+      //       sprite_spec = getWallSpec(cell);
+      //       fgColor = getColor(colors["ENV"]["WALL"]);
+      //       if (cell->hasFeature(CellFeature::CAVE)) {
+      //         fgColor = getColor(colors["ENV"]["WALL_CAVE"]);
+      //       }
+      //     } else {
+      //       sprite_spec = tileSet.sprites["DOOR"];
+      //       fgColor = getColor(colors["ENV"]["DOOR"]);
+      //     }
+      //   } else {
+      //     auto terrain = utils::castObjects<Terrain>((*region)->location->getObjects(cell));
+      //     if (terrain.size() != 0) {
+      //         auto key = terrain.front()->type.name;
+      //         std::transform(key.begin(), key.end(), key.begin(), ::toupper);
+      //         std::replace(key.begin(), key.end(), ' ', '_');
+      //         tile->sprites.push_back(makeSprite("TERRAIN", key));
+      //     } else {
+      //       auto enemies = utils::castObjects<Enemy>((*region)->location->getObjects(cell));
+      //       if (enemies.size() != 0) {
+      //           auto key = enemies.front()->type.name;
+      //           std::transform(key.begin(), key.end(), key.begin(), ::toupper);
+      //           std::replace(key.begin(), key.end(), ' ', '_');
+      //           // fmt::print("{}\n", key);
+      //           tile->sprites.push_back(makeSprite("ENEMY", key));
+      //       } else {
+      //         auto items = utils::castObjects<Item>((*region)->location->getObjects(cell));
+      //         if (items.size() != 0) {
+      //             auto key = items.front()->type.name;
+      //             std::transform(key.begin(), key.end(), key.begin(), ::toupper);
+      //             std::replace(key.begin(), key.end(), ' ', '_');
+      //             // fmt::print("{}\n", key);
+      //             tile->sprites.push_back(makeSprite("ITEMS", key));
+      //         }
+      //       }
+      //     }
+      //   }
+      // }
     } else if (cell->type == CellType::WALL) {
       sprite_spec = getWallSpec(cell);
       fgColor = getColor(colors["ENV"]["WALL"]);

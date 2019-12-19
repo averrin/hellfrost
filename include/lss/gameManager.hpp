@@ -1,38 +1,53 @@
 #ifndef __GAMEMANAGER_H_
 #define __GAMEMANAGER_H_
+#include <entt/entt.hpp>
+#include <liblog/liblog.hpp>
+#include <app/gameData.hpp>
+#include <lss/generator/generator.hpp>
+#include <lss/game/location.hpp>
 
-#include "ui/state.hpp"
-#include "lss/game/magic.hpp"
-#include "lss/game/player.hpp"
-#include "lss/commands.hpp"
-#include "lss/animation.hpp"
+struct ingame {};
+
+struct position {
+    int x = 0;
+    int y = 0;
+    int z = 0;
+};
+
+struct renderable {
+    std::string spriteKey = "UNKNOWN";
+    std::string fgColor = "#fff";
+    bool hasBg = false;
+    std::string bgColor = "#fffffff00";
+};
 
 class GameManager {
-    public:
-    GameManager();
-    void startGame();
+    std::unique_ptr<Generator> generator;
+    LibLog::Logger &log = LibLog::Logger::getInstance();
+  public:
+    GameManager(fs::path);
+    int seed;
+    entt::registry registry{};
+    std::shared_ptr<GameData> data;
+    std::shared_ptr<Location> location;
+    fs::path path;
 
-  void initStates();
+    void reset();
+    void gen(LocationSpec);
+    void setSeed(int s) {seed = s;}
 
-  static const int MAX_LEVELS = 10;
-  int currentLevel = 0;
-  std::vector<std::shared_ptr<Animation>> animations;
-  std::map<int, std::shared_ptr<Location>> locations;
-
-  std::shared_ptr<State> state;
-  std::shared_ptr<State> statusState;
-  std::shared_ptr<State> objectSelectState;
-  std::shared_ptr<State> helpState;
-  std::shared_ptr<State> heroLineState;
-  std::shared_ptr<State> inventoryState;
-  std::shared_ptr<State> heroState;
-  std::shared_ptr<State> gameOverState;
-  std::shared_ptr<State> inspectState;
-  std::shared_ptr<State> logState;
-
-  std::shared_ptr<Player> hero;
-  std::shared_ptr<Magic> magic;
-
+    void loadData() {
+        std::ifstream file(path, std::ios::in | std::ios::binary);
+        cereal::BinaryInputArchive iarchive(file);
+        GameData d;
+        iarchive(d);
+        data = std::make_shared<GameData>(d);
+    }
+    void saveData() {
+        std::ofstream file(path, std::ios::out | std::ios::binary);
+        cereal::BinaryOutputArchive oarchive(file);
+        oarchive(*data);
+    }
 };
 
 #endif // __GAMEMANAGER_H_
