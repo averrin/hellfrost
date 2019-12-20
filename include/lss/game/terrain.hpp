@@ -6,8 +6,12 @@ class Creature;
 struct TerrainSpec {
   friend class cereal::access;
   template<class Archive>
-  void serialize(Archive & ar) {
-      ar( name, seeThrough, passThrough, apLeft, destructable, light );
+  void save(Archive & ar) const {
+      ar( name, seeThrough, passThrough, apLeft, destructable, light, sign );
+  };
+  template<class Archive>
+  void load(Archive & ar) {
+      ar( name, seeThrough, passThrough, apLeft, destructable, light, sign );
   };
   std::string name;
   bool seeThrough;
@@ -17,6 +21,7 @@ struct TerrainSpec {
   bool destructable = true;
 
   LightSpec light;
+  std::string sign;
 
   friend bool operator==(TerrainSpec &t1, const TerrainSpec &t2) {
     return t1.name == t2.name;

@@ -15,6 +15,7 @@ namespace hellfrost {
         std::string fgColor = "#fff";
         bool hasBg = false;
         std::string bgColor = "#fffffff00";
+        bool hidden = false;
     };
 };
 

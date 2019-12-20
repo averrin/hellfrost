@@ -18,6 +18,7 @@
 #include <lss/generator/mapUtils.hpp>
 
 #include <app/style/theme.h>
+#include <imgui-stl.hpp>
 
 namespace hf = hellfrost;
 
@@ -51,6 +52,7 @@ Application::Application(std::string app_name, fs::path path, std::string versio
     }
   }
 
+  entt::service_locator<Viewport>::empty();
   entt::service_locator<GameData>::empty();
   gm = std::make_unique<GameManager>(PATH / DATA_FILE);
   gm->setSeed(s);
@@ -86,6 +88,11 @@ auto locationType = LocationType::EXTERIOR;
 event_emitter emitter;
 
 namespace Widgets {
+	void Meta(hf::meta& m) {
+      ImGui::InputText("Name", m.name);
+      ImGui::InputText("Description", m.description);
+      ImGui::InputText("ID", m.id);
+  }
 	void Position(hf::position& p) {
       ImGui::SetNextItemWidth(80*GUI_SCALE);
       if (ImGui::InputInt("x##Position", &p.x)) {
@@ -107,6 +114,9 @@ namespace Widgets {
     }
 	}
 	void Renderable(hf::position& p, hf::renderable& r, std::shared_ptr<Viewport> view_map) {
+    if (ImGui::Checkbox("Hidden", &r.hidden)) {
+        emitter.publish<damage_event>(p.x, p.y);
+    }
     auto k = r.spriteKey;
     auto v = view_map->tileSet.sprites[k];
       sf::Sprite s;
@@ -199,9 +209,16 @@ void Application::setupGui() {
 
   window->resetGLStates();
 
+  editor.registerTrivial<hf::meta>(gm->registry, "Meta");
   editor.registerTrivial<hf::position>(gm->registry, "Position");
   editor.registerTrivial<hf::renderable>(gm->registry, "Renderable");
 
+  editor.registerComponentWidgetFn(
+    gm->registry.type<hf::meta>(),
+    [&](entt::registry& reg, auto e) {
+      auto& p = reg.get<hf::meta>(e);
+      Widgets::Meta(p);
+    });
   editor.registerComponentWidgetFn(
     gm->registry.type<hf::position>(),
     [&](entt::registry& reg, auto e) {
@@ -485,23 +502,6 @@ void Application::drawObjects(std::vector<std::shared_ptr<Object>> objects) {
           ImGui::TreePop();
         }
       }
-      auto terrain = utils::castObjects<Terrain>(objects);
-      if (terrain.size() > 0) {
-        if (ImGui::TreeNode("t", "%s Terrain", ICON_MDI_CUBE)) {
-          for (auto t : terrain) {
-            if (ImGui::TreeNode((void*)(intptr_t)n, "%s %s", ICON_MDI_CUBE, t->type.name.c_str())) {
-                ImGui::BulletText("Position: %d.%d", t->currentCell->x, t->currentCell->y);
-                ImGui::SameLine();
-                if (ImGui::SmallButton(ICON_MDI_TARGET)) {
-                  centerObject(t);
-                }
-                ImGui::TreePop();
-            }
-            n++;
-          }
-          ImGui::TreePop();
-        }
-      }
       auto items = utils::castObjects<Item>(objects);
       if (items.size() > 0) {
         if (ImGui::TreeNode("i", "%s Items", ICON_MDI_SWORD)) {
@@ -562,8 +562,10 @@ void Application::drawObjectsWindow() {
 }
 
 void Application::drawEntityInfo(entt::entity e) {
-    auto t = "Entity";
-    auto title = fmt::format("{} {}: {}", ICON_MDI_CUBE_OUTLINE, t, (int)gm->registry.entity(e));
+    auto t = gm->registry.has<hf::meta>(e) ? gm->registry.get<hf::meta>(e).name.c_str() : "Entity";
+    t = gm->registry.has<hf::ineditor>(e) ? gm->registry.get<hf::ineditor>(e).name.c_str() : t;
+    auto icon = gm->registry.has<hf::ineditor>(e) ? gm->registry.get<hf::ineditor>(e).icon.c_str() : ICON_MDI_CUBE_OUTLINE;
+    auto title = fmt::format("{} {}: {}", icon, t, (int)gm->registry.entity(e));
     if (ImGui::TreeNode(title.c_str())) {
       editor.renderImGui(gm->registry, e);
       ImGui::TreePop();
@@ -646,7 +648,7 @@ void Application::drawTilesetWindow() {
       s.setTexture(view_map->tilesTextures[v[0]]);
       s.setTextureRect(view_map->getTileRect(v[1], v[2]));
       ImGui::Image(s,
-        sf::Vector2f(view_map->tileSet.size.first, view_map->tileSet.size.second),
+        sf::Vector2f(view_map->tileSet.size.first, view_map->tileSet.size.second)*GUI_SCALE,
         sf::Color::White, sf::Color::Transparent);
       ImGui::SameLine();
       ImGui::Button(k.c_str());
@@ -816,13 +818,13 @@ void Application::drawMainWindow() {
   auto data = entt::service_locator<GameData>::get().lock();
 
   if (ImGui::CollapsingHeader("Probabilities")) {
-    for (auto [k, _] : data->probability) {
+    for (auto& [k, _] : data->probability) {
       ImGui::SetNextItemWidth(80);
       ImGui::InputFloat(k.c_str(), &data->probability[k]);
     }
   }
   if (ImGui::CollapsingHeader("Item specs")) {
-    for (auto [k, spec] : data->itemSpecs) {
+    for (auto& [k, spec] : data->itemSpecs) {
       char*name = new char[spec.name.size()+1];
       std::strcpy(name, spec.name.c_str());
       if (ImGui::TreeNode(k.c_str())) {
@@ -837,13 +839,11 @@ void Application::drawMainWindow() {
     }
   }
   if (ImGui::CollapsingHeader("Terrain specs")) {
-    for (auto [k, spec] : data->terrainSpecs) {
-      char*name = new char[spec.name.size()+1];
-      std::strcpy(name, spec.name.c_str());
+    for (auto& [k, spec] : data->terrainSpecs) {
       if (ImGui::TreeNode(k.c_str())) {
         ImGui::Button("Delete");
-        if (ImGui::InputText("Name", name, spec.name.size()+1)) {
-        }
+        ImGui::InputText("Name", spec.name);
+        ImGui::InputText("Sign", spec.sign);
         ImGui::Checkbox("seeThrough", &spec.seeThrough);
         ImGui::SameLine();
         ImGui::Checkbox("passThrough", &spec.passThrough);
@@ -939,14 +939,15 @@ int Application::serve() {
   std::shared_ptr<R::Generator> gen = std::make_shared<R::Generator>();
 
   view_map = std::make_shared<Viewport>();
+
+  entt::service_locator<Viewport>::set(view_map);
   view_map->position = std::make_pair(x, y);
 
   vW = view_map->width / scale;
   vH = view_map->height / scale;
 
-  genLocation(seed);
-
   view_map->loadTileset(PATH / "tilesets" / ts[ts_idx]);
+  genLocation(seed);
 
   auto c = Color::fromHexString(view_map->colors["PALETTE"]["BACKGROUND"]);
   auto bgColor = sf::Color(c.r, c.g, c.b, c.a);
@@ -1097,6 +1098,7 @@ int Application::serve() {
 
 void Application::renderEntity(std::shared_ptr<sf::RenderTexture> canvas, entt::entity e) {
     auto [pos, render] = gm->registry.get<hf::position, hf::renderable>(e);
+    if (render.hidden) return;
     if (render.hasBg) {
       sf::RectangleShape bg;
       bg.setSize(sf::Vector2f(view_map->tileSet.size.first, view_map->tileSet.size.second)*scale*GUI_SCALE);
@@ -1150,4 +1152,9 @@ void Application::renderTile(std::shared_ptr<sf::RenderTexture> canvas, std::sha
     rectangle.move(-view_map->tileSet.size.first*view_map->position.first*scale*GUI_SCALE,
               -view_map->tileSet.size.second*view_map->position.second*scale*GUI_SCALE );
   // canvas->draw(rectangle);
+}
+
+Application::~Application() {
+  entt::service_locator<GameData>::reset();
+  entt::service_locator<Viewport>::reset();
 }

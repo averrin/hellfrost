@@ -48,6 +48,7 @@ add_executable(${EXE_NAME}
 
   ${SOURCE}
   ${PROJECT_PATH}/include/app/style/theme.cpp
+  ${PROJECT_PATH}/include/imgui-stl.cpp
 
   ${PROJECT_PATH}/src/game/randomTools.cpp
   ${PROJECT_PATH}/src/game/fov.cpp

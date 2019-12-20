@@ -24,7 +24,7 @@ class Application {
         std::vector<std::pair<int, int>> damage;
 public:
         Application(std::string, fs::path, std::string, int);
-        ~Application() = default;
+        ~Application();
 
         void setupGui();
 

@@ -13,6 +13,10 @@ class Viewport {
   std::shared_ptr<R::Generator> gen = std::make_shared<R::Generator>();
 
 public:
+    ~Viewport() {
+        tilesTextures.clear();
+        tilesCache.clear();
+    }
   sf::IntRect getTileRect(int x, int y) {
     return sf::IntRect((tileSet.size.first + tileSet.gap) * x,
                        (tileSet.size.second + tileSet.gap) * y,
