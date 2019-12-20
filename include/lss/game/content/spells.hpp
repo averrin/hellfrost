@@ -22,34 +22,34 @@ const auto FIREBALL = std::make_shared<RadiusSpell>(
     "Fireball", 1000, 1,
     std::make_shared<DamageSpell>("Fire damage",
                                   DamageSpec(0, 2, 6, DamageType::FIRE),
-                                  TerrainType::FIREBALL, true),
+                                  "FIREBALL", true),
     1.5, 20);
 
 const auto FROSTBALL = std::make_shared<RadiusSpell>(
     "Frostball", 1000, 1,
     std::make_shared<DamageSpell>("Ice damage",
                                   DamageSpec(0, 2, 6, DamageType::FROST),
-                                  TerrainType::FROSTBALL, true),
+                                  "FROSTBALL", true),
     1.5, 20);
 const auto FIREBLAST = std::make_shared<RadiusSpell>(
     "Fireblast", 1000, 3,
     std::make_shared<DamageSpell>("Fire damage",
                                   DamageSpec(0, 2, 6, DamageType::FIRE),
-                                  TerrainType::FIREBALL, true),
+                                  "FIREBALL", true),
     3.5, 40);
 
 const auto FROSTBLAST = std::make_shared<RadiusSpell>(
     "Frost Nova", 1000, 3,
     std::make_shared<DamageSpell>("Frost damage",
                                   DamageSpec(0, 2, 6, DamageType::FROST),
-                                  TerrainType::FROSTBALL, true),
+                                  "FROSTBALL", true),
     3.5, 40);
 
 const auto FIRESTREAM = std::make_shared<LineSpell>(
     "Firestream", 800, 2,
     std::make_shared<DamageSpell>("Fire damage",
                                   DamageSpec(0, 2, 6, DamageType::FIRE),
-                                  TerrainType::FIREBALL, true),
+                                  "FIREBALL", true),
     4, 20);
 
 const auto DRILL = std::make_shared<LineSpell>(
@@ -59,61 +59,61 @@ const auto FROSTSTREAM = std::make_shared<LineSpell>(
     "Froststream", 800, 2,
     std::make_shared<DamageSpell>("Ice damage",
                                   DamageSpec(0, 2, 6, DamageType::FROST),
-                                  TerrainType::FROSTBALL, true),
+                                  "FROSTBALL", true),
     4, 20);
 
 const auto ACIDSTREAM = std::make_shared<LineSpell>(
     "Acidstream", 800, 3,
     std::make_shared<DamageSpell>("Acid damage",
                                   DamageSpec(2, 2, 6, DamageType::ACID),
-                                  TerrainType::ACIDBALL, true),
+                                  "ACIDBALL", true),
     4, 20);
 
 const auto FIRESTRIKE = std::make_shared<TargetSpell>(
     "Firestrike", 600, 0,
     std::make_shared<DamageSpell>("Fire damage",
                                   DamageSpec(0, 2, 6, DamageType::FIRE),
-                                  TerrainType::FIREBALL, true),
+                                  "FIREBALL", true),
     4, 15);
 
 const auto ACIDPOOL = std::make_shared<TargetSpell>(
     "Acid pool", 600, 0,
     std::make_shared<DamageSpell>("Acid damage",
                                   DamageSpec(0, 2, 6, DamageType::ACID),
-                                  TerrainType::ACIDPOOL, true),
+                                  "ACIDPOOL", true),
     4, 20);
 
 const auto FROSTSTRIKE = std::make_shared<TargetSpell>(
     "Froststrike", 600, 0,
     std::make_shared<DamageSpell>("Ice damage",
                                   DamageSpec(0, 2, 6, DamageType::FROST),
-                                  TerrainType::FROSTBALL, true),
+                                  "FROSTBALL", true),
     4, 15);
 
 const auto ACIDSTRIKE = std::make_shared<TargetSpell>(
     "Acidstrike", 600, 1,
     std::make_shared<DamageSpell>("Acid damage",
                                   DamageSpec(2, 3, 6, DamageType::ACID),
-                                  TerrainType::ACIDBALL, true),
+                                  "ACIDBALL", true),
     4, 20);
 
 /* LIGHT */
 const auto FLASH = std::make_shared<RadiusSpell>(
-    "Flash", 1000, 0, std::make_shared<CellSpell>("Light", TerrainType::MAGIC_LIGHT),
+    "Flash", 1000, 0, std::make_shared<CellSpell>("Light", "MAGIC_LIGHT"),
     2.5, 10);
 const auto LIGHT = std::make_shared<TargetSpell>(
     "Light", 600, 1,
-    std::make_shared<CellSpell>("Light", TerrainType::MAGIC_LIGHT_LONG), 6, 10);
+    std::make_shared<CellSpell>("Light", "MAGIC_LIGHT_LONG"), 6, 10);
 const auto LIGHT_FOREVER = std::make_shared<TargetSpell>(
     "Eternal Light", 1200, 2,
-    std::make_shared<CellSpell>("Light", TerrainType::MAGIC_LIGHT_FOREVER), 6,
+    std::make_shared<CellSpell>("Light", "MAGIC_LIGHT_FOREVER"), 6,
     10);
 const auto DARKNESS = std::make_shared<TargetSpell>(
     "Darkness", 400, 0,
-    std::make_shared<CellSpell>("Darkness", TerrainType::DARKNESS), 6, 10);
+    std::make_shared<CellSpell>("Darkness", "DARKNESS"), 6, 10);
 const auto DARKNESS_CLOUD = std::make_shared<RadiusSpell>(
     "Cloud of Darkness", 1000, 1,
-    std::make_shared<CellSpell>("Darkness", TerrainType::DARKNESS), 2.5, 10);
+    std::make_shared<CellSpell>("Darkness", "DARKNESS"), 2.5, 10);
 
 /* DEBUG */
 const auto TOGGLE_DUAL_WIELD = std::make_shared<ToggleTraitSpell>(
@@ -136,7 +136,7 @@ const auto RESTORE_MANA = std::make_shared<Spell>("Greater mana");
 
 const auto ACID_LIGHT_FOREVER = std::make_shared<TargetSpell>(
     "Eternal green Light", 800, 0,
-    std::make_shared<CellSpell>("Light", TerrainType::ACID_LIGHT_FOREVER), 6,
+    std::make_shared<CellSpell>("Light", "ACID_LIGHT_FOREVER"), 6,
     0);
 
 const std::vector<std::shared_ptr<Spell>> USABLE = {

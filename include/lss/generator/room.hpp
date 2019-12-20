@@ -1,5 +1,7 @@
 #ifndef __ROOM_H_
 #define __ROOM_H_
+#include "lss/deps.hpp"
+#include <lss/gameData.hpp>
 #include "lss/game/cell.hpp"
 #include "lss/game/terrain.hpp"
 #include "lss/generator/mapUtils.hpp"
@@ -253,21 +255,23 @@ namespace RoomTemplates {
             .....
     */
     [](std::shared_ptr<Location> location) {
+
+      auto data = entt::service_locator<GameData>::get().lock();
       auto room = Room::makeRoom(4, 4, 5, 5, CellType::FLOOR);
       auto cell = room->getCell(1, 1);
-      auto s = std::make_shared<Terrain>(TerrainType::STATUE);
+      auto s = std::make_shared<Terrain>(data->terrainSpecs["STATUE"]);
       s->setCurrentCell(cell);
       location->addObject<Terrain>(s);
 
       cell = room->getCell(3, 1);
-      s = std::make_shared<Terrain>(TerrainType::STATUE);
+      s = std::make_shared<Terrain>(data->terrainSpecs["STATUE"]);
       s->setCurrentCell(cell);
       s->setName("statue");
       location->addObject<Terrain>(s);
       room->features.push_back(RoomFeature::STATUE);
 
       cell = room->getCell(2, 2);
-      s = std::make_shared<Terrain>(TerrainType::ALTAR);
+      s = std::make_shared<Terrain>(data->terrainSpecs["ALTAR"]);
       s->setCurrentCell(cell);
       location->addObject<Terrain>(s);
       room->features.push_back(RoomFeature::ALTAR);
@@ -289,12 +293,12 @@ namespace RoomTemplates {
       // }));
 
       cell = room->getCell(1, 2);
-      s = std::make_shared<Terrain>(TerrainType::TORCH_STAND);
+      s = std::make_shared<Terrain>(data->terrainSpecs["TORCH_STAND"]);
       s->setCurrentCell(cell);
       location->addObject<Terrain>(s);
 
       cell = room->getCell(3, 2);
-      s = std::make_shared<Terrain>(TerrainType::TORCH_STAND);
+      s = std::make_shared<Terrain>(data->terrainSpecs["TORCH_STAND"]);
       s->setCurrentCell(cell);
       location->addObject<Terrain>(s);
 
@@ -313,9 +317,10 @@ namespace RoomTemplates {
             ...
     */
     [](std::shared_ptr<Location> location) {
+      auto data = entt::service_locator<GameData>::get().lock();
       auto room = Room::makeRoom(3, 3, 3, 3, CellType::FLOOR);
       auto cell = room->getCell(1, 1);
-      auto s = std::make_shared<Terrain>(TerrainType::STATUE);
+      auto s = std::make_shared<Terrain>(data->terrainSpecs["STATUE"]);
       s->setCurrentCell(cell);
       location->addObject<Terrain>(s);
       room->features.push_back(RoomFeature::STATUE);
@@ -366,14 +371,15 @@ namespace RoomTemplates {
             ...
     */
     [](std::shared_ptr<Location> location) {
+      auto data = entt::service_locator<GameData>::get().lock();
       auto room = Room::makeRoom(3, 3, 3, 3, CellType::FLOOR);
       auto cell = room->getCell(1, 1);
-      auto s = std::make_shared<UsableTerrain>(TerrainType::ALTAR);
+      auto s = std::make_shared<UsableTerrain>(data->terrainSpecs["ALTAR"]);
       s->setCurrentCell(cell);
       location->addObject<Terrain>(s);
 
       cell = room->getCell(1, 0);
-      auto fb = std::make_shared<Terrain>(TerrainType::ACID_LIGHT_FOREVER, -1);
+      auto fb = std::make_shared<Terrain>(data->terrainSpecs["ACID_LIGHT_FOREVER"], -1);
       fb->setCurrentCell(cell);
       fb->setName("heal_light");
       location->addObject(fb);
@@ -397,14 +403,15 @@ namespace RoomTemplates {
             ...
     */
     [](std::shared_ptr<Location> location) {
+      auto data = entt::service_locator<GameData>::get().lock();
       auto room = Room::makeRoom(3, 3, 3, 3, CellType::FLOOR);
       auto cell = room->getCell(1, 1);
-      auto s = std::make_shared<UsableTerrain>(TerrainType::ALTAR);
+      auto s = std::make_shared<UsableTerrain>(data->terrainSpecs["ALTAR"]);
       s->setCurrentCell(cell);
       location->addObject<Terrain>(s);
 
       cell = room->getCell(1, 0);
-      auto fb = std::make_shared<Terrain>(TerrainType::MAGIC_LIGHT_FOREVER, -1);
+      auto fb = std::make_shared<Terrain>(data->terrainSpecs["MAGIC_LIGHT_FOREVER"], -1);
       fb->setCurrentCell(cell);
       fb->setName("mana_light");
       location->addObject(fb);

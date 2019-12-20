@@ -1,15 +1,15 @@
 #ifndef __GENERATOR_H_
 #define __GENERATOR_H_
-#include "lss/game/cell.hpp"
-#include "lss/game/location.hpp"
+#include <lss/game/cell.hpp>
+#include <lss/game/location.hpp>
+#include <lss/gameData.hpp>
+#include <entt/entt.hpp>
 
 class Generator {
   LibLog::Logger &log = LibLog::Logger::getInstance();
 public:
-    Generator(std::map<std::string, float> p): probabilities(p) {}
+  Generator() {}
   std::shared_ptr<Location> getLocation(LocationSpec);
-  std::map<std::string, float> probabilities;
-
 
   void makeCavePassage(std::shared_ptr<Location> location);
   void placeCaves(std::shared_ptr<Location> location);

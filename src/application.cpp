@@ -19,6 +19,8 @@
 
 #include <app/style/theme.h>
 
+namespace hf = hellfrost;
+
 // static ImGuiDockNodeFlags opt_flags = ImGuiDockNodeFlags_PassthruCentralNode;
 static ImGuiDockNodeFlags opt_flags = ImGuiDockNodeFlags_PassthruCentralNode;
 
@@ -28,7 +30,7 @@ static ImGuiDockNodeFlags opt_flags = ImGuiDockNodeFlags_PassthruCentralNode;
   float GUI_SCALE = 1.f;
 #endif
 
-auto DATA_FILE = "location.bin";
+auto DATA_FILE = "game.bin";
 auto DEFAULT_TILESET = "ascii";
 int ts_idx = 0;
 std::vector<std::string> ts;
@@ -49,6 +51,7 @@ Application::Application(std::string app_name, fs::path path, std::string versio
     }
   }
 
+  entt::service_locator<GameData>::empty();
   gm = std::make_unique<GameManager>(PATH / DATA_FILE);
   gm->setSeed(s);
   seed = gm->seed;
@@ -83,7 +86,7 @@ auto locationType = LocationType::EXTERIOR;
 event_emitter emitter;
 
 namespace Widgets {
-	void Position(::position& p) {
+	void Position(hf::position& p) {
       ImGui::SetNextItemWidth(80*GUI_SCALE);
       if (ImGui::InputInt("x##Position", &p.x)) {
         emitter.publish<redraw_event>();
@@ -103,7 +106,7 @@ namespace Widgets {
       emitter.publish<center_event>(p.x, p.y);
     }
 	}
-	void Renderable(::position& p, ::renderable& r, std::shared_ptr<Viewport> view_map) {
+	void Renderable(hf::position& p, hf::renderable& r, std::shared_ptr<Viewport> view_map) {
     auto k = r.spriteKey;
     auto v = view_map->tileSet.sprites[k];
       sf::Sprite s;
@@ -196,20 +199,20 @@ void Application::setupGui() {
 
   window->resetGLStates();
 
-  editor.registerTrivial<position>(gm->registry, "Position");
-  editor.registerTrivial<renderable>(gm->registry, "Renderable");
+  editor.registerTrivial<hf::position>(gm->registry, "Position");
+  editor.registerTrivial<hf::renderable>(gm->registry, "Renderable");
 
   editor.registerComponentWidgetFn(
-    gm->registry.type<position>(),
+    gm->registry.type<hf::position>(),
     [&](entt::registry& reg, auto e) {
-      auto& p = reg.get<position>(e);
+      auto& p = reg.get<hf::position>(e);
       Widgets::Position(p);
     });
   editor.registerComponentWidgetFn(
-    gm->registry.type<renderable>(),
+    gm->registry.type<hf::renderable>(),
     [&](entt::registry& reg, auto e) {
-      auto& r = reg.get<renderable>(e);
-      auto& p = reg.get<position>(e);
+      auto& r = reg.get<hf::renderable>(e);
+      auto& p = reg.get<hf::position>(e);
       Widgets::Renderable(p, r, view_map);
     });
 
@@ -436,12 +439,12 @@ void Application::drawCellInfo() {
         drawObjects(objects);
       }
 
-      auto ents = gm->registry.view<position>();
+      auto ents = gm->registry.view<hf::position>();
 
       if (ents.size() > 0) {
         if (ImGui::TreeNode("ents", "%s Entities", ICON_MDI_CUBE_OUTLINE)) {
           for (auto e : ents) {
-            auto p = gm->registry.get<position>(e);
+            auto p = gm->registry.get<hf::position>(e);
             if (cell->x == p.x && cell->y == p.y) {
               drawEntityInfo(e);
             }
@@ -543,11 +546,11 @@ void Application::drawObjectsWindow() {
   ImGui::Begin("Objects");
   drawObjects(view_map->regions.front()->location->objects);
 
-  auto ents = gm->registry.view<ingame>();
+  auto ents = gm->registry.view<hf::ingame>();
   if (ImGui::TreeNode("ents", "%s Entities: %lu", ICON_MDI_CUBE_OUTLINE, ents.size())) {
     if (ImGui::Button("New Entity")) {
       auto e = gm->registry.create();
-      gm->registry.assign<ingame>(e);
+      gm->registry.assign<hf::ingame>(e);
     }
 
     for (auto e : ents) {
@@ -790,14 +793,14 @@ void Application::drawMainWindow() {
   ImGui::Begin("Specification");
   if(ImGui::Button("Apply")) {
     view_map->tilesCache.clear();
-    gm->reset();
+    // gm->reset();
     genLocation(seed);
     needRedraw = true;
   }
   ImGui::SameLine();
   if(ImGui::Button("Reload")) {
     gm->loadData();
-    gm->reset();
+    // gm->reset();
 
     view_map->tilesCache.clear();
     genLocation(seed);
@@ -809,23 +812,51 @@ void Application::drawMainWindow() {
   }
   ImGui::Separator();
 
+
+  auto data = entt::service_locator<GameData>::get().lock();
+
   if (ImGui::CollapsingHeader("Probabilities")) {
-    for (auto [k, _] : gm->data->probability) {
+    for (auto [k, _] : data->probability) {
       ImGui::SetNextItemWidth(80);
-      ImGui::InputFloat(k.c_str(), &gm->data->probability[k]);
+      ImGui::InputFloat(k.c_str(), &data->probability[k]);
     }
   }
   if (ImGui::CollapsingHeader("Item specs")) {
-    for (auto spec : gm->data->itemSpecs) {
+    for (auto [k, spec] : data->itemSpecs) {
       char*name = new char[spec.name.size()+1];
       std::strcpy(name, spec.name.c_str());
-      if (ImGui::TreeNode(name)) {
+      if (ImGui::TreeNode(k.c_str())) {
+        ImGui::Button("Delete");
         if (ImGui::InputText("Name", name, spec.name.size()+1)) {
         }
-        ImGui::TreePop();
-        ImGui::Text(spec.category.name.c_str());
+        ImGui::Text("Category: %s", spec.category.name.c_str());
         ImGui::InputInt("Durability", &spec.durability);
         ImGui::Checkbox("Identified", &spec.identified);
+        ImGui::TreePop();
+      }
+    }
+  }
+  if (ImGui::CollapsingHeader("Terrain specs")) {
+    for (auto [k, spec] : data->terrainSpecs) {
+      char*name = new char[spec.name.size()+1];
+      std::strcpy(name, spec.name.c_str());
+      if (ImGui::TreeNode(k.c_str())) {
+        ImGui::Button("Delete");
+        if (ImGui::InputText("Name", name, spec.name.size()+1)) {
+        }
+        ImGui::Checkbox("seeThrough", &spec.seeThrough);
+        ImGui::SameLine();
+        ImGui::Checkbox("passThrough", &spec.passThrough);
+        ImGui::InputInt("action points left", &spec.apLeft);
+        ImGui::Checkbox("destructable", &spec.destructable);
+        if (spec.light.distance > 0) {
+          if (ImGui::CollapsingHeader("Light specs")) {
+            ImGui::BulletText("Light distance: %f", spec.light.distance);
+            ImGui::BulletText("Light type: %d", spec.light.type);
+            ImGui::BulletText("Light stable: %s", spec.light.stable ? "true" : "false");
+          }
+        }
+        ImGui::TreePop();
       }
     }
   }
@@ -980,7 +1011,7 @@ int Application::serve() {
         }
       }
 
-      auto ents = gm->registry.group(entt::get<position, renderable>);
+      auto ents = gm->registry.group(entt::get<hf::position, hf::renderable>);
       for (auto e : ents) {
         renderEntity(canvas, e);
       }
@@ -1015,9 +1046,9 @@ int Application::serve() {
           canvas->draw(bg);
           renderTile(canvas, *t);
 
-          auto ents = gm->registry.group(entt::get<position, renderable>);
+          auto ents = gm->registry.group(entt::get<hf::position, hf::renderable>);
           for (auto e : ents) {
-            auto p = gm->registry.get<position>(e);
+            auto p = gm->registry.get<hf::position>(e);
             // fmt::print("{}.{} != {}.{}\n", p.x, p.y, d.first, d.second);
             auto rx = p.x-view_map->position.first;
             auto ry = p.y-view_map->position.second;
@@ -1065,7 +1096,7 @@ int Application::serve() {
 }
 
 void Application::renderEntity(std::shared_ptr<sf::RenderTexture> canvas, entt::entity e) {
-    auto [pos, render] = gm->registry.get<position, renderable>(e);
+    auto [pos, render] = gm->registry.get<hf::position, hf::renderable>(e);
     if (render.hasBg) {
       sf::RectangleShape bg;
       bg.setSize(sf::Vector2f(view_map->tileSet.size.first, view_map->tileSet.size.second)*scale*GUI_SCALE);

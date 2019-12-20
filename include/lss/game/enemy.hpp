@@ -48,7 +48,7 @@ public:
   bool randomPath();
   void onDamage(std::shared_ptr<Creature>, std::shared_ptr<Damage>) override;
   void onDie() override;
-  bool interact(std::shared_ptr<Object> actor);
+  bool interact(std::shared_ptr<Object>) override;
   void commit(int ap);
   void prepareAiState();
 

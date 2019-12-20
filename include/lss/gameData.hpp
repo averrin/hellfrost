@@ -1,8 +1,9 @@
 #ifndef __GAMEDATA_H_
 #define __GAMEDATA_H_
 #include <lss/deps.hpp>
-#include "lss/game/itemSpec.hpp"
 #include <map>
+#include <lss/game/itemSpec.hpp>
+#include <lss/game/terrain.hpp>
 #include <vector>
 
 class GameData {
@@ -13,16 +14,17 @@ class GameData {
     // };
     template<class Archive>
     void load(Archive & ar) {
-        ar( probability, itemSpecs );
+        ar( probability, itemSpecs, terrainSpecs );
     };
     template<class Archive>
     void save(Archive & ar) const {
-        ar( probability, itemSpecs );
+        ar( probability, itemSpecs, terrainSpecs );
     };
 
 public:
     std::map<std::string, float> probability;
-    std::vector<ItemSpec> itemSpecs;
+    std::map<std::string, ItemSpec> itemSpecs;
+    std::map<std::string, TerrainSpec> terrainSpecs;
 };
 
 #endif // __GAMEDATA_H_

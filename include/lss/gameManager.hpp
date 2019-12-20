@@ -2,23 +2,20 @@
 #define __GAMEMANAGER_H_
 #include <entt/entt.hpp>
 #include <liblog/liblog.hpp>
-#include <app/gameData.hpp>
+#include <lss/gameData.hpp>
 #include <lss/generator/generator.hpp>
 #include <lss/game/location.hpp>
+#include <lss/components.hpp>
+#include "lss/game/content/specs.hpp"
+#include "lss/game/terrain.hpp"
 
-struct ingame {};
-
-struct position {
-    int x = 0;
-    int y = 0;
-    int z = 0;
-};
-
-struct renderable {
-    std::string spriteKey = "UNKNOWN";
-    std::string fgColor = "#fff";
-    bool hasBg = false;
-    std::string bgColor = "#fffffff00";
+namespace hellfrost {
+    struct renderable {
+        std::string spriteKey = "UNKNOWN";
+        std::string fgColor = "#fff";
+        bool hasBg = false;
+        std::string bgColor = "#fffffff00";
+    };
 };
 
 class GameManager {
@@ -28,10 +25,10 @@ class GameManager {
     GameManager(fs::path);
     int seed;
     entt::registry registry{};
-    std::shared_ptr<GameData> data;
     std::shared_ptr<Location> location;
     fs::path path;
 
+    void applyData();
     void reset();
     void gen(LocationSpec);
     void setSeed(int s) {seed = s;}
@@ -39,14 +36,16 @@ class GameManager {
     void loadData() {
         std::ifstream file(path, std::ios::in | std::ios::binary);
         cereal::BinaryInputArchive iarchive(file);
-        GameData d;
-        iarchive(d);
-        data = std::make_shared<GameData>(d);
+        GameData data;
+
+        iarchive(data);
+        entt::service_locator<GameData>::set(data);
     }
     void saveData() {
         std::ofstream file(path, std::ios::out | std::ios::binary);
         cereal::BinaryOutputArchive oarchive(file);
-        oarchive(*data);
+        auto data = entt::service_locator<GameData>::ref();
+        oarchive(data);
     }
 };
 

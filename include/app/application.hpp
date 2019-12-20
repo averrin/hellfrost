@@ -8,7 +8,9 @@
 #include <liblog/liblog.hpp>
 #include <lss/gameManager.hpp>
 #include <app/ui/tile.hpp>
+#include <app/ui/viewport.hpp>
 #include <imgui_entt_entity_editor.hpp>
+#include "lss/components.hpp"
 
 
 struct event_emitter: entt::emitter<event_emitter> {};

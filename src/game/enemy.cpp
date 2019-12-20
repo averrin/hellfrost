@@ -81,6 +81,7 @@ bool Enemy::interact(std::shared_ptr<Object> actor) {
   // hero->increaseStrength(damage->damage);
   // applyDamage(hero, damage);
   // return hp > 0;
+  return true;
 }
 
 void Enemy::onDamage(std::shared_ptr<Creature> attacker,
@@ -196,6 +197,7 @@ std::optional<AiAction> Enemy::execAction() {
   // }
   // log.stop(label);
   // return action;
+  return std::nullopt;
 }
 
 std::optional<AiAction> Enemy::execAction(int ap) {

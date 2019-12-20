@@ -5,6 +5,7 @@
 #include <liblog/liblog.hpp>
 #include "EventBus/EventBus.hpp"
 
+#include "lss/deps.hpp"
 #include "lss/game/content/traits.hpp"
 #include "lss/game/damage.hpp"
 #include "lss/game/effect.hpp"
@@ -15,6 +16,7 @@
 #include <lss/game/ai.hpp>
 #include <lss/game/damageSpec.hpp>
 #include <lss/game/location.hpp>
+#include <lss/gameData.hpp>
 
 class Creature : public Object {
   LibLog::Logger &log = LibLog::Logger::getInstance();
@@ -33,9 +35,10 @@ public:
     return canSee(c, viewField);
   };
   bool canSee(std::shared_ptr<Cell> c, std::vector<std::shared_ptr<Cell>> vf) {
+    auto data = entt::service_locator<GameData>::get().lock();
     for (auto t : utils::castObjects<Terrain>(
              currentLocation->getObjects(currentCell))) {
-      if (t->type == TerrainType::DARKNESS) {
+      if (t->type == data->terrainSpecs["DARKNESS"]) {
         return false;
       }
     }
@@ -45,7 +48,7 @@ public:
            hasTrait(Traits::MIND_SIGHT);
   };
   std::vector<std::shared_ptr<Cell>> calcViewField(bool force = false);
-  bool interact(std::shared_ptr<Object>);
+  bool interact(std::shared_ptr<Object>) override;
   std::shared_ptr<Damage> getDamage(std::shared_ptr<Object>);
   std::string getDmgDesc();
 

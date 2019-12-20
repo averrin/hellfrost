@@ -41,9 +41,9 @@ public:
 
 class CellSpell : public Spell {
 public:
-  CellSpell(std::string n, TerrainSpec ts) : Spell(n), spec(ts) {}
-  CellSpell(std::string n, int l, TerrainSpec ts) : Spell(n, l), spec(ts) {}
-  TerrainSpec spec;
+  CellSpell(std::string n, std::string ts) : Spell(n), spec(ts) {}
+  CellSpell(std::string n, int l, std::string ts) : Spell(n, l), spec(ts) {}
+  std::string spec;
   void applyEffect(std::shared_ptr<Location> location,
                    std::shared_ptr<Cell> c);
 
@@ -56,9 +56,9 @@ public:
 
 class DamageSpell : public CellSpell {
 public:
-  DamageSpell(std::string n, DamageSpec dmg, TerrainSpec ts, bool d = false)
+  DamageSpell(std::string n, DamageSpec dmg, std::string ts, bool d = false)
       : CellSpell(n, ts), damage(dmg), destroyObjects(d) {}
-  DamageSpell(std::string n, int l, DamageSpec dmg, TerrainSpec ts,
+  DamageSpell(std::string n, int l, DamageSpec dmg, std::string ts,
               bool d = false)
       : CellSpell(n, l, ts), damage(dmg), destroyObjects(d) {}
   DamageSpec damage;
@@ -71,7 +71,7 @@ class DrillSpell : public DamageSpell {
 public:
   DrillSpell(std::string n)
       : DamageSpell(n, DamageSpec(0, 0, 0, DamageType::BASIC),
-                    TerrainType::DRILL, true) {}
+                    "DRILL", true) {}
   void applySpell(std::shared_ptr<Creature> caster, std::shared_ptr<Location>,
                   std::shared_ptr<Cell>);
 };
