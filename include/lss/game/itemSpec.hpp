@@ -32,8 +32,12 @@ static const ItemCategory USABLE = {"Usable"};
 struct ItemSpec {
     friend class cereal::access;
     template<class Archive>
-    void serialize(Archive & ar) {
-        ar( name, category, wearableType, durability, identified );
+    void load(Archive & ar) {
+        ar( name, category, wearableType, durability, identified, sign );
+    };
+    template<class Archive>
+    void save(Archive & ar) const {
+        ar( name, category, wearableType, durability, identified, sign );
     };
 public:
   std::string name = "";
@@ -41,6 +45,7 @@ public:
   WearableType wearableType = WearableType::INVALID;
   int durability = -1;
   bool identified = false;
+  std::string sign;
 
   friend bool operator<(const ItemSpec &lhs, const ItemSpec &rhs) {
     return lhs.name < rhs.name;

@@ -33,15 +33,18 @@
     },
     "ENV": {
         "BLOOD": "#771d1f89",
+        "CAVE_BG": "#6b4f2055",
         "CORRUPT": "#550088aa",
         "DOOR": "#8B5F20",
         "FLOOR": "#5f554188",
-        "FROST": "#2d2f6089",
+        "FROST": "#3c4092ac",
         "GROUND": "#6B4F2099",
-        "VOID": "#333333",
+        "GROUND_BG": "#1935026c",
+        "OVERLAY": "#aaaaaa88",
         "WALL": "#6d6359",
         "WALL_CAVE": "#6B4F20cc",
-        "WATER": "#4444aa"
+        "WATER": "#393973d9",
+        "WATER_BG": "#48488687"
     },
     "ITEMS": {
         "AMULET": "#9043c7ff",
@@ -70,7 +73,7 @@
         "RIGHT_GAUNTLET": "#dfdfdf",
         "RIGHT_PAULDRON": "#dfdfdf",
         "RING": "#dfdfdf",
-        "ROCK": "#888888",
+        "ROCK": "#616060ff",
         "SCROLL": "#aa8500",
         "SHIELD": "#dfdfdf",
         "SWORD": "#dfdfdf",
@@ -83,10 +86,11 @@
         "BROWN": "#5f5541aa"
     },
     "TERRAIN": {
-        "ALTAR": "#555",
-        "BUSH": "#33cc11",
+        "ALTAR": "#b7b6b6ff",
+        "BUSH": "#2cb10eff",
         "CRATE": "#7d7369",
         "STATUE": "#f0f0ff",
-        "TORCH_STAND": "#ffa500"
+        "TORCH_STAND": "#ffa500",
+        "TREE": "#348e48ff"
     }
 }

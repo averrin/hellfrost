@@ -6,24 +6,40 @@
 #include <algorithm>
 
 struct LootBox {
+    friend class cereal::access;
+    template<class Archive>
+    void load(Archive & ar) {
+        ar( name, probability, itemKeys, children, exclusive );
+    };
+    template<class Archive>
+    void save(Archive & ar) const {
+        ar( name, probability, itemKeys, children, exclusive );
+    };
+
   LootBox() {}
-  LootBox(float p, std::vector<std::shared_ptr<Item>> loot,
+  LootBox(std::string n, float p, std::vector<std::shared_ptr<Item>> loot,
           std::vector<LootBox> lbs = {}, bool e = true)
-      : probability(p), items(loot), children(lbs), exclusive(e) {}
+    : name(n), probability(p), items(loot), children(lbs), exclusive(e) {
+    for (auto i : items) {
+      itemKeys.push_back(i->typeKey);
+    }
+  }
 
   LootBox(float p, LootBox lb)
       : probability(p), children({lb}), exclusive(lb.exclusive) {}
 
-  LootBox(std::vector<LootBox> lbs) : children(lbs), exclusive(true) {}
+  LootBox(std::string n, std::vector<LootBox> lbs) : name(n), children(lbs), exclusive(true) {}
 
-  LootBox(std::vector<std::shared_ptr<Item>> loot) : exclusive(true) {
+  LootBox(std::string n, std::vector<std::shared_ptr<Item>> loot) : name(n), exclusive(true) {
     float p = 1.f / loot.size();
     children.resize(loot.size());
     std::transform(loot.begin(), loot.end(), children.begin(),
-                   [p](auto i) { return LootBox(p, {i}, {}, true); });
+                   [p](auto i) { return LootBox(i->typeKey, p, {i}, {}, true); });
   }
+  std::string name;
   float probability = 1.f;
   Items items;
+  std::vector<std::string> itemKeys;
   std::vector<LootBox> children;
   bool exclusive = true;
 
@@ -66,56 +82,56 @@ public:
 
 namespace LootBoxes {
 const LootBox ZERO = LootBox();
-const LootBox POTIONS = LootBox(Prototype::POTIONS);
-const LootBox SCROLLS = LootBox(Prototype::SCROLLS);
+const LootBox POTIONS = LootBox("POTIONS", Prototype::POTIONS);
+const LootBox SCROLLS = LootBox("SCROLLS", Prototype::SCROLLS);
 
-const LootBox ARMOR_TIER_1 = LootBox(Prototype::LEATHER_ARMOR);
-const LootBox ARMOR_TIER_2 = LootBox(Prototype::IRON_ARMOR);
-const LootBox ARMOR_TIER_3 = LootBox(Prototype::STEEL_ARMOR);
-const LootBox WEAPONS_TIER_1 = LootBox(Prototype::WEAPONS_1);
-const LootBox WEAPONS_TIER_2 = LootBox(Prototype::WEAPONS_2);
-const LootBox WEAPONS_TIER_3 = LootBox(Prototype::WEAPONS_3);
+const LootBox ARMOR_TIER_1 = LootBox("ARMOR_1", Prototype::LEATHER_ARMOR);
+const LootBox ARMOR_TIER_2 = LootBox("ARMOR_2", Prototype::IRON_ARMOR);
+const LootBox ARMOR_TIER_3 = LootBox("ARMOR_3", Prototype::STEEL_ARMOR);
+const LootBox WEAPONS_TIER_1 = LootBox("WEAPON_1", Prototype::WEAPONS_1);
+const LootBox WEAPONS_TIER_2 = LootBox("WEAPON_2", Prototype::WEAPONS_2);
+const LootBox WEAPONS_TIER_3 = LootBox("WEAPON_3", Prototype::WEAPONS_3);
 
-const LootBox CLUTTER = LootBox(0.4, LootBox({
-    LootBox(0.6, LootBox(Prototype::CLUTTER)),
+const LootBox CLUTTER = LootBox(0.4, LootBox("BOXES", {
+    LootBox(0.6, LootBox("CLUTTER", Prototype::CLUTTER)),
     LootBox(0.01, POTIONS),
     LootBox(0.01, SCROLLS),
 }));
 
 /* Enemy loot */
-const LootBox LOOT_TIER_0 = LootBox(Prototype::LOOT_0);
-const LootBox LOOT_TIER_1 = LootBox(
-    {LootBox(0.3, LOOT_TIER_0), LootBox(0.7, LootBox(Prototype::LOOT_1))});
-const LootBox LOOT_TIER_2 = LootBox(
-    {LootBox(0.3, LOOT_TIER_1), LootBox(0.7, LootBox(Prototype::LOOT_2))});
-const LootBox LOOT_TIER_3 = LootBox(
-    {LootBox(0.3, LOOT_TIER_2), LootBox(0.7, LootBox(Prototype::LOOT_3))});
+const LootBox LOOT_TIER_0 = LootBox("LOOT_T0", Prototype::LOOT_0);
+const LootBox LOOT_TIER_1 = LootBox("LOOT_T1",
+    {LootBox(0.3, LOOT_TIER_0), LootBox(0.7, LootBox("LOOT_1", Prototype::LOOT_1))});
+const LootBox LOOT_TIER_2 = LootBox("LOOT_T2",
+    {LootBox(0.3, LOOT_TIER_1), LootBox(0.7, LootBox("LOOT_2", Prototype::LOOT_2))});
+const LootBox LOOT_TIER_3 = LootBox("LOOT_T3",
+    {LootBox(0.3, LOOT_TIER_2), LootBox(0.7, LootBox("LOOT_3", Prototype::LOOT_3))});
 
 /* Location loot */
-const LootBox DUNGEON_0 = LootBox({
+const LootBox DUNGEON_0 = LootBox("DUNGEON_0", {
     LootBox(0.3, LOOT_TIER_0),
     LootBox(0.3, POTIONS),
     LootBox(0.3, SCROLLS),
-    LootBox(0.1, LootBox(Prototype::ARTIFACTS_0)),
+    LootBox(0.1, LootBox("ART_0", Prototype::ARTIFACTS_0)),
 });
-const LootBox DUNGEON_1 = LootBox({
+const LootBox DUNGEON_1 = LootBox("DUNGEON_1", {
     LootBox(0.3, LOOT_TIER_1),
     LootBox(0.3, POTIONS),
     LootBox(0.3, SCROLLS),
-    LootBox(0.1, LootBox(Prototype::ARTIFACTS_1)),
+    LootBox(0.1, LootBox("ART_1", Prototype::ARTIFACTS_1)),
 });
-const LootBox DUNGEON_2 = LootBox({
+const LootBox DUNGEON_2 = LootBox("DUNGEON_2", {
     LootBox(0.3, LOOT_TIER_2),
     LootBox(0.3, POTIONS),
     LootBox(0.3, SCROLLS),
-    LootBox(0.1, LootBox(Prototype::ARTIFACTS_2)),
+    LootBox(0.1, LootBox("ART_2", Prototype::ARTIFACTS_2)),
 });
 
-const LootBox DUNGEON_3 = LootBox({
+const LootBox DUNGEON_3 = LootBox("DUNGEON_3", {
     LootBox(0.3, LOOT_TIER_3),
     LootBox(0.3, POTIONS),
     LootBox(0.3, SCROLLS),
-    LootBox(0.1, LootBox(Prototype::ARTIFACTS_3)),
+    LootBox(0.1, LootBox("ART_3", Prototype::ARTIFACTS_3)),
 });
 
 const LootBox DUNGEON_4 = DUNGEON_3;

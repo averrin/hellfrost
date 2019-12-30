@@ -36,12 +36,12 @@ public:
   };
   bool canSee(std::shared_ptr<Cell> c, std::vector<std::shared_ptr<Cell>> vf) {
     auto data = entt::service_locator<GameData>::get().lock();
-    for (auto t : utils::castObjects<Terrain>(
-             currentLocation->getObjects(currentCell))) {
-      if (t->type == data->terrainSpecs["DARKNESS"]) {
-        return false;
-      }
-    }
+    // for (auto t : utils::castObjects<Terrain>(
+    //          currentLocation->getObjects(currentCell))) {
+    //   if (t->type == data->terrainSpecs["DARKNESS"]) {
+    //     return false;
+    //   }
+    // }
 
     return std::find(vf.begin(), vf.end(), c) !=
                vf.end() ||

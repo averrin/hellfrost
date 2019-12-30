@@ -1,6 +1,7 @@
 #ifndef __LOCATION_H_
 #define __LOCATION_H_
 
+#include "lss/components.hpp"
 #include "lss/game/cell.hpp"
 #include "lss/game/events.hpp"
 #include "lss/game/fov.hpp"
@@ -44,23 +45,25 @@ class Room;
 class AiManager;
 class Location : public Object,
                  public micropather::Graph
-                 // public eb::EventHandler<EnemyDiedEvent>,
-                 // public eb::EventHandler<ItemTakenEvent>,
-                 // public eb::EventHandler<DigEvent>,
-                 // public eb::EventHandler<DropEvent>,
-                 // public eb::EventHandler<CommitEvent>,
-                 // public eb::EventHandler<DoorOpenedEvent>,
-                 // public eb::EventHandler<LeaveCellEvent>,
-                 // public eb::EventHandler<EnterCellEvent>,
+// public eb::EventHandler<EnemyDiedEvent>,
+// public eb::EventHandler<ItemTakenEvent>,
+// public eb::EventHandler<DigEvent>,
+// public eb::EventHandler<DropEvent>,
+// public eb::EventHandler<CommitEvent>,
+// public eb::EventHandler<DoorOpenedEvent>,
+// public eb::EventHandler<LeaveCellEvent>,
+// public eb::EventHandler<EnterCellEvent>,
 {
 public:
+  std::shared_ptr<entt::registry> registry = std::make_shared<entt::registry>();
   LibLog::Logger &log = LibLog::Logger::getInstance();
   Location(LocationSpec t) : Object(), type(t), features(t.features) {}
   ~Location();
   LocationSpec type;
   Cells cells;
   Objects objects{};
-    std::map<std::shared_ptr<Cell>, Objects> cellObjects = std::map<std::shared_ptr<Cell>, Objects>{};
+  std::map<std::shared_ptr<Cell>, Objects> cellObjects =
+      std::map<std::shared_ptr<Cell>, Objects>{};
   // std::shared_ptr<Player> player;
   int depth = 0;
   // std::shared_ptr<AiManager> aiManager;
@@ -77,6 +80,7 @@ public:
     return std::nullopt;
   }
 
+  entt::entity addTerrain(std::string typeKey, std::shared_ptr<Cell> cell);
 
   template <typename T>
   void addObject(std::shared_ptr<T> o, std::shared_ptr<T> cc) {
@@ -121,20 +125,20 @@ public:
   Objects getObjects(std::shared_ptr<Cell>);
   std::string getFeaturesTag() {
     std::map<LocationFeature, std::string> featureMap = {
-    {LocationFeature::TORCHES, "T"},
-    {LocationFeature::CAVE_PASSAGE, "C"},
-    {LocationFeature::RIVER, "R"},
-    {LocationFeature::STATUE, "S"},
-    {LocationFeature::ALTAR, "A"},
-    {LocationFeature::VOID, "V"},
-    {LocationFeature::LAKE, "L"},
-    {LocationFeature::ICE, "I"},
-    {LocationFeature::HEAL, "H"},
-    {LocationFeature::MANA, "M"},
-    {LocationFeature::TREASURE_SMALL, "t"},
-    {LocationFeature::CORRUPT, "c"},
-    {LocationFeature::BONES_FIELD, "B"},
-  };
+        {LocationFeature::TORCHES, "T"},
+        {LocationFeature::CAVE_PASSAGE, "C"},
+        {LocationFeature::RIVER, "R"},
+        {LocationFeature::STATUE, "S"},
+        {LocationFeature::ALTAR, "A"},
+        {LocationFeature::VOID, "V"},
+        {LocationFeature::LAKE, "L"},
+        {LocationFeature::ICE, "I"},
+        {LocationFeature::HEAL, "H"},
+        {LocationFeature::MANA, "M"},
+        {LocationFeature::TREASURE_SMALL, "t"},
+        {LocationFeature::CORRUPT, "c"},
+        {LocationFeature::BONES_FIELD, "B"},
+    };
     std::string locationFeatures = "";
     for (auto [f, l] : featureMap) {
       if (hasFeature(f)) {
@@ -144,7 +148,7 @@ public:
 
     return locationFeatures;
   }
-    
+
   std::vector<std::shared_ptr<Cell>> getNeighbors(std::shared_ptr<Cell> cell) {
     return getNeighbors(cell.get());
   }

@@ -26,6 +26,7 @@ class ImGuiEntityEditor {
 		std::map<component_type, widgetCallback> _component_widget;
 		std::map<component_type, widgetCallback> _component_create;
 		std::map<component_type, widgetCallback> _component_destroy;
+		widgetCallback _toolbarCallback;
 
 	public:
 		bool show_window = true;
@@ -43,23 +44,20 @@ class ImGuiEntityEditor {
 		void renderImGui(Registry& ecs, typename Registry::entity_type& e) {
 			// if (show_window) {
 				// if(ImGui::Begin("Entity Editor", &show_window)) {
-					ImGui::Text("Editing:");
-					ImGui::SameLine();
+
+					if (_toolbarCallback) {
+						_toolbarCallback(ecs, e);
+					}
 
 					//ImGuiWidgets::Entity(e, ecs, true);
-					if (ecs.valid(e)) {
-						ImGui::Text("id: %d, v: %d", ecs.entity(e), ecs.version(e));
-					} else {
-						ImGui::Text("INVALID ENTITY");
-					}
-					ImGui::SameLine();
-					if(ImGui::SmallButton("Destroy")){
-						ecs.destroy(e);
-					}
-					// TODO: investigate
-
-					// if (ImGui::Button("New Entity")) {
-					// 	e = ecs.create();
+					// if (ecs.valid(e)) {
+					// 	ImGui::Text("id: %d, v: %d", ecs.entity(e), ecs.version(e));
+					// } else {
+					// 	ImGui::Text("INVALID ENTITY");
+					// }
+					// ImGui::SameLine();
+					// if(ImGui::SmallButton("Destroy")){
+					// 	ecs.destroy(e);
 					// }
 
 					// TODO: implemnt cloning by ether forking entt or implementing function lists...
@@ -170,6 +168,10 @@ class ImGuiEntityEditor {
 		// register a name to be displayed for the component
 		void registerComponentName(component_type ct, const std::string& name) {
 			_component_names[ct] = name;
+		}
+
+		void registerToolbarFn(widgetCallback fn) {
+			_toolbarCallback = fn;
 		}
 
 		// register a callback to a function displaying a component. using imgui

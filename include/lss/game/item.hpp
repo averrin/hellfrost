@@ -12,42 +12,14 @@
 // TODO: refactor constructors
 class Item : public Object {
 public:
-  Item(std::string un, std::string n, ItemSpec t, Effects e = {})
-      : Object(), type(t), unidName(un), name(n), durability(type.durability),
-        effects(e) {
-    zIndex = 1;
-    identified = type.identified;
-  }
-  Item(ItemSpec t, int c = -1)
-      : Object(), type(t), count(c), unidName(t.name), name(t.name),
-        durability(type.durability) {
-    zIndex = 1;
-    identified = type.identified;
-  }
-  Item(std::string n, ItemSpec t, int c = -1, Effects e = {})
-      : Object(), type(t), count(c), unidName(t.name), name(n),
-        durability(type.durability), effects(e) {
-    zIndex = 1;
-    identified = type.identified;
-  }
-  Item(ItemSpec t, Effects e)
-      : Object(), type(t), effects(e), unidName(t.name), name(t.name),
-        durability(type.durability) {
-    zIndex = 1;
-    identified = type.identified;
-  }
-  Item(ItemSpec t, int c, Effects e)
-      : Object(), type(t), effects(e), unidName(t.name), name(t.name),
-        durability(type.durability), count(c) {
-    zIndex = 1;
-    identified = type.identified;
-  }
-  Item(std::string n, ItemSpec t, Effects e)
-      : Object(), type(t), effects(e), unidName(t.name), name(n),
-        durability(type.durability) {
-    zIndex = 1;
-    identified = type.identified;
-  }
+  Item(std::string un, std::string n, std::string t, Effects e = {});
+  Item(std::string t, int c = -1);
+  Item(std::string n, std::string t, int c = -1, Effects e = {});
+  Item(std::string t, Effects e);
+  Item(std::string t, int c, Effects e);
+  Item(std::string n, std::string t, Effects e);
+
+  std::string typeKey;
   ItemSpec type;
   Effects effects;
   int count = 0;
@@ -86,15 +58,15 @@ public:
 
 class Usable : public Item {
 public:
-    Usable(ItemSpec t): Item(t) {}
-    Usable(std::string un, std::string n, ItemSpec t) : Item(un, n, t) {}
+    Usable(std::string t): Item(t) {}
+    Usable(std::string un, std::string n, std::string t) : Item(un, n, t) {}
     std::shared_ptr<Item> clone() { return std::make_shared<Usable>(*this); }
     std::shared_ptr<Item> roll() {  return std::make_shared<Usable>(*this); }
 };
 
 class Consumable : public Usable {
 public:
-  Consumable(std::string un, std::string n, ItemSpec t,
+  Consumable(std::string un, std::string n, std::string t,
              std::shared_ptr<Spell> s)
       : Usable(un, n, t), spell(s) {}
   std::shared_ptr<Spell> spell;

@@ -1,66 +1,76 @@
 #ifndef __APPLICATION_H_
 #define __APPLICATION_H_
 #include <string>
-#include <SFML/Graphics/RenderWindow.hpp>
+
 #include <SFML/Graphics.hpp>
+#include <SFML/Graphics/RenderWindow.hpp>
+#include <dukglue/dukglue.h>
 #include <entt/entt.hpp>
+#include <imguicolortextedit/TextEditor.h>
 
 #include <liblog/liblog.hpp>
+#include <lss/components.hpp>
 #include <lss/gameManager.hpp>
-#include <app/ui/tile.hpp>
+
+#include <app/console.hpp>
+#include <app/editor.hpp>
+#include <app/scriptWrappers.hpp>
+#include <app/ui/drawEngine.hpp>
 #include <app/ui/viewport.hpp>
-#include <imgui_entt_entity_editor.hpp>
-#include "lss/components.hpp"
-
-
-struct event_emitter: entt::emitter<event_emitter> {};
-struct redraw_event {};
-struct center_event {int x; int y;};
-struct damage_event {int x; int y;};
+#include <mutex>
 
 class Object;
 class Application {
-        bool needRedraw = true;
-        std::vector<std::pair<int, int>> damage;
+  sf::RectangleShape rectangle;
+  sf::RectangleShape cursor;
+  duk_context *duk_ctx = duk_create_heap_default();
+
+  std::thread jsThread;
+  std::thread cacheThread;
+  std::shared_ptr<std::mutex> reg_mutex = std::make_shared<std::mutex>();
+
 public:
-        Application(std::string, fs::path, std::string, int);
-        ~Application();
+  Application(std::string, fs::path, std::string, int);
+  ~Application();
 
-        void setupGui();
+  void setupGui();
 
-        std::string APP_NAME;
-        std::string VERSION;
-        fs::path PATH;
+  std::string APP_NAME;
+  std::string VERSION;
+  fs::path PATH;
 
-        std::unique_ptr<GameManager> gm;
-        MM::ImGuiEntityEditor<decltype(gm->registry)> editor;
-        sf::RenderWindow *window;
-        std::shared_ptr<sf::RenderTexture> cacheTex;
-        std::shared_ptr<Viewport> view_map;
-        void processEvent(sf::Event event);
-        int serve();
-        void drawStatusBar(float width, float height, float pos_x, float pos_y);
-        void drawDocking();
-        void drawMainWindow();
-        void drawObjectsWindow();
-        void drawTilesetWindow();
+  bool debug = true;
 
-        void drawEntityInfo(entt::entity);
+  std::shared_ptr<GameManager> gm;
+  std::shared_ptr<Editor> editor;
 
-        void saveTileset();
-        void drawCellInfo();
-        void drawObjects(std::vector<std::shared_ptr<Object>>);
-        void centerObject(std::shared_ptr<Object>);
-                void genLocation(int);
-                int seed;
+  std::shared_ptr<DrawEngine> engine;
+  sf::RenderWindow *window;
+  std::shared_ptr<Viewport> viewport;
+  void processEvent(sf::Event event);
+  int serve();
+  void drawStatusBar(float width, float height, float pos_x, float pos_y);
+  void drawDocking(float);
+  void drawLocationWindow();
+  void drawViewportWindow();
+  void dukEditorWindow();
 
-        void renderTile(std::shared_ptr<sf::RenderTexture>, std::shared_ptr<Tile>);
-        void renderEntity(std::shared_ptr<sf::RenderTexture> canvas, entt::entity e) ;
+  Console console;
+  TextEditor duk_editor;
+  TextEditor::ErrorMarkers markers;
 
-        LibLog::Logger &log = LibLog::Logger::getInstance();
-        int redraws;
-        int tilesUpdated;
+  void drawEntityInfo(entt::entity);
+
+  void genLocation(int);
+  int seed;
+
+  LibLog::Logger &log = LibLog::Logger::getInstance();
+
+  std::optional<std::pair<int, int>> lockedPos = std::nullopt;
+  sf::Vector2<float> current_pos;
+
+  void duk_log(const std::string msg);
+  void duk_exec(const char *code);
 };
-
 
 #endif // __APPLICATION_H_

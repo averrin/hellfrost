@@ -402,6 +402,7 @@ std::vector<std::shared_ptr<Cell>> Creature::calcViewField(bool force) {
   // }
   // // fmt::print("gv: {}.{}\n", currentCell->x, currentCell->y);
   // return currentLocation->getVisible(currentCell, vd);
+  return {};
 
 }
 

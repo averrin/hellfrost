@@ -73,7 +73,8 @@ void placeStartInRoom(std::shared_ptr<Location> location, std::shared_ptr<Room> 
   auto ltcr = *getRandomCell(location, floor);
   while (ltcr->x + room->width >= WIDTH ||
          ltcr->y + room->height >= HEIGHT) {
-    ltcr = *getRandomCell(location, floor);
+    auto _ltcr = getRandomCell(location, floor);
+    if (_ltcr) ltcr = *_ltcr;
   }
   mapUtils::paste(room->cells, location, ltcr->x, ltcr->y);
 
@@ -390,6 +391,7 @@ void Generator::placeDoors(std::shared_ptr<Location> location) {
 
 void placeLoot(std::shared_ptr<Location> location, int threat) {
   dlog("place loot");
+  auto floor = location->type.floor;
   auto table = LootBoxes::ZERO;
   if (location->type.type == int(LocationType::DUNGEON)) {
     if (threat >= LootTable::DUNGEON.size())
@@ -404,7 +406,7 @@ void placeLoot(std::shared_ptr<Location> location, int threat) {
 
   // TODO: gen count and get loot from 100% lootbox
   for (auto room : location->rooms) {
-    auto rc = room->getRandomCell(CellType::FLOOR);
+    auto rc = room->getRandomCell(floor);
     std::shared_ptr<Cell> c;
     if (rc)
       c = *rc;
@@ -413,7 +415,7 @@ void placeLoot(std::shared_ptr<Location> location, int threat) {
     auto n = 0;
     // TODO: fix crash in getObjects
     while (location->getObjects(c).size() != 0 && n < 20) {
-      rc = room->getRandomCell(CellType::FLOOR);
+      rc = room->getRandomCell(floor);
       if (rc)
         c = *rc;
       else
@@ -568,15 +570,15 @@ void makeRiver(std::shared_ptr<Location> location) {
 //   return l;
 // }
 
-std::shared_ptr<Terrain> makeTorch() {
-    auto data = entt::service_locator<GameData>::get().lock();
-    auto torch = std::make_shared<Terrain>(data->terrainSpecs["TORCH_STAND"]);
-    // torch->triggers.push_back(std::make_shared<PickTrigger>([=](std::shared_ptr<Creature> actor){
-    //   auto hero = std::dynamic_pointer_cast<Player>(actor);
-    //   return Triggers::TORCH_STAND_TRIGGER(hero, torch);
-    // }));
-    return torch;
-}
+// std::shared_ptr<Terrain> makeTorch() {
+//     auto data = entt::service_locator<GameData>::get().lock();
+//     auto torch = std::make_shared<Terrain>(data->terrainSpecs["TORCH_STAND"]);
+//     // torch->triggers.push_back(std::make_shared<PickTrigger>([=](std::shared_ptr<Creature> actor){
+//     //   auto hero = std::dynamic_pointer_cast<Player>(actor);
+//     //   return Triggers::TORCH_STAND_TRIGGER(hero, torch);
+//     // }));
+//     return torch;
+// }
 
 void placeTorches(std::shared_ptr<Location> location) {
   dlog("place torches");
@@ -593,20 +595,14 @@ void placeTorches(std::shared_ptr<Location> location) {
           return nc->type == CellType::WALL;
         }) == ngs.end())
       continue;
-    auto torch = makeTorch();
-    torch->setCurrentCell(cell);
-    location->addObject<Terrain>(torch);
+    location->addTerrain("TORCH_STAND", cell);
     n++;
   }
   auto nbrs = location->getNeighbors(location->exitCell);
-  auto torch = makeTorch();
-  torch->setCurrentCell(nbrs[rand() % nbrs.size()]);
-  location->addObject<Terrain>(torch);
+  location->addTerrain("TORCH_STAND", nbrs[rand() % nbrs.size()]);
 
   nbrs = location->getNeighbors(location->enterCell);
-  torch = makeTorch();
-  torch->setCurrentCell(nbrs[rand() % nbrs.size()]);
-  location->addObject<Terrain>(torch);
+  location->addTerrain("TORCH_STAND", nbrs[rand() % nbrs.size()]);
 
   // fmt::print("Torches: {}\n", n);
 }
@@ -804,20 +800,18 @@ makePassages(location);
       if (c->type != CellType::UNKNOWN) {
         mapUtils::updateCell(location->cells[c->y][c->x], CellType::GROUND, c->features);
         if (R::R() < data->probability["EXT_BUSH"]) {
-          auto s = std::make_shared<Terrain>(data->terrainSpecs["BUSH"]);
-          s->setCurrentCell(c);
-          location->addObject<Terrain>(s);
+          location->addTerrain("BUSH", c);
           // s->triggers.push_back(std::make_shared<EnterTrigger>([=](std::shared_ptr<Creature> actor){
           //   return Triggers::BUSH_TRIGGER(c, location);
           // }));
         } else if (R::R() < data->probability["EXT_TREE"]) {
-          auto s = std::make_shared<Terrain>(data->terrainSpecs["TREE"]);
-          s->setCurrentCell(c);
-          location->addObject<Terrain>(s);
+          location->addTerrain("TREE", c);
         } else if (R::R() < data->probability["EXT_GRASS"]) {
           auto grass = Prototype::GRASS->clone();
           grass->setCurrentCell(c);
           location->addObject<Item>(grass);
+          // location->addTerrain("GRASS", c);
+          // auto grass = Prototype::GRASS->clone();
         }
       }
     }
@@ -928,14 +922,12 @@ void Generator::placeCaves(std::shared_ptr<Location> location) {
           continue;
         }
       } else if (c->type == CellType::GROUND && R::R() < data->probability["CAVE_GRASS"]) {
-        if (R::R() < data->probability["CAVE_BUSH"] ||
+        if (R::R() < data->probability["CAVE_BUSH"]) {/*||
             std::find_if(n.begin(), n.end(), [&](auto nc) {
               auto t = utils::castObjects<Terrain>(location->getObjects(nc));
               return t.size() == 1 && t.front()->type == data->terrainSpecs["BUSH"];
-            }) != n.end()) {
-          auto s = std::make_shared<Terrain>(data->terrainSpecs["BUSH"]);
-          s->setCurrentCell(c);
-          location->addObject<Terrain>(s);
+            }) != n.end()*/
+          location->addTerrain("BUSH", c);
           // s->triggers.push_back(std::make_shared<EnterTrigger>([=](std::shared_ptr<Creature> actor){
           //   return Triggers::BUSH_TRIGGER(c, location);
           // }));
@@ -973,9 +965,7 @@ void Generator::makeCavePassage(std::shared_ptr<Location> location) {
         location->addObject<Item>(rock);
       } else if (c->type == CellType::GROUND && R::R() < data->probability["CAVE_GRASS"]) {
         if (R::R() < data->probability["CAVE_BUSH"]) {
-          auto s = std::make_shared<Terrain>(data->terrainSpecs["BUSH"]);
-          s->setCurrentCell(c);
-          location->addObject<Terrain>(s);
+          location->addTerrain("BUSH", c);
         } else {
           auto grass = Prototype::GRASS->clone();
           grass->setCurrentCell(c);
@@ -1205,17 +1195,15 @@ std::shared_ptr<Location> Generator::getLocation(LocationSpec spec) {
       if (c->passThrough && R::R() < data->probability["BLOOD"]) {
         c->features.push_back(CellFeature::BLOOD);
       } else if (c->room != nullptr && c->room->type == RoomType::HALL && c->type == location->type.floor && R::R() < data->probability["CRATE"]) {
-        auto crate = std::make_shared<Terrain>(data->terrainSpecs["CRATE"]);
-        crate->setCurrentCell(c);
+        location->addTerrain("CRATE", c);
         // crate->triggers.push_back(std::make_shared<AttackTrigger>([=](std::shared_ptr<Creature> actor){
         //   return Triggers::CRATE_TRIGGER(actor, crate, location);
         // }));
         // crate->triggers.push_back(std::make_shared<InteractTrigger>([=](std::shared_ptr<Creature> actor){
         //   return Triggers::CRATE_MOVE_TRIGGER(actor, crate, location);
         // }));
-        location->addObject<Terrain>(crate);
       } else if (c->passThrough && R::R() < data->probability["BONES"]) {
-        auto bones = std::make_shared<Item>(data->itemSpecs["BONES"], 1);
+        auto bones = std::make_shared<Item>("BONES", 1);
         bones->setCurrentCell(c);
         location->addObject<Item>(bones);
       }

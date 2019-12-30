@@ -2,15 +2,14 @@
     #include <libproc.h>
 #endif
 #include "backward.hpp"
-#define BACKWARD_HAS_DW 1
 
 namespace backward {
 backward::SignalHandling sh;
 } // namespace backward
 
-#include <iostream>
-
+#define BACKWARD_HAS_DW 1
 #include "app/application.hpp"
+#include "lss/deps.hpp"
 
 std::string VERSION = "0.2.0";
 std::string APP_NAME = "Hellfrost";

@@ -3,7 +3,6 @@
 #include "lss/deps.hpp"
 #include <lss/gameData.hpp>
 #include "lss/game/cell.hpp"
-#include "lss/game/terrain.hpp"
 #include "lss/generator/mapUtils.hpp"
 #include "lss/game/randomTools.hpp"
 // #include "lss/game/item.hpp"
@@ -259,22 +258,17 @@ namespace RoomTemplates {
       auto data = entt::service_locator<GameData>::get().lock();
       auto room = Room::makeRoom(4, 4, 5, 5, CellType::FLOOR);
       auto cell = room->getCell(1, 1);
-      auto s = std::make_shared<Terrain>(data->terrainSpecs["STATUE"]);
-      s->setCurrentCell(cell);
-      location->addObject<Terrain>(s);
+      location->addTerrain("STATUE", cell);
 
       cell = room->getCell(3, 1);
-      s = std::make_shared<Terrain>(data->terrainSpecs["STATUE"]);
-      s->setCurrentCell(cell);
-      s->setName("statue");
-      location->addObject<Terrain>(s);
       room->features.push_back(RoomFeature::STATUE);
+      location->addTerrain("STATUE", cell);
+      //TODO: use meta.id
+      // s->setName("statue");
 
       cell = room->getCell(2, 2);
-      s = std::make_shared<Terrain>(data->terrainSpecs["ALTAR"]);
-      s->setCurrentCell(cell);
-      location->addObject<Terrain>(s);
       room->features.push_back(RoomFeature::ALTAR);
+      location->addTerrain("ALTAR", cell);
 
       for (auto n : location->getNeighbors(cell)) {
         if (R::R() < 0.3) {
@@ -293,14 +287,10 @@ namespace RoomTemplates {
       // }));
 
       cell = room->getCell(1, 2);
-      s = std::make_shared<Terrain>(data->terrainSpecs["TORCH_STAND"]);
-      s->setCurrentCell(cell);
-      location->addObject<Terrain>(s);
+      location->addTerrain("TORCH_STAND", cell);
 
       cell = room->getCell(3, 2);
-      s = std::make_shared<Terrain>(data->terrainSpecs["TORCH_STAND"]);
-      s->setCurrentCell(cell);
-      location->addObject<Terrain>(s);
+      location->addTerrain("TORCH_STAND", cell);
 
       auto n = rand() % 4;
       for (auto i = 0; i < n; i++) {
@@ -320,9 +310,7 @@ namespace RoomTemplates {
       auto data = entt::service_locator<GameData>::get().lock();
       auto room = Room::makeRoom(3, 3, 3, 3, CellType::FLOOR);
       auto cell = room->getCell(1, 1);
-      auto s = std::make_shared<Terrain>(data->terrainSpecs["STATUE"]);
-      s->setCurrentCell(cell);
-      location->addObject<Terrain>(s);
+      location->addTerrain("STATUE", cell);
       room->features.push_back(RoomFeature::STATUE);
 
       for (auto n : location->getNeighbors(cell)) {
@@ -374,15 +362,13 @@ namespace RoomTemplates {
       auto data = entt::service_locator<GameData>::get().lock();
       auto room = Room::makeRoom(3, 3, 3, 3, CellType::FLOOR);
       auto cell = room->getCell(1, 1);
-      auto s = std::make_shared<UsableTerrain>(data->terrainSpecs["ALTAR"]);
-      s->setCurrentCell(cell);
-      location->addObject<Terrain>(s);
+      location->addTerrain("ALTAR", cell);
 
       cell = room->getCell(1, 0);
-      auto fb = std::make_shared<Terrain>(data->terrainSpecs["ACID_LIGHT_FOREVER"], -1);
-      fb->setCurrentCell(cell);
-      fb->setName("heal_light");
-      location->addObject(fb);
+
+      location->addTerrain("ACID_LIGHT_FOREVER", cell);
+      // auto fb = std::make_shared<Terrain>(data->terrainSpecs["ACID_LIGHT_FOREVER"], -1);
+      // fb->setName("heal_light");
 
       // s->triggers.push_back(std::make_shared<UseTrigger>([=](std::shared_ptr<Creature> actor){
       //   auto hero = std::dynamic_pointer_cast<Player>(actor);
@@ -406,15 +392,12 @@ namespace RoomTemplates {
       auto data = entt::service_locator<GameData>::get().lock();
       auto room = Room::makeRoom(3, 3, 3, 3, CellType::FLOOR);
       auto cell = room->getCell(1, 1);
-      auto s = std::make_shared<UsableTerrain>(data->terrainSpecs["ALTAR"]);
-      s->setCurrentCell(cell);
-      location->addObject<Terrain>(s);
+      location->addTerrain("ALTAR", cell);
 
       cell = room->getCell(1, 0);
-      auto fb = std::make_shared<Terrain>(data->terrainSpecs["MAGIC_LIGHT_FOREVER"], -1);
-      fb->setCurrentCell(cell);
-      fb->setName("mana_light");
-      location->addObject(fb);
+      location->addTerrain("MAGIC_LIGHT_FOREVER", cell);
+      // auto fb = std::make_shared<Terrain>(data->terrainSpecs["MAGIC_LIGHT_FOREVER"], -1);
+      // fb->setName("mana_light");
 
       // s->triggers.push_back(std::make_shared<UseTrigger>([=](std::shared_ptr<Creature> actor){
       //   auto hero = std::dynamic_pointer_cast<Player>(actor);

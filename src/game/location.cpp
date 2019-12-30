@@ -9,8 +9,9 @@
 // #include "lss/game/player.hpp"
 #include "lss/game/terrain.hpp"
 // #include <lss/game/aiManager.hpp>
-#include "lss/utils.hpp"
 #include "lss/generator/room.hpp"
+#include "lss/utils.hpp"
+#include <lss/gameData.hpp>
 // #include "lss/generator/spawnTable.hpp"
 
 float getDistance(std::shared_ptr<Cell> c, std::shared_ptr<Cell> cc) {
@@ -103,7 +104,8 @@ void Location::invalidate(std::string reason) {
 //         for (auto o : items) {
 //           if (std::find(so.begin(), so.end(), o) != so.end()) continue;
 //           so.clear();
-//           std::copy_if(items.begin(), items.end(), std::back_inserter(so), [&o](std::shared_ptr<Item> no) {
+//           std::copy_if(items.begin(), items.end(), std::back_inserter(so),
+//           [&o](std::shared_ptr<Item> no) {
 //             return no != o && no->name == o->name && no->type == o->type;
 //           });
 //           for (auto no : so) {
@@ -116,7 +118,8 @@ void Location::invalidate(std::string reason) {
 //   }
 
 //   apAccomulator += e.actionPoints;
-//   if (apAccomulator >= 100000 / (type.threat+1) && !player->hasTrait(Traits::MIND_SIGHT)) {
+//   if (apAccomulator >= 100000 / (type.threat+1) &&
+//   !player->hasTrait(Traits::MIND_SIGHT)) {
 //     apAccomulator = 0;
 //     auto room = rooms[rand() % rooms.size()];
 //     auto c = room->cells[rand() % room->cells.size()];
@@ -221,9 +224,11 @@ void Location::invalidate(std::string reason) {
 //   updateView(player);
 //   invalidate("enter cell");
 // }
-// void Location::onEvent(LeaveCellEvent &e) { invalidateVisibilityCache(e.cell); }
+// void Location::onEvent(LeaveCellEvent &e) {
+// invalidateVisibilityCache(e.cell); }
 
-// void Location::enter(std::shared_ptr<Player> hero, std::shared_ptr<Cell> cell) {
+// void Location::enter(std::shared_ptr<Player> hero, std::shared_ptr<Cell>
+// cell) {
 //   invalidate("enter location");
 //   player = hero;
 //   hero->setCurrentCell(cell);
@@ -372,7 +377,8 @@ void Location::invalidate(std::string reason) {
 //         if (ls == player) {
 //           strength = TORCH_DISTANCE;
 //         }
-//         c->setIllumination(((strength - td) / strength * 80) + Cell::DEFAULT_LIGHT);
+//         c->setIllumination(((strength - td) / strength * 80) +
+//         Cell::DEFAULT_LIGHT);
 //       }
 //       if (c->illumination < Cell::MINIMUM_LIGHT) {
 //         c->setIllumination(Cell::MINIMUM_LIGHT);
@@ -524,4 +530,24 @@ std::vector<std::shared_ptr<Cell>> Location::getLine(std::shared_ptr<Cell> c1,
     result.push_back(cells[yn][xn]);
   }
   return result;
+}
+
+entt::entity Location::addTerrain(std::string typeKey,
+                                  std::shared_ptr<Cell> cell) {
+  auto data = entt::service_locator<GameData>::get().lock();
+  auto e = registry->create();
+
+  auto ne = registry->create();
+  for (auto e : data->prototypes->view<entt::tag<"terrain"_hs>>()) {
+    if (data->prototypes->get<hf::meta>(e).id == typeKey) {
+      registry->stomp(ne, e, *data->prototypes,
+                      entt::exclude<entt::tag<"proto"_hs>>);
+      registry->assign<hf::ingame>(ne);
+      registry->assign<hf::position>(ne, cell->x, cell->y, 0);
+      auto meta = data->prototypes->get<hf::meta>(e);
+      meta.id = fmt::format("{}_{}", meta.id, (int)registry->entity(ne));
+      registry->assign_or_replace<hf::meta>(ne, meta);
+    }
+  }
+  return ne;
 }

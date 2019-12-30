@@ -6,18 +6,8 @@
 #include <lss/generator/generator.hpp>
 #include <lss/game/location.hpp>
 #include <lss/components.hpp>
-#include "lss/game/content/specs.hpp"
-#include "lss/game/terrain.hpp"
-
-namespace hellfrost {
-    struct renderable {
-        std::string spriteKey = "UNKNOWN";
-        std::string fgColor = "#fff";
-        bool hasBg = false;
-        std::string bgColor = "#fffffff00";
-        bool hidden = false;
-    };
-};
+#include <lss/game/itemSpec.hpp>
+#include <lss/game/terrain.hpp>
 
 class GameManager {
     std::unique_ptr<Generator> generator;
@@ -25,7 +15,7 @@ class GameManager {
   public:
     GameManager(fs::path);
     int seed;
-    entt::registry registry{};
+    std::shared_ptr<entt::registry> registry = std::make_shared<entt::registry>();
     std::shared_ptr<Location> location;
     fs::path path;
 

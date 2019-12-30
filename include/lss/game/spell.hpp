@@ -1,10 +1,9 @@
 #ifndef __SPELL_H_
 #define __SPELL_H_
-#include "lss/game/damage.hpp"
-#include "lss/game/effect.hpp"
-#include "lss/game/location.hpp"
-#include "lss/game/object.hpp"
-#include "lss/game/terrain.hpp"
+#include <lss/game/damage.hpp>
+#include <lss/game/effect.hpp>
+#include <lss/game/location.hpp>
+#include <lss/game/object.hpp>
 
 class Spell : public Object {
 public:

@@ -1,6 +1,5 @@
 #ifndef __ITEMS_H_
 #define __ITEMS_H_
-#include "lss/game/content/specs.hpp"
 #include "lss/game/content/spells.hpp"
 #include "lss/game/content/traits.hpp"
 #include "lss/game/item.hpp"
@@ -14,26 +13,26 @@
 #include "lss/game/content/weapons.hpp"
 
 namespace Prototype {
-const auto GOLD = std::make_shared<Item>(ItemType::GOLD_COINS, 1);
+const auto GOLD = std::make_shared<Item>("GOLD_COINS", 1);
 
 /* LIGHT */
 const auto TORCH = std::make_shared<Item>(
-    ItemType::TORCH, Effects{std::make_shared<VisibilityModifier>(
+    "TORCH", Effects{std::make_shared<VisibilityModifier>(
                          LightSpec{4.5f, LightType::FIRE})});
 const auto CANDLE = std::make_shared<Item>(
-    ItemType::CANDLE, Effects{std::make_shared<VisibilityModifier>(
+    "CANDLE", Effects{std::make_shared<VisibilityModifier>(
                          LightSpec{2.5f, LightType::FIRE})});
 const auto LANTERN = std::make_shared<Item>(
-    ItemType::LANTERN, Effects{std::make_shared<VisibilityModifier>(
+    "LANTERN", Effects{std::make_shared<VisibilityModifier>(
                            LightSpec{3.2f, LightType::FIRE})});
 const auto MAGIC_TORCH =
-    std::make_shared<Item>("magic torch", ItemType::TORCH,
+    std::make_shared<Item>("magic torch", "TORCH",
                            Effects{std::make_shared<VisibilityModifier>(
                                LightSpec{4.5f, LightType::MAGIC, true})});
 
 /* DEBUG */
 const auto GOD_PLATE = std::make_shared<Item>(
-    "GoD pLaTe", ItemType::PLATE,
+    "GoD pLaTe", "PLATE",
     Effects{
         std::make_shared<TraitEffect>(Traits::INVULNERABLE),
         std::make_shared<IntelligenceModifier>(1.f),
@@ -42,42 +41,42 @@ const auto GOD_PLATE = std::make_shared<Item>(
 
 /* Starting items */
 const auto BASIC_LEATHER_CUIRASS =
-    std::make_shared<Item>("leather cuirass", ItemType::CUIRASS,
+    std::make_shared<Item>("leather cuirass", "CUIRASS",
                            Effects{std::make_shared<ArmorValue>(1)});
 const auto BASIC_SWORD = std::make_shared<Item>(
-    ItemType::ONE_HAND, Effects{std::make_shared<MeleeDamage>(
+    "ONE_HAND", Effects{std::make_shared<MeleeDamage>(
                             DamageSpec(0, 3, 3, DamageType::WEAPON))});
 
 /* Misc */
-const auto GRASS = std::make_shared<Item>("just herb", ItemType::GRASS, 1);
+const auto GRASS = std::make_shared<Item>("just herb", "GRASS", 1);
 const auto ROCK =
-    std::make_shared<Item>(ItemType::ROCK, 1,
+    std::make_shared<Item>("ROCK", 1,
                            Effects{std::make_shared<MeleeDamage>(
                                DamageSpec(1, 0, 0, DamageType::WEAPON))});
-const auto PICK_AXE = std::make_shared<Item>(ItemType::PICK_AXE);
+const auto PICK_AXE = std::make_shared<Item>("PICK_AXE");
 
-const auto QUEST_ITEM = std::make_shared<Usable>(ItemType::EMPTY);
+const auto QUEST_ITEM = std::make_shared<Usable>("EMPTY");
 
-const auto BROOM = std::make_shared<Item>("broom", ItemType::CLUTTER, 1);
-const auto FORK = std::make_shared<Item>("fork", ItemType::CLUTTER, 1);
-const auto SPOON = std::make_shared<Item>("spoon", ItemType::CLUTTER, 1);
-const auto BOWL = std::make_shared<Item>("bowl", ItemType::CLUTTER, 1);
-const auto CLOTH = std::make_shared<Item>("cloth", ItemType::CLUTTER, 1);
-const auto BASKET = std::make_shared<Item>("basket", ItemType::CLUTTER, 1);
-const auto BELLOWS = std::make_shared<Item>("bellows", ItemType::CLUTTER, 1);
-const auto BUCKET = std::make_shared<Item>("bucket", ItemType::CLUTTER, 1);
-const auto DRUM = std::make_shared<Item>("drum", ItemType::CLUTTER, 1);
-const auto INKWELL = std::make_shared<Item>("inkwell", ItemType::CLUTTER, 1);
-const auto LUTE = std::make_shared<Item>("lute", ItemType::CLUTTER, 1);
-const auto SHOVEL = std::make_shared<Item>("shovel", ItemType::CLUTTER, 1);
-const auto PILLOW = std::make_shared<Item>("pillow", ItemType::CLUTTER, 1);
-const auto SKULL = std::make_shared<Item>("skull", ItemType::CLUTTER, 1);
-const auto POT = std::make_shared<Item>("pot", ItemType::CLUTTER, 1);
-const auto BOTTLE = std::make_shared<Item>("bottle", ItemType::CLUTTER, 1);
-const auto CUP = std::make_shared<Item>("cup", ItemType::CLUTTER, 1);
-const auto GOBLET = std::make_shared<Item>("goblet", ItemType::CLUTTER, 1);
-const auto PLATTER = std::make_shared<Item>("platter", ItemType::CLUTTER, 1);
-const auto VASE = std::make_shared<Item>("vase", ItemType::CLUTTER, 1);
+const auto BROOM = std::make_shared<Item>("broom", "CLUTTER", 1);
+const auto FORK = std::make_shared<Item>("fork", "CLUTTER", 1);
+const auto SPOON = std::make_shared<Item>("spoon", "CLUTTER", 1);
+const auto BOWL = std::make_shared<Item>("bowl", "CLUTTER", 1);
+const auto CLOTH = std::make_shared<Item>("cloth", "CLUTTER", 1);
+const auto BASKET = std::make_shared<Item>("basket", "CLUTTER", 1);
+const auto BELLOWS = std::make_shared<Item>("bellows", "CLUTTER", 1);
+const auto BUCKET = std::make_shared<Item>("bucket", "CLUTTER", 1);
+const auto DRUM = std::make_shared<Item>("drum", "CLUTTER", 1);
+const auto INKWELL = std::make_shared<Item>("inkwell", "CLUTTER", 1);
+const auto LUTE = std::make_shared<Item>("lute", "CLUTTER", 1);
+const auto SHOVEL = std::make_shared<Item>("shovel", "CLUTTER", 1);
+const auto PILLOW = std::make_shared<Item>("pillow", "CLUTTER", 1);
+const auto SKULL = std::make_shared<Item>("skull", "CLUTTER", 1);
+const auto POT = std::make_shared<Item>("pot", "CLUTTER", 1);
+const auto BOTTLE = std::make_shared<Item>("bottle", "CLUTTER", 1);
+const auto CUP = std::make_shared<Item>("cup", "CLUTTER", 1);
+const auto GOBLET = std::make_shared<Item>("goblet", "CLUTTER", 1);
+const auto PLATTER = std::make_shared<Item>("platter", "CLUTTER", 1);
+const auto VASE = std::make_shared<Item>("vase", "CLUTTER", 1);
 
 /* Kits */
 const std::vector<std::shared_ptr<Item>> CLUTTER = {

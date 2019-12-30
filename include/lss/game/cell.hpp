@@ -1,9 +1,10 @@
 #ifndef __CELL_H_
 #define __CELL_H_
-#include "lss/game/content/traits.hpp"
-#include <liblog/liblog.hpp>
 #include <algorithm>
 #include <cmath>
+#include <liblog/liblog.hpp>
+#include <lss/deps.hpp>
+#include <lss/game/content/traits.hpp>
 #include <memory>
 #include <set>
 #include <vector>
@@ -17,6 +18,13 @@ class Room;
 class Object;
 class Trigger;
 struct CellSpec {
+  friend class cereal::access;
+  template <class Archive> void save(Archive &ar) const {
+    ar(name, seeThrough, passThrough);
+  };
+  template <class Archive> void load(Archive &ar) {
+    ar(name, seeThrough, passThrough);
+  };
   std::string name;
 
   bool passThrough = false;
@@ -54,7 +62,9 @@ enum class CellFeature { BLOOD, CAVE, FROST, MARK1, MARK2, ACID, CORRUPT };
 
 class Cell {
   LibLog::Logger &log = LibLog::Logger::getInstance();
+
 public:
+  static std::vector<CellSpec> types;
   Cell(CellSpec t) : type(t) {}
   Cell(int _x, int _y, CellSpec t)
       : x(_x), y(_y), type(t), passThrough(type.passThrough),
@@ -65,21 +75,23 @@ public:
   CellSpec type;
   VisibilityState visibilityState = VisibilityState::UNKNOWN;
   bool illuminated = false;
-    void setIlluminated(bool v) {
-      if (illuminated != v) {
-        illuminated = v;
-        invalidate();
-      }
+  void setIlluminated(bool v) {
+    if (illuminated != v) {
+      illuminated = v;
+      invalidate();
     }
+  }
   std::vector<CellFeature> features;
 
-  std::vector<std::shared_ptr<Trigger>> triggers = std::vector<std::shared_ptr<Trigger>>{};
+  std::vector<std::shared_ptr<Trigger>> triggers =
+      std::vector<std::shared_ptr<Trigger>>{};
   std::set<std::shared_ptr<Object>> lightSources;
   std::shared_ptr<Object> nearestLightEmitter;
   std::shared_ptr<Room> room;
 
   int x = 0;
   int y = 0;
+  int z = 0;
   std::pair<int, int> anchor;
 
   bool passThrough = false;
@@ -122,12 +134,12 @@ public:
   static const int MINIMUM_LIGHT = 5;
   int illumination = DEFAULT_LIGHT;
 
-    void setIllumination(int v) {
-      if (illumination != v) {
-        illumination = v;
-        invalidate();
-      }
+  void setIllumination(int v) {
+    if (illumination != v) {
+      illumination = v;
+      invalidate();
     }
+  }
 };
 
 typedef std::vector<std::shared_ptr<Cell>> CellRow;
