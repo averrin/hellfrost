@@ -18,12 +18,22 @@ class Font final {
   static std::string const FAMILY_MONOSPACE;
   static std::string const FAMILY_PROPORTIONAL;
 
+//TODO: implement dynamic scale
+#ifdef __APPLE__
+  enum class Size {
+    SMALL = 22,   // 11px
+    MEDIUM = 28,  // 13px
+    LARGE = 32,   // 16px
+    LARGER = 48,  // 20px
+  };
+#else
   enum class Size {
     SMALL = 11,   // 11px
     MEDIUM = 14,  // 13px
     LARGE = 16,   // 16px
     LARGER = 24,  // 20px
   };
+#endif
   static float SizeFloat(Font::Size size);
   static char const *SizeString(Font::Size size);
 

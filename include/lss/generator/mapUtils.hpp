@@ -90,5 +90,9 @@ static void updateCell(std::shared_ptr<Cell> cell, CellSpec type,
   cell->features = features;
 }
 
+static void updateCell(std::shared_ptr<Cell> cell, CellSpec type) {
+  updateCell(cell, type, cell->features);
+}
+
 };
 #endif // __MAPUTILS_H_

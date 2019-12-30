@@ -56,7 +56,7 @@ namespace dukglue
 					RetType return_val = dukglue::detail::apply_method<Cls, RetType, Ts...>(methodToCall, obj, args);
 
 					using namespace dukglue::types;
-					DukType<typename Bare<RetType>::type>::template push<RetType>(ctx, std::move(return_val));
+					// DukType<typename Bare<RetType>::type>::template push<RetType>(ctx, std::move(return_val));
 				}
 
 				template<typename Dummy = RetType, typename... BakedTs>
@@ -126,7 +126,7 @@ namespace dukglue
 					RetType return_val = dukglue::detail::apply_method<Cls, RetType, Ts...>(method, obj, args);
 
 					using namespace dukglue::types;
-					DukType<typename Bare<RetType>::type>::template push<RetType>(ctx, std::move(return_val));
+					// DukType<typename Bare<RetType>::type>::template push<RetType>(ctx, std::move(return_val));
 				}
 
 				template<typename Dummy = RetType, typename... BakedTs>

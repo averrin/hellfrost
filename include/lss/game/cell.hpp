@@ -15,15 +15,16 @@ using lu = ll::utils;
 const float TORCH_DISTANCE = 4.5f;
 
 class Room;
+class Region;
 class Object;
 class Trigger;
 struct CellSpec {
   friend class cereal::access;
   template <class Archive> void save(Archive &ar) const {
-    ar(name, seeThrough, passThrough);
+    ar(name, seeThrough, passThrough, canPassTraits);
   };
   template <class Archive> void load(Archive &ar) {
-    ar(name, seeThrough, passThrough);
+    ar(name, seeThrough, passThrough, canPassTraits);
   };
   std::string name;
 
@@ -88,6 +89,7 @@ public:
   std::set<std::shared_ptr<Object>> lightSources;
   std::shared_ptr<Object> nearestLightEmitter;
   std::shared_ptr<Room> room;
+  std::vector<std::shared_ptr<Region>> regions;
 
   int x = 0;
   int y = 0;

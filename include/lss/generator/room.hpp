@@ -32,15 +32,17 @@ public:
     }
   }
   std::vector<std::shared_ptr<Cell>> cells;
-  RoomType type;
+  RoomType type = RoomType::HALL;
   int threat = 0;
-  std::vector<RoomFeature> features;
+  std::vector<RoomFeature> features{};
 
-  int height;
-  int width;
+  int height = 0;
+  int width = 0;
 
-  int x;
-  int y;
+  int x = 0;
+  int y = 0;
+  int z = 0;
+  bool active = false;
 
   std::shared_ptr<Cell> getCell(int x, int y) {
     return cells[x + y * width];

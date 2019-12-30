@@ -145,10 +145,9 @@ void Application::setupGui() {
   sf::ContextSettings settings;
   settings.antialiasingLevel = 8;
   ImGui::CreateContext();
-  Theme::Init();
 
   ImGuiIO &io = ImGui::GetIO();
-  io.FontGlobalScale = GUI_SCALE;
+  Theme::Init();
   ImGui::GetStyle().ScaleAllSizes(GUI_SCALE);
 
   window = new sf::RenderWindow(sf::VideoMode::getDesktopMode(), APP_NAME,
@@ -381,6 +380,10 @@ void Application::drawStatusBar(float width, float height, float pos_x,
   auto ry = _y + viewport->view_y;
   ImGui::SameLine();
   ImGui::Text("|  cell: %d.%d", rx, ry);
+  if (viewport->scale != 1) {
+    ImGui::SameLine();
+    ImGui::Text("|  scale: %.3f", viewport->scale);
+  }
   ImGui::SameLine();
   auto cache_full =
       gm->location->cells.front().size() * gm->location->cells.size();
@@ -394,8 +397,6 @@ void Application::drawStatusBar(float width, float height, float pos_x,
     ImGui::BufferingBar("##buffer_bar",
                         cache_count / float(cache_full),
                         ImVec2(100*GUI_SCALE, 3*GUI_SCALE), bg, col);
-  } else {
-    ImGui::Text("|  cache: %d/%lu", cache_count, cache_full);
   }
   ImGui::PopFont();
   ImGui::End();

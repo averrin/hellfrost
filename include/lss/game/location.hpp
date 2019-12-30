@@ -1,12 +1,13 @@
 #ifndef __LOCATION_H_
 #define __LOCATION_H_
 
-#include "lss/components.hpp"
-#include "lss/game/cell.hpp"
-#include "lss/game/events.hpp"
-#include "lss/game/fov.hpp"
-#include "lss/game/object.hpp"
-#include "micropather/micropather.h"
+#include <lss/components.hpp>
+#include <lss/game/cell.hpp>
+#include <lss/game/events.hpp>
+#include <lss/game/fov.hpp>
+#include <lss/game/object.hpp>
+#include <lss/game/region.hpp>
+#include <micropather/micropather.h>
 #include <cmath>
 #include <iostream>
 #include <map>
@@ -45,14 +46,6 @@ class Room;
 class AiManager;
 class Location : public Object,
                  public micropather::Graph
-// public eb::EventHandler<EnemyDiedEvent>,
-// public eb::EventHandler<ItemTakenEvent>,
-// public eb::EventHandler<DigEvent>,
-// public eb::EventHandler<DropEvent>,
-// public eb::EventHandler<CommitEvent>,
-// public eb::EventHandler<DoorOpenedEvent>,
-// public eb::EventHandler<LeaveCellEvent>,
-// public eb::EventHandler<EnterCellEvent>,
 {
 public:
   std::shared_ptr<entt::registry> registry = std::make_shared<entt::registry>();
@@ -60,10 +53,9 @@ public:
   Location(LocationSpec t) : Object(), type(t), features(t.features) {}
   ~Location();
   LocationSpec type;
+    std::vector<std::shared_ptr<Region>> regions;
   Cells cells;
   Objects objects{};
-  std::map<std::shared_ptr<Cell>, Objects> cellObjects =
-      std::map<std::shared_ptr<Cell>, Objects>{};
   // std::shared_ptr<Player> player;
   int depth = 0;
   // std::shared_ptr<AiManager> aiManager;
@@ -95,16 +87,10 @@ public:
     }
     // o->currentLocation = shared_from_this();
     objects.push_back(o);
-    // if (cellObjects.find(o->currentCell) == cellObjects.end()) {
-    //   cellObjects[o->currentCell] = {};
-    // }
-    // cellObjects[o->currentCell].push_back(o);
   }
 
   void removeObject(std::shared_ptr<Object> o) {
     objects.erase(std::remove(objects.begin(), objects.end(), o));
-    // auto co = cellObjects[o->currentCell];
-    // co.erase(std::remove(co.begin(), co.end(), o));
     o->removeCell();
   }
 
