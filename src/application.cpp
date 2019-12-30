@@ -27,7 +27,7 @@
 #include "duk_console.h"
 
 #ifdef __APPLE__
-float GUI_SCALE = 2.f;
+float GUI_SCALE = 2.0f;
 #else
 float GUI_SCALE = 1.f;
 #endif
@@ -149,6 +149,7 @@ void Application::setupGui() {
 
   ImGuiIO &io = ImGui::GetIO();
   io.FontGlobalScale = GUI_SCALE;
+  ImGui::GetStyle().ScaleAllSizes(GUI_SCALE);
 
   window = new sf::RenderWindow(sf::VideoMode::getDesktopMode(), APP_NAME,
                                 sf::Style::Default, settings);
@@ -200,8 +201,8 @@ void Application::setupGui() {
     window->setView(sv);
     viewport->width = window->getSize().x / viewport->tileSet.size.first + 1;
     viewport->height = window->getSize().y / viewport->tileSet.size.second + 1;
-    engine->vW = viewport->width / viewport->scale;
-    engine->vH = viewport->height / viewport->scale;
+    engine->vW = viewport->width / viewport->scale / GUI_SCALE;
+    engine->vH = viewport->height / viewport->scale / GUI_SCALE;
     // engine->tilesCache.clear();
     engine->resize(window->getSize());
     rectangle.setSize(sf::Vector2f(window->getSize().x, window->getSize().y));
@@ -392,9 +393,9 @@ void Application::drawStatusBar(float width, float height, float pos_x,
     ImGui::AlignTextToFramePadding();
     ImGui::BufferingBar("##buffer_bar",
                         cache_count / float(cache_full),
-                        ImVec2(100, 3), bg, col);
+                        ImVec2(100*GUI_SCALE, 3*GUI_SCALE), bg, col);
   } else {
-    ImGui::Text("|  cache: %d/%d", cache_count, cache_full);
+    ImGui::Text("|  cache: %d/%lu", cache_count, cache_full);
   }
   ImGui::PopFont();
   ImGui::End();
@@ -408,7 +409,7 @@ void Application::drawViewportWindow() {
 
   auto cache_full =
       gm->location->cells.front().size() * gm->location->cells.size();
-  ImGui::Text("Cache len: %d/%d", cache_count, cache_full);
+  ImGui::Text("Cache len: %d/%lu", cache_count, cache_full);
   ImGui::Text("Redraws: %d", engine->redraws);
   ImGui::Text("Tiles updated: %d", engine->tilesUpdated);
   ImGui::Text("Objects in render: %d\n", engine->layers->size());
@@ -424,13 +425,13 @@ void Application::drawViewportWindow() {
   auto emitter = entt::service_locator<event_emitter>::get().lock();
   if (ImGui::SliderInt("width", &viewport->width, 10, 200)) {
     engine->invalidate();
-    engine->vW = viewport->width / viewport->scale * GUI_SCALE;
+    engine->vW = viewport->width / viewport->scale / GUI_SCALE;
     if (engine->vW > 200)
       engine->vW = 200;
   }
   if (ImGui::SliderInt("height", &viewport->height, 10, 200)) {
     engine->invalidate();
-    engine->vH = viewport->height / viewport->scale;
+    engine->vH = viewport->height / viewport->scale / GUI_SCALE;
     if (engine->vH > 200)
       engine->vH = 200;
   }
@@ -444,8 +445,8 @@ void Application::drawViewportWindow() {
     engine->invalidate();
   }
   if (ImGui::SliderFloat("scale", &viewport->scale, 0.3f, 2.f)) {
-    engine->vW = viewport->width / viewport->scale;
-    engine->vH = viewport->height / viewport->scale;
+    engine->vW = viewport->width / viewport->scale / GUI_SCALE;
+    engine->vH = viewport->height / viewport->scale / GUI_SCALE;
     if (engine->vW > 200)
       engine->vW = 200;
     if (engine->vH > 200)
@@ -681,7 +682,7 @@ int Application::serve() {
 
     ImGui::SFML::Update(*window, deltaClock.restart());
     ImGuiViewport *vp = ImGui::GetMainViewport();
-    drawStatusBar(vp->Size.x, 16.0f * GUI_SCALE, 0.0f, vp->Size.y - 24);
+    drawStatusBar(vp->Size.x, 16.0f * GUI_SCALE, 0.0f, vp->Size.y - 24*GUI_SCALE);
 
     if (debug) {
       drawDocking(24.0f * GUI_SCALE);
