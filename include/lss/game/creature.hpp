@@ -3,20 +3,20 @@
 #include <algorithm>
 #include <thread>
 #include <liblog/liblog.hpp>
-#include "EventBus/EventBus.hpp"
+#include <micropather/micropather.h>
 
-#include "lss/deps.hpp"
-#include "lss/game/content/traits.hpp"
-#include "lss/game/damage.hpp"
-#include "lss/game/effect.hpp"
-#include "lss/game/equipment.hpp"
-#include "lss/game/item.hpp"
-#include "lss/game/object.hpp"
-#include "lss/game/trait.hpp"
+#include <lss/deps.hpp>
+// #include <lss/gameData.hpp>
+
+#include <lss/game/content/traits.hpp>
+#include <lss/game/damage.hpp>
+#include <lss/game/effect.hpp>
+#include <lss/game/equipment.hpp>
+#include <lss/game/item.hpp>
+#include <lss/game/object.hpp>
+#include <lss/game/trait.hpp>
 #include <lss/game/ai.hpp>
 #include <lss/game/damageSpec.hpp>
-#include <lss/game/location.hpp>
-#include <lss/gameData.hpp>
 
 class Creature : public Object {
   LibLog::Logger &log = LibLog::Logger::getInstance();
@@ -24,7 +24,7 @@ public:
   Creature();
   std::string getId() {return name;}
   std::vector<std::shared_ptr<Cell>> viewField;
-  std::shared_ptr<Location> currentLocation;
+  // std::shared_ptr<Location> currentLocation;
   std::vector<Trait> traits;
   Effects activeEffects;
 
@@ -35,7 +35,7 @@ public:
     return canSee(c, viewField);
   };
   bool canSee(std::shared_ptr<Cell> c, std::vector<std::shared_ptr<Cell>> vf) {
-    auto data = entt::service_locator<GameData>::get().lock();
+    // auto data = entt::service_locator<GameData>::get().lock();
     // for (auto t : utils::castObjects<Terrain>(
     //          currentLocation->getObjects(currentCell))) {
     //   if (t->type == data->terrainSpecs["DARKNESS"]) {
@@ -159,29 +159,29 @@ public:
 
   std::optional<std::shared_ptr<Creature>> getNearestTarget(float distance) {
     std::optional<std::shared_ptr<Creature>> target = std::nullopt;
-    auto cells = getInRadius(distance);
-    std::vector<std::shared_ptr<Creature>> targets;
-    for (auto c : cells) {
-      auto objects = currentLocation->getObjects(c);
-      auto enemies = utils::castObjects<Creature>(objects);
-      if (enemies.size() != 0) {
-        targets.push_back(enemies.front());
-      }
-    }
-    auto d = distance;
-    auto cc = currentCell;
-    for (auto e : targets) {
-      if (e->currentCell == nullptr) {
-        throw std::runtime_error(
-            fmt::format("{} -> nullptr current cell again", e->name));
-      }
-      auto td = sqrt(pow(cc->x - e->currentCell->x, 2) +
-                     pow(cc->y - e->currentCell->y, 2));
-      if (td <= d) {
-        target = std::make_optional<std::shared_ptr<Creature>>(e);
-        d = td;
-      }
-    }
+    // auto cells = getInRadius(distance);
+    // std::vector<std::shared_ptr<Creature>> targets;
+    // for (auto c : cells) {
+    //   auto objects = currentLocation->getObjects(c);
+    //   auto enemies = utils::castObjects<Creature>(objects);
+    //   if (enemies.size() != 0) {
+    //     targets.push_back(enemies.front());
+    //   }
+    // }
+    // auto d = distance;
+    // auto cc = currentCell;
+    // for (auto e : targets) {
+    //   if (e->currentCell == nullptr) {
+    //     throw std::runtime_error(
+    //         fmt::format("{} -> nullptr current cell again", e->name));
+    //   }
+    //   auto td = sqrt(pow(cc->x - e->currentCell->x, 2) +
+    //                  pow(cc->y - e->currentCell->y, 2));
+    //   if (td <= d) {
+    //     target = std::make_optional<std::shared_ptr<Creature>>(e);
+    //     d = td;
+    //   }
+    // }
     return target;
   }
 
@@ -260,9 +260,9 @@ public:
       hp = HP_MAX(this);
     }
     commit("heal", 0);
-    auto a = std::make_shared<ColorAnimation>(shared_from_this(), Color::fromHexString("#2222ff"), 8, true);
-    AnimationEvent ae(a);
-    eb::EventBus::FireEvent(ae);
+    // auto a = std::make_shared<ColorAnimation>(shared_from_this(), Color::fromHexString("#2222ff"), 8, true);
+    // AnimationEvent ae(a);
+    // eb::EventBus::FireEvent(ae);
   }
 
   void restoreMana(int min, int max) {
@@ -273,9 +273,9 @@ public:
       mp = MP_MAX(this);
     }
     commit("manaRestore", 0);
-    auto a = std::make_shared<ColorAnimation>(shared_from_this(), Color::fromHexString("#2222ff"), 8, true);
-    AnimationEvent ae(a);
-    eb::EventBus::FireEvent(ae);
+    // auto a = std::make_shared<ColorAnimation>(shared_from_this(), Color::fromHexString("#2222ff"), 8, true);
+    // AnimationEvent ae(a);
+    // eb::EventBus::FireEvent(ae);
   }
 
 private:

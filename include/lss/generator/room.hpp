@@ -1,13 +1,13 @@
 #ifndef __ROOM_H_
 #define __ROOM_H_
-#include "lss/deps.hpp"
+#include <lss/deps.hpp>
 #include <lss/gameData.hpp>
-#include "lss/game/cell.hpp"
-#include "lss/generator/mapUtils.hpp"
-#include "lss/game/randomTools.hpp"
-// #include "lss/game/item.hpp"
-// #include "lss/game/trigger.hpp"
-// #include "lss/game/content/enemies.hpp"
+#include <lss/game/cell.hpp>
+#include <lss/generator/mapUtils.hpp>
+#include <lss/game/randomTools.hpp>
+#include <lss/game/location.hpp>
+// #include <lss/game/trigger.hpp>
+// #include <lss/game/content/enemies.hpp>
 
 enum class RoomType {
   HALL,

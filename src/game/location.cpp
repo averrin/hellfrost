@@ -2,7 +2,6 @@
 #include <chrono>
 #include <memory>
 
-#include "EventBus/EventBus.hpp"
 // #include "lss/game/enemy.hpp"
 // #include "lss/game/item.hpp"
 #include "lss/game/location.hpp"
@@ -18,7 +17,7 @@ float getDistance(std::shared_ptr<Cell> c, std::shared_ptr<Cell> cc) {
   return sqrt(pow(cc->x - c->x, 2) + pow(cc->y - c->y, 2));
 }
 
-Location::~Location() { clearHandlers(); }
+Location::~Location() { }
 
 // void Location::invalidateVisibilityCache(std::shared_ptr<Cell> cell) {
 //   std::vector<std::pair<std::shared_ptr<Cell>, float>> hits;
@@ -244,15 +243,6 @@ void Location::invalidate(std::string reason) {
 
 //   hero->commit("location enter", 0);
 
-//   handlers.push_back(eb::EventBus::AddHandler<CommitEvent>(*this));
-//   handlers.push_back(eb::EventBus::AddHandler<EnemyDiedEvent>(*this));
-//   handlers.push_back(eb::EventBus::AddHandler<ItemTakenEvent>(*this));
-//   handlers.push_back(eb::EventBus::AddHandler<EnterCellEvent>(*this));
-//   handlers.push_back(eb::EventBus::AddHandler<LeaveCellEvent>(*this));
-//   handlers.push_back(eb::EventBus::AddHandler<DigEvent>(*this, hero));
-//   handlers.push_back(eb::EventBus::AddHandler<DropEvent>(*this));
-//   handlers.push_back(eb::EventBus::AddHandler<DoorOpenedEvent>(*this));
-
 //   aiManager = std::make_shared<AiManager>(hero->currentLocation);
 // }
 
@@ -414,7 +404,7 @@ float Location::LeastCostEstimate(void *stateStart, void *stateEnd) {
 }
 void Location::AdjacentCost(void *state,
                             MP_VECTOR<micropather::StateCost> *neighbors) {
-  auto cell = static_cast<Cell *>(state);
+  auto cell = std::make_shared<Cell>(*static_cast<Cell *>(state));
 
   for (auto n : getNeighbors(cell)) {
     // if (!n->passThrough && (player == nullptr || n != player->currentCell))
@@ -429,58 +419,59 @@ void Location::AdjacentCost(void *state,
 void Location::PrintStateInfo(void *state){};
 
 Objects Location::getObjects(std::shared_ptr<Cell> cell) {
-  if (cell == nullptr) {
-    throw std::runtime_error("who the fuck call like this?");
-  }
-  if (cell->type == CellType::UNKNOWN) {
-    return {};
-  }
-  Objects cellObjects(objects.size());
-  auto it = std::copy_if(objects.begin(), objects.end(), cellObjects.begin(),
-                         [cell](std::shared_ptr<Object> o) {
-                           // return o->currentCell == cell;
-                           try {
-                             return o->currentCell->x == cell->x &&
-                                    o->currentCell->y == cell->y;
-                           } catch (std::exception &e) {
-                             fmt::print("BUG: ghost cell!!!\n");
-                             return false;
-                           }
-                         });
-  if (it == objects.end()) {
-    return {};
-  }
-  cellObjects.resize(std::distance(cellObjects.begin(), it));
-  return cellObjects;
+  // if (cell == nullptr) {
+  //   throw std::runtime_error("who the fuck call like this?");
+  // }
+  // if (cell->type == CellType::UNKNOWN) {
+  //   return {};
+  // }
+  // Objects cellObjects(objects.size());
+  // auto it = std::copy_if(objects.begin(), objects.end(), cellObjects.begin(),
+  //                        [cell](std::shared_ptr<Object> o) {
+  //                          // return o->currentCell == cell;
+  //                          try {
+  //                            return o->currentCell->x == cell->x &&
+  //                                   o->currentCell->y == cell->y;
+  //                          } catch (std::exception &e) {
+  //                            fmt::print("BUG: ghost cell!!!\n");
+  //                            return false;
+  //                          }
+  //                        });
+  // if (it == objects.end()) {
+  //   return {};
+  // }
+  // cellObjects.resize(std::distance(cellObjects.begin(), it));
+  return Objects{};
 }
 
 std::vector<std::shared_ptr<Cell>>
 Location::getVisible(std::shared_ptr<Cell> start, float distance) {
-  auto it = visibilityCache.find({start, distance});
-  if (it != visibilityCache.end()) {
-    return visibilityCache.at({start, distance});
-  }
+  // auto it = visibilityCache.find({start, distance});
+  // if (it != visibilityCache.end()) {
+  //   return visibilityCache.at({start, distance});
+  // }
   std::vector<std::shared_ptr<Cell>> result;
-  fov::Vec creaturePoint{start->x, start->y};
-  fov::Vec bounds{(int)cells.front().size(), (int)cells.size()};
-  auto os = start->seeThrough;
-  start->seeThrough = true;
-  auto field = fov::refresh(creaturePoint, bounds, cells);
-  for (auto v : field) {
-    auto c = cells.at(v.y).at(v.x);
-    auto d = sqrt(pow(start->x - c->x, 2) + pow(start->y - c->y, 2));
-    if (c->illuminated || d <= distance) {
-      result.push_back(c);
-    }
-  }
-  start->seeThrough = os;
-  visibilityCache[{start, distance}] = result;
+  // fov::Vec creaturePoint{start->x, start->y};
+  // fov::Vec bounds{(int)cells.front().size(), (int)cells.size()};
+  // auto os = start->seeThrough;
+  // start->seeThrough = true;
+  // auto field = fov::refresh(creaturePoint, bounds, cells);
+  // for (auto v : field) {
+  //   auto c = cells.at(v.y).at(v.x);
+  //   auto d = sqrt(pow(start->x - c->x, 2) + pow(start->y - c->y, 2));
+  //   if (c->illuminated || d <= distance) {
+  //     result.push_back(c);
+  //   }
+  // }
+  // start->seeThrough = os;
+  // visibilityCache[{start, distance}] = result;
   return result;
 }
 
 std::vector<std::shared_ptr<Cell>> Location::getLine(std::shared_ptr<Cell> c1,
                                                      std::shared_ptr<Cell> c2) {
   std::vector<std::shared_ptr<Cell>> result;
+    auto _cells = getCells();
   auto xn = c1->x;
   auto xk = c2->x;
   auto yn = c1->y;
@@ -513,7 +504,7 @@ std::vector<std::shared_ptr<Cell>> Location::getLine(std::shared_ptr<Cell> c1,
   /* s - начальное значение разности */
   incr2 = 2 * dx; /* Константа для перевычисления    */
                   /* разности если текущее s >= 0    */
-  result.push_back(cells[yn][xn]);
+  result.push_back(_cells->at(yn)[xn]);
   while (--kl >= 0) {
     if (s >= 0) {
       if (swap)
@@ -527,13 +518,14 @@ std::vector<std::shared_ptr<Cell>> Location::getLine(std::shared_ptr<Cell> c1,
     else
       xn += sx;
     s += incr1;
-    result.push_back(cells[yn][xn]);
+    result.push_back(_cells->at(yn)[xn]);
   }
   return result;
 }
 
 entt::entity Location::addTerrain(std::string typeKey,
                                   std::shared_ptr<Cell> cell) {
+  const std::lock_guard<std::mutex> lock(create_mutex);
   auto data = entt::service_locator<GameData>::get().lock();
   auto e = registry->create();
 

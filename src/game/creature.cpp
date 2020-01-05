@@ -10,8 +10,6 @@
 #include "lss/generator/room.hpp"
 #include "lss/utils.hpp"
 
-#include "EventBus/EventBus.hpp"
-
 float NIGHT_VISION_DISTANCE = 10;
 
 Creature::Creature() {
@@ -79,15 +77,6 @@ float Attribute::operator()(Creature *c) {
 }
 
 bool Creature::interact(std::shared_ptr<Object> actor) { return false; }
-
-LeaveCellEvent::LeaveCellEvent(eb::ObjectPtr s, std::shared_ptr<Cell> c)
-    : eb::Event(s), cell(c) {}
-EnterCellEvent::EnterCellEvent(eb::ObjectPtr s, std::shared_ptr<Cell> c)
-    : eb::Event(s), cell(c) {}
-DropEvent::DropEvent(eb::ObjectPtr s, std::shared_ptr<Item> i)
-    : eb::Event(s), item(i) {}
-ItemTakenEvent::ItemTakenEvent(eb::ObjectPtr s, std::shared_ptr<Item> i)
-    : eb::Event(s), item(i) {}
 
 std::optional<std::tuple<std::shared_ptr<Slot>, DamageSpec>>
 Creature::getPrimaryDmg() {
@@ -207,16 +196,16 @@ std::shared_ptr<Damage> Creature::getDamage(std::shared_ptr<Object>) {
   if (damage->damage == 0) {
     damage = updateDamage(damage, dmgSpec);
   }
-  if (hasTrait(Traits::MOB)) {
-    auto nbrs = currentLocation->getNeighbors(currentCell);
-    if (std::find_if(nbrs.begin(), nbrs.end(), [&](std::shared_ptr<Cell> c) {
-          auto enemies =
-              utils::castObjects<Enemy>(currentLocation->getObjects(c));
-          return enemies.size() > 0 && enemies.front()->hasTrait(Traits::MOB);
-        }) != nbrs.end()) {
-      damage->traits.push_back(Traits::MOB);
-    }
-  }
+  // if (hasTrait(Traits::MOB)) {
+  //   auto nbrs = currentLocation->getNeighbors(currentCell);
+  //   if (std::find_if(nbrs.begin(), nbrs.end(), [&](std::shared_ptr<Cell> c) {
+  //         auto enemies =
+  //             utils::castObjects<Enemy>(currentLocation->getObjects(c));
+  //         return enemies.size() > 0 && enemies.front()->hasTrait(Traits::MOB);
+  //       }) != nbrs.end()) {
+  //     damage->traits.push_back(Traits::MOB);
+  //   }
+  // }
   damage->damage *= STRENGTH(this);
   return damage;
 }
@@ -224,16 +213,16 @@ std::shared_ptr<Damage> Creature::getDamage(std::shared_ptr<Object>) {
 bool Creature::drop(std::shared_ptr<Item> item) {
   inventory.erase(std::remove(inventory.begin(), inventory.end(), item),
                   inventory.end());
-  DropEvent me(shared_from_this(), item);
-  eb::EventBus::FireEvent(me);
+  // DropEvent me(shared_from_this(), item);
+  // eb::EventBus::FireEvent(me);
   return true;
 }
 
 bool Creature::pick(std::shared_ptr<Item> item) {
   auto ptr = shared_from_this();
 
-  ItemTakenEvent e(ptr, item);
-  eb::EventBus::FireEvent(e);
+  // ItemTakenEvent e(ptr, item);
+  // eb::EventBus::FireEvent(e);
 
   if (auto it = std::find_if(inventory.begin(), inventory.end(),
                              [item](std::shared_ptr<Item> i) {
@@ -494,68 +483,68 @@ AiState Creature::getAiState(std::shared_ptr<Object> target) {
   std::string label = "get ai state";
   // log.start(lu::red("ENEMY"), label, true);
   AiState s;
-  s.exit = false;
-  s.target = target;
-  s.viewField = calcViewField();
-  s.canSeeTarget = canSee(target->currentCell, s.viewField);
-  s.targetCell = target->currentCell;
-  s.canSeeTargetCell = canSee(s.targetCell, s.viewField);
+  // s.exit = false;
+  // s.target = target;
+  // s.viewField = calcViewField();
+  // s.canSeeTarget = canSee(target->currentCell, s.viewField);
+  // s.targetCell = target->currentCell;
+  // s.canSeeTargetCell = canSee(s.targetCell, s.viewField);
 
-  if (s.canSeeTarget) {
-    lastTargetCell = s.targetCell;
-  } else {
-    s.targetCell = lastTargetCell;
-  }
-  if (s.targetCell == nullptr || s.targetCell == currentCell) {
-    s.exit = true;
-    // log.stop(label, 20.f);
-    return s;
-  }
+  // if (s.canSeeTarget) {
+  //   lastTargetCell = s.targetCell;
+  // } else {
+  //   s.targetCell = lastTargetCell;
+  // }
+  // if (s.targetCell == nullptr || s.targetCell == currentCell) {
+  //   s.exit = true;
+  //   // log.stop(label, 20.f);
+  //   return s;
+  // }
 
-  if (!s.canSeeTargetCell && path.size() > 2) {
-    auto it = path.end() - 2;
-    for (auto n = 0; n < path.size() - 2; n++) {
-      if (it == path.begin()) {
-        s.exit = true;
-        return s;
-      }
-      auto cell = *it;
-      if (canSee(cell, s.viewField)) {
-        s.targetCell = cell;
-        break;
-      }
-    }
-  }
+  // if (!s.canSeeTargetCell && path.size() > 2) {
+  //   auto it = path.end() - 2;
+  //   for (auto n = 0; n < path.size() - 2; n++) {
+  //     if (it == path.begin()) {
+  //       s.exit = true;
+  //       return s;
+  //     }
+  //     auto cell = *it;
+  //     if (canSee(cell, s.viewField)) {
+  //       s.targetCell = cell;
+  //       break;
+  //     }
+  //   }
+  // }
 
-  s.targetInTargetCell = target->currentCell == s.targetCell;
-  s.path = currentLocation->getLine(currentCell, s.targetCell);
-  s.nearTargetCell = s.canSeeTarget && s.path.size() <= 2;
-  s.inThrowRange = s.canSeeTarget && s.path.size() - 1 <= getThrowRange();
-  s.canThrow = s.inThrowRange &&
-               std::find_if(inventory.begin(), inventory.end(), [](auto i) {
-                 return i->type.category == ItemCategories::THROWABLE;
-               }) != inventory.end();
+  // s.targetInTargetCell = target->currentCell == s.targetCell;
+  // s.path = currentLocation->getLine(currentCell, s.targetCell);
+  // s.nearTargetCell = s.canSeeTarget && s.path.size() <= 2;
+  // s.inThrowRange = s.canSeeTarget && s.path.size() - 1 <= getThrowRange();
+  // s.canThrow = s.inThrowRange &&
+  //              std::find_if(inventory.begin(), inventory.end(), [](auto i) {
+  //                return i->type.category == ItemCategories::THROWABLE;
+  //              }) != inventory.end();
 
-  s.nearTarget = s.nearTargetCell;
-  if (s.nearTarget) {
-    s.neighbors = currentLocation->getNeighbors(currentCell);
-    s.nearTarget =
-        std::find_if(s.neighbors.begin(), s.neighbors.end(), [&target](auto n) {
-          return n == target->currentCell;
-        }) != s.neighbors.end();
-  }
+  // s.nearTarget = s.nearTargetCell;
+  // if (s.nearTarget) {
+  //   s.neighbors = currentLocation->getNeighbors(currentCell);
+  //   s.nearTarget =
+  //       std::find_if(s.neighbors.begin(), s.neighbors.end(), [&target](auto n) {
+  //         return n == target->currentCell;
+  //       }) != s.neighbors.end();
+  // }
 
-  s.canReachTarget =
-      s.nearTarget || std::find_if(s.path.begin(), s.path.end(), [&](auto c) {
-                        return c != currentCell && c != s.targetCell &&
-                               !c->canPass(getTraits());
-                      }) == s.path.end();
-  if (!s.canReachTarget) {
-    // fmt::print("can reach: {} (will use pather)\n", s.canReachTarget);
-    s.path = findPath(s.targetCell);
-    s.canReachTarget = s.path.size() > 1;
-    // fmt::print("can reach: {}\n", s.canReachTarget);
-  }
+  // s.canReachTarget =
+  //     s.nearTarget || std::find_if(s.path.begin(), s.path.end(), [&](auto c) {
+  //                       return c != currentCell && c != s.targetCell &&
+  //                              !c->canPass(getTraits());
+  //                     }) == s.path.end();
+  // if (!s.canReachTarget) {
+  //   // fmt::print("can reach: {} (will use pather)\n", s.canReachTarget);
+  //   s.path = findPath(s.targetCell);
+  //   s.canReachTarget = s.path.size() > 1;
+  //   // fmt::print("can reach: {}\n", s.canReachTarget);
+  // }
 
   // log.stop(label, 20.f);
   return s;
@@ -564,23 +553,23 @@ AiState Creature::getAiState(std::shared_ptr<Object> target) {
 std::vector<std::shared_ptr<Cell>>
 Creature::findPath(std::shared_ptr<Cell> targetCell) {
   std::vector<std::shared_ptr<Cell>> resultPath = {};
-  if (pather == nullptr) {
-    pather = new micropather::MicroPather(currentLocation.get());
-  }
-  pather->Reset();
-  float totalCost = 0;
-  micropather::MPVector<void *> raw_path;
-  int result =
-      pather->Solve(currentCell.get(), targetCell.get(), &raw_path, &totalCost);
-  if (result == micropather::MicroPather::SOLVED) {
-    for (auto i = 0; i < raw_path.size(); i++) {
-      auto c = (Cell *)(raw_path[i]);
-      auto ptr = currentLocation->cells[c->y][c->x];
-      if (ptr != nullptr) {
-        resultPath.push_back(ptr);
-      }
-    }
-  }
+  // if (pather == nullptr) {
+  //   pather = new micropather::MicroPather(currentLocation.get());
+  // }
+  // pather->Reset();
+  // float totalCost = 0;
+  // micropather::MPVector<void *> raw_path;
+  // int result =
+  //     pather->Solve(currentCell.get(), targetCell.get(), &raw_path, &totalCost);
+  // if (result == micropather::MicroPather::SOLVED) {
+  //   for (auto i = 0; i < raw_path.size(); i++) {
+  //     auto c = (Cell *)(raw_path[i]);
+  //     auto ptr = currentLocation->cells[c->y][c->x];
+  //     if (ptr != nullptr) {
+  //       resultPath.push_back(ptr);
+  //     }
+  //   }
+  // }
 
   return resultPath;
 }

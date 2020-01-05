@@ -1,7 +1,6 @@
 #ifndef __ARTEFACTS_H_
 #define __ARTEFACTS_H_
 
-#include "lss/game/content/spells.hpp"
 #include "lss/game/effect.hpp"
 #include "lss/game/item.hpp"
 

@@ -1,6 +1,5 @@
 #include <chrono>
 
-#include "EventBus/EventBus.hpp"
 #include "lss/game/costs.hpp"
 #include "lss/game/enemy.hpp"
 // #include "lss/game/player.hpp"
@@ -52,10 +51,11 @@ Enemy::~Enemy() { clearHandlers(); }
 
 // TODO: add probability for drops
 std::optional<Items> Enemy::drop() {
-  auto loot = type.loot.open();
-  if (loot.size() == 0)
-    return std::nullopt;
-  return loot;
+  // auto loot = type.loot.open();
+  // if (loot.size() == 0)
+  //   return std::nullopt;
+  // return loot;
+  return std::nullopt;
 }
 
 // TODO: move to creature
@@ -87,15 +87,15 @@ bool Enemy::interact(std::shared_ptr<Object> actor) {
 void Enemy::onDamage(std::shared_ptr<Creature> attacker,
                      std::shared_ptr<Damage> damage) {
   auto ptr = shared_from_this();
-  EnemyTakeDamageEvent e(ptr, damage);
-  eb::EventBus::FireEvent(e);
+  // EnemyTakeDamageEvent e(ptr, damage);
+  // eb::EventBus::FireEvent(e);
 }
 
 void Enemy::onDie() {
   auto ptr = shared_from_this();
   passThrough = true;
-  EnemyDiedEvent e2(ptr);
-  eb::EventBus::FireEvent(e2);
+  // EnemyDiedEvent e2(ptr);
+  // eb::EventBus::FireEvent(e2);
 }
 
 Direction getDirFromCell(std::shared_ptr<Cell> c, Cell *nc) {
@@ -225,12 +225,4 @@ void Enemy::prepareAiState() {
   //   lastAiState = getAiState(target);
   // }
 }
-
-void Enemy::onEvent(CommitEvent &e) {}
-
 bool Enemy::randomPath() { return true; }
-
-EnemyTakeDamageEvent::EnemyTakeDamageEvent(eb::ObjectPtr s,
-                                           std::shared_ptr<Damage> d)
-    : eb::Event(s), damage(d) {}
-EnemyDiedEvent::EnemyDiedEvent(eb::ObjectPtr s) : eb::Event(s) {}

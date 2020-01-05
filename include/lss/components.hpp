@@ -5,6 +5,7 @@
 #include <lss/deps.hpp>
 #include <lss/game/itemSpec.hpp>
 #include <lss/game/light.hpp>
+#include <lss/game/lootBox.hpp>
 
 namespace hellfrost {
     struct ingame {
@@ -121,6 +122,15 @@ namespace hellfrost {
         template<class Archive>
         void serialize(Archive & ar) {
             ar( distance, type, stable );
+        };
+    };
+
+    struct loot {
+        LootBox lootbox;
+        friend class cereal::access;
+        template<class Archive>
+        void serialize(Archive & ar) {
+            ar( lootbox );
         };
     };
 

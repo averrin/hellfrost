@@ -1,6 +1,5 @@
 #ifndef __ITEMS_H_
 #define __ITEMS_H_
-#include "lss/game/content/spells.hpp"
 #include "lss/game/content/traits.hpp"
 #include "lss/game/item.hpp"
 #include "lss/game/randomTools.hpp"

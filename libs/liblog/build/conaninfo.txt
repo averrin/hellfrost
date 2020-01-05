@@ -1,0 +1,37 @@
+[settings]
+    arch=x86_64
+    build_type=Release
+    compiler=gcc
+    compiler.libcxx=libstdc++
+    compiler.version=8
+    os=Linux
+
+[requires]
+    fmt/5.Y.Z
+
+[options]
+
+
+[full_settings]
+    arch=x86_64
+    arch_build=x86_64
+    build_type=Release
+    compiler=gcc
+    compiler.libcxx=libstdc++
+    compiler.version=8
+    os=Linux
+    os_build=Linux
+
+[full_requires]
+    fmt/5.1.0@bincrafters/stable:a2582e1f57e524e15d7e84f4c862d0a472d3216f
+
+[full_options]
+    fmt:fPIC=True
+    fmt:header_only=False
+    fmt:shared=False
+
+[recipe_hash]
+
+
+[env]
+

@@ -1,0 +1,1 @@
+/usr/sbin/c++         -rdynamic CMakeFiles/liblog.dir/liblog_test.cpp.o  -o bin/liblog  -L/home/averrin/.conan/data/fmt/5.1.0/bincrafters/stable/package/a2582e1f57e524e15d7e84f4c862d0a472d3216f/lib -Wl,-rpath,/home/averrin/.conan/data/fmt/5.1.0/bincrafters/stable/package/a2582e1f57e524e15d7e84f4c862d0a472d3216f/lib -lfmt 

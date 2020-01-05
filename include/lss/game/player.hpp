@@ -8,19 +8,7 @@
 
 typedef std::vector<std::shared_ptr<Item>> Items;
 
-class Player : public Creature,
-               public eb::EventHandler<EnemyDiedEvent>,
-               public eb::EventHandler<MoveCommandEvent>,
-               public eb::EventHandler<DigCommandEvent>,
-               public eb::EventHandler<AttackCommandEvent>,
-               public eb::EventHandler<WalkCommandEvent>,
-               public eb::EventHandler<EquipCommandEvent>,
-               public eb::EventHandler<UnEquipCommandEvent>,
-               public eb::EventHandler<DropCommandEvent>,
-               public eb::EventHandler<WaitCommandEvent>,
-               public eb::EventHandler<ZapCommandEvent>,
-               public eb::EventHandler<ThrowCommandEvent>,
-               public eb::EventHandler<PickCommandEvent> {
+class Player : public Creature {
   LibLog::Logger &log = LibLog::Logger::getInstance();
 public:
   Player();
@@ -41,19 +29,6 @@ public:
   void increaseStrength(float val);
   std::map<std::shared_ptr<Object>, std::set<std::shared_ptr<Cell>>>
   getLightMap();
-
-  virtual void onEvent(MoveCommandEvent &e) override;
-  virtual void onEvent(PickCommandEvent &e) override;
-  virtual void onEvent(DigCommandEvent &e) override;
-  virtual void onEvent(WalkCommandEvent &e) override;
-  virtual void onEvent(AttackCommandEvent &e) override;
-  virtual void onEvent(EquipCommandEvent &e) override;
-  virtual void onEvent(UnEquipCommandEvent &e) override;
-  virtual void onEvent(DropCommandEvent &e) override;
-  virtual void onEvent(WaitCommandEvent &e) override;
-  virtual void onEvent(ZapCommandEvent &e) override;
-  virtual void onEvent(EnemyDiedEvent &e) override;
-  virtual void onEvent(ThrowCommandEvent &e) override;
 };
 
 #endif // __PLAYER_H_

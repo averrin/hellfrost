@@ -1,7 +1,6 @@
 #ifndef __WEAPONS_H_
 #define __WEAPONS_H_
 
-#include "lss/game/content/spells.hpp"
 #include "lss/game/item.hpp"
 
 namespace Prototype {

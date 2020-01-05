@@ -1,30 +1,39 @@
-#include "lss/components.hpp"
-#include "lss/utils.hpp"
-#include <lss/gameManager.hpp>
+#include <hellfrost/game/components.hpp>
+#include <hellfrost/game/gameManager.hpp>
 
 // TODO: remove it
-#include <app/fonts/material_design_icons.h>
-#include <app/ui/drawEngine.hpp>
-#include <app/ui/viewport.hpp>
+#include <fonts/material_design_icons.h>
+// #include <hellfrost/ui/viewport.hpp>
 
-GameManager::GameManager(fs::path p) : path(p) {
+namespace hellfrost {
+GameManager::GameManager(fs::path p, int s) : path(p), seed(s) {
   loadData();
-  generator = std::make_unique<Generator>();
+  // generator = std::make_unique<Generator>();
 }
 
-void GameManager::gen(LocationSpec spec) {
+void GameManager::start() {
+  start(seed);
+}
+void GameManager::start(int s) {
+  auto label = "Generate location";
+  log.start(lu::green("GM"), label);
+
+  seed = s;
+  auto emitter = entt::service_locator<event_emitter>::get().lock();
+  emitter->publish<gm::generation_start>();
   srand(seed);
-
   registry->reset();
-  // registry
-  //     .on_construct<hellfrost::renderable>()
-  //     .connect<&entt::registry::assign<hellfrost::position>>(registry);
 
-  location = generator->getLocation(spec);
-  registry = location->registry;
+  //TODO: make thread here
+  // location = generator->getLocation();
+  // registry = location->registry;
   entt::service_locator<entt::registry>::set(registry);
-  auto view_map = entt::service_locator<Viewport>::get().lock();
+  emitter->publish<gm::generation_finish>();
+  log.stop(label);
+  return;
 
+  /*
+  auto view_map = entt::service_locator<Viewport>::get().lock();
   auto data = entt::service_locator<GameData>::get().lock();
 
   for (auto i : utils::castObjects<Item>(location->objects)) {
@@ -64,12 +73,17 @@ void GameManager::gen(LocationSpec spec) {
                                           i->currentCell->y, 0);
   }
 
-  return;
+  // return;
 
   data->prototypes->reset();
   auto n = 0;
+  std::map<std::string, int> ids;
   for (auto c : Prototype::ALL) {
     for (auto item : c) {
+      if (ids.find(item->typeKey) == ids.end()) {
+        ids[item->typeKey] = 0;
+      }
+
       auto type = data->itemSpecs[item->typeKey];
       item->type = type;
 
@@ -80,7 +94,7 @@ void GameManager::gen(LocationSpec spec) {
 
       auto e = data->prototypes->create();
       data->prototypes->assign<entt::tag<"proto"_hs>>(e);
-      auto id = fmt::format("{}_{}", item->type.name, n);
+      auto id = fmt::format("{}_{}", item->type.name, ids[item->typeKey]);
       data->prototypes->assign<hf::meta>(e, item->getFullTitle(true), "", id);
       data->prototypes->assign<hf::ineditor>(
           e, id, std::vector<std::string>{"Items", item->type.name},
@@ -93,6 +107,7 @@ void GameManager::gen(LocationSpec spec) {
       data->prototypes->assign<hf::wearable>(e, item->type.wearableType,
                                              item->type.durability);
       n++;
+      ids[item->typeKey]++;
     }
   }
 
@@ -111,4 +126,6 @@ void GameManager::gen(LocationSpec spec) {
     }
     n++;
   }
+*/
+}
 }

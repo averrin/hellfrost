@@ -1,0 +1,7 @@
+/home/averrin/projects/hellfrost/imgui/build/CMakeFiles/install/strip.dir
+/home/averrin/projects/hellfrost/imgui/build/CMakeFiles/edit_cache.dir
+/home/averrin/projects/hellfrost/imgui/build/CMakeFiles/imgui.dir
+/home/averrin/projects/hellfrost/imgui/build/CMakeFiles/install.dir
+/home/averrin/projects/hellfrost/imgui/build/CMakeFiles/rebuild_cache.dir
+/home/averrin/projects/hellfrost/imgui/build/CMakeFiles/list_install_components.dir
+/home/averrin/projects/hellfrost/imgui/build/CMakeFiles/install/local.dir

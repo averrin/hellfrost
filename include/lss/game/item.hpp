@@ -4,7 +4,7 @@
 #include "lss/game/itemSpec.hpp"
 #include "lss/game/object.hpp"
 #include "lss/game/randomTools.hpp"
-#include "lss/game/spell.hpp"
+// #include "lss/game/spell.hpp"
 #include "lss/utils.hpp"
 #include <fmt/format.h>
 #include <variant>
@@ -64,15 +64,15 @@ public:
     std::shared_ptr<Item> roll() {  return std::make_shared<Usable>(*this); }
 };
 
-class Consumable : public Usable {
-public:
-  Consumable(std::string un, std::string n, std::string t,
-             std::shared_ptr<Spell> s)
-      : Usable(un, n, t), spell(s) {}
-  std::shared_ptr<Spell> spell;
-  std::shared_ptr<Item> clone() { return std::make_shared<Consumable>(*this); }
-  std::shared_ptr<Item> roll() { return std::make_shared<Consumable>(*this); }
-};
+// class Consumable : public Usable {
+// public:
+//   Consumable(std::string un, std::string n, std::string t,
+//              std::shared_ptr<Spell> s)
+//       : Usable(un, n, t), spell(s) {}
+//   std::shared_ptr<Spell> spell;
+//   std::shared_ptr<Item> clone() { return std::make_shared<Consumable>(*this); }
+//   std::shared_ptr<Item> roll() { return std::make_shared<Consumable>(*this); }
+// };
 
 typedef std::vector<std::shared_ptr<Item>> Items;
 

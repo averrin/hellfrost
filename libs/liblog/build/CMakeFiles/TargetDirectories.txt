@@ -1,0 +1,3 @@
+/home/averrin/projects/sfml-imgui-starter/include/liblog/build/CMakeFiles/rebuild_cache.dir
+/home/averrin/projects/sfml-imgui-starter/include/liblog/build/CMakeFiles/liblog.dir
+/home/averrin/projects/sfml-imgui-starter/include/liblog/build/CMakeFiles/edit_cache.dir

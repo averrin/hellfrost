@@ -21,7 +21,7 @@ class GameManager {
 
     void applyData();
     void reset();
-    void gen(LocationSpec);
+    void gen();
     void setSeed(int s) {seed = s;}
 
     void loadData() {

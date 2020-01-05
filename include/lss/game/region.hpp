@@ -1,5 +1,6 @@
 #ifndef __REGION_H_
 #define __REGION_H_
+#include <mutex>
 
 #include <lss/game/cell.hpp>
 #include <lss/generator/mapUtils.hpp>
@@ -10,16 +11,57 @@ enum class RegionType {
   PASSAGE,
   CAVERN,
   CAVE,
-} enum class RegionFeature {
+  DUNGEON,
+};
+
+enum class RegionFeature {
+  CAVE_PASSAGE,
+  RIVER,
+  TORCHES,
+  STATUE,
+  ALTAR,
+  LAKE,
+  VOID,
+  ICE,
+  HEAL,
+  MANA,
+  TREASURE_SMALL,
+  CORRUPT,
+  BONES_FIELD,
   CAVE,
-  DUNGEON
+  DUNGEON,
+};
+
+struct RegionSpec {
+  std::string name;
+  int threat = 0;
+  std::vector<RegionFeature> features;
+  std::vector<CellFeature> cellFeatures;
+  // std::shared_ptr<Cell> enterCell;
+  CellSpec floor = CellType::FLOOR;
+  RegionType type;
 };
 
 class Region {
+  std::shared_ptr<Cells> cells;
+  bool damaged = true;
+  std::shared_ptr<Cells> cache;
+
+  std::mutex resize_mutex;
+
 public:
-  Cells cells;
-  std::pair<int, int> position;
-  bool active = false;
+  Region() : cells(std::make_shared<Cells>()) {}
+  Region(std::shared_ptr<Cells> c)
+      : cells(c), width(c->front().size()), height(c->size()) {
+    update();
+  }
+  void invalidate() { damaged = true; }
+
+  RegionSpec type;
+  bool active = true;
+
+  std::string id;
+  std::string name;
 
   int height = 0;
   int width = 0;
@@ -28,100 +70,103 @@ public:
   int y = 0;
   int z = 0;
 
-  RegionType type = RegionType::HALL;
   int threat = 0;
   std::vector<RegionFeature> features{};
+  bool hasFeature(RegionFeature f) {
+    return std::find(features.begin(), features.end(), f) != features.end();
+  }
+
+  void printRegion() {
+    getCells();
+    fmt::print("{}x{} ({}x{})\n", width, height, cells->front().size(),
+               cells->size());
+    fmt::print("r: {}, cache: {}x{}\n", regions.size(), cache->front().size(),
+               cache->size());
+    fmt::print(dump());
+  }
+  void printRegion(std::shared_ptr<Region> r) {
+    fmt::print(dump(r->getCells()));
+  }
+
+    void update();
+
+  std::string dump() { return dump(getCells()); }
+  std::string dump(std::shared_ptr<Cells> _cells) {
+    std::string out = "";
+    for (auto r : *_cells) {
+      for (auto c : r) {
+        if (c->type == CellType::WALL) {
+          out += "#";
+        } else if (c->type == CellType::GROUND) {
+          out += ".";
+        } else if (c->type == CellType::FLOOR) {
+          out += ".";
+        } else if (c->type == CellType::EMPTY) {
+          out += "e";
+        } else if (c->type == CellType::UNKNOWN) {
+          out += " ";
+        } else if (c->type == CellType::WATER) {
+          out += "=";
+        } else {
+          out += "?";
+        }
+      }
+      out += "\n";
+    }
+    return out;
+  }
+
   std::vector<std::shared_ptr<Region>> regions;
 
-  Cells getCells() {
-    auto result = cells;
-    int rbx = 0;
-    int rby = 0;
-    for (auto r : regions) {
-      rbx = max(rbx, r.x+r.width);
-      rby = max(rby, r.y+r.height);
-    }
-    result = resize(result, rbx, rby);
-    width = rbx;
-    height = rby;
-    for (auto r : regions) {
-      paste(r->cells, r.x, r.y, result);
-    }
-    return result;
-  }
-    auto getRandomCell() {
-      return getRandomCell(getCells());
-    }
-
-    auto getRandomCell(Cells src) {
-      return src[rand()%height][rand()%width];
-    }
-
-  Cells resize(Cells src, int w, int h) {
-    auto dst = Cells{};
-    for (int y = 0; y < h; y++) {
-      if (dst.size() <= y)
-        dst.push_back(std::vector<std::shared_ptr<Cell>>{});
-      for (int x = 0; x < w; x++) {
-        if (dst[y].size() <= x)
-          dst[y].push_back(std::make_shared<Cell>(CellType::EMPTY));
-        else
-          dst[y][x] = src[y][x];
-      }
-    }
-    return dst;
+  std::shared_ptr<Cell> getRandomCell() { return getRandomCell(getCells()); }
+  std::shared_ptr<Cell> getRandomCell(std::shared_ptr<Cells> src) {
+    return src->at(rand() % height)[rand() % width];
   }
 
-  Cells paste(Cells src, int x, int y, Cells dst) {
-    int bh = dst.size();
-    int bw = dst.front().size();
-    for (auto r = y; r < int(src->cells.size() + y) && r < bh; r++) {
-      for (auto c = x; c < int(src.front().size() + x) && c < bw; c++) {
-        auto cell = src[r - y][c - x];
-        if (cell->type == CellType::EMPTY)
-          continue;
-        dst[r][c] = cell;
-        dst[r][c]->x = c;
-        dst[r][c]->y = r;
-      }
-    }
-    return dst;
+  void place(std::shared_ptr<Region> region, int _x, int _y);
+
+  bool placeInside(std::shared_ptr<Region> region, bool smart = false);
+
+  std::optional<std::shared_ptr<Cell>> getCell(int _x, int _y, int _z);
+
+  std::shared_ptr<Cells> getCells();
+  bool isInside(int _x, int _y, int _z);
+
+  void updateCell(int _x, int _y, int _z, CellSpec type,
+                  std::vector<CellFeature> features);
+
+  std::shared_ptr<Cells> getCells(int _z);
+  std::optional<std::shared_ptr<Cell>> getRandomCell(CellSpec type);
+
+  void resize(int w, int h, CellSpec type = CellType::EMPTY);
+  Cells resize(Cells src, int w, int h, CellSpec type = CellType::EMPTY);
+
+  Cells paste(Cells src, int x, int y, Cells dst);
+
+  void fill(int h, int w, CellSpec type);
+
+  static std::shared_ptr<Region>
+  createRandomRegion(int hMax = 11, int hMin = 3, int wMax = 15, int wMin = 3,
+                     CellSpec type = CellType::FLOOR) {
+    auto rh = R::Z(hMin, hMax);
+    auto rw = R::Z(wMin, wMax);
+
+    auto cells = mapUtils::fill(rh, rw, type);
+    auto room = std::make_shared<Region>(std::make_shared<Cells>(cells));
+    return room;
   }
 
-  void fill(int h, int w, CellSpec type) {
-    cells.clear();
-    for (auto r = 0; r < h; r++) {
-      std::vector<std::shared_ptr<Cell>> row;
-      for (auto c = 0; c < w; c++) {
-        auto cell = std::make_shared<Cell>(c, r, type);
-        cell->visibilityState = VisibilityState::UNKNOWN;
-        cell->anchor = position;
-        row.push_back(cell);
-      }
+  void flatten();
 
-      cells.push_back(row);
-    }
-  }
+  int countNeighbors(std::shared_ptr<Cell> cell,
+                     std::function<bool(std::shared_ptr<Cell>)> test);
 
-  void walls(CellSpec type) {
-    auto i = 0;
-    for (auto row : cells) {
-      if (i == 0 || i == cells.size() - 1) {
-        for (auto c : row) {
-          mapUtils::updateCell(c, type);
-        }
-      } else {
-        auto n = 0;
-        for (auto c : row) {
-          if (n == 0 || n == row.size() - 1) {
-            mapUtils::updateCell(c, type);
-          }
-          n++;
-        }
-      }
-      i++;
-    }
-  }
+  std::vector<std::shared_ptr<Cell>> getNeighbors(std::shared_ptr<Cell> cell);
+
+  std::optional<std::shared_ptr<Cell>> getCell(std::shared_ptr<Cell> cc,
+                                               Direction d);
+
+  void walls(CellSpec type);
 };
 
 #endif // __REGION_H_

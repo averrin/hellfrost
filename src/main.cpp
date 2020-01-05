@@ -1,17 +1,15 @@
 #if __APPLE__
     #include <libproc.h>
 #endif
-#include "backward.hpp"
+#include <backward.hpp>
 
 namespace backward {
 backward::SignalHandling sh;
 } // namespace backward
 
-#define BACKWARD_HAS_DW 1
-#include "app/application.hpp"
-#include "lss/deps.hpp"
+#include <application.hpp>
 
-std::string VERSION = "0.2.0";
+std::string VERSION = "0.4.0";
 std::string APP_NAME = "Hellfrost";
 
 fs::path get_selfpath() {

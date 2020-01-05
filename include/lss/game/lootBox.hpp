@@ -136,10 +136,68 @@ const LootBox DUNGEON_3 = LootBox("DUNGEON_3", {
 
 const LootBox DUNGEON_4 = DUNGEON_3;
 
+const LootBox ENEMIES = LootBox("ENEMIES", {
+    LootBox("rockthrower", 1, {}, {
+        LootBox(0.40, LootBoxes::POTIONS),
+        LootBox("g10", 0.90, {Prototype::ROCK->setCount(10)})}, false),
+    LootBox("goblin", 1, {}, {
+        LootBox(0.40, LootBoxes::POTIONS),
+        LootBox(0.40, LootBoxes::LOOT_TIER_0),
+        LootBox("g50", 0.90, {Prototype::GOLD->setCount(50)})}, false),
+    LootBox("lieutenent", 1, {}, {
+        LootBox("heal_potion_40", 0.40, {Prototype::POTION_HEAL}),
+        LootBox(0.20, LootBoxes::POTIONS),
+        LootBox(0.40, LootBoxes::SCROLLS),
+        LootBox(0.80, LootBoxes::LOOT_TIER_1),
+        LootBox("g50", 0.90, {Prototype::GOLD->setCount(50)})
+    }, false),
+    LootBox("rogue", 1, {}, {
+        LootBox(0.80, LootBoxes::LOOT_TIER_1),
+        LootBox("g50", 0.90, {Prototype::GOLD->setCount(50)})
+    }, false),
+    LootBox("cultist", 1, {Prototype::CANDLE, Prototype::POISON_DAGGER}, {
+        LootBox("potion_heal_40", 0.40, {Prototype::POTION_HEAL}),
+        LootBox(0.40, LootBoxes::SCROLLS),
+        LootBox(0.80, LootBoxes::LOOT_TIER_1),
+        LootBox("g100", 0.90, {Prototype::GOLD->setCount(100)})
+    }, false),
+    LootBox("ork", 1, {Prototype::TORCH}, {
+        LootBox("potion_heal_40", 0.40, {Prototype::POTION_HEAL}),
+        LootBox(0.40, LootBoxes::SCROLLS),
+        LootBox(0.80, LootBoxes::LOOT_TIER_1),
+        LootBox("g100", 0.90, {Prototype::GOLD->setCount(100)})
+    }, false),
+    LootBox("berserk", 1, {}, {
+        LootBox("potion_heal_40", 0.40, {Prototype::POTION_HEAL}),
+        LootBox(0.80, LootBoxes::LOOT_TIER_1),
+        LootBox("a1", 0.10, Prototype::ARTIFACTS_1),
+        LootBox("g100", 0.90, {Prototype::GOLD->setCount(100)})
+    }, false),
+    LootBox("bork", 1, {Prototype::TORCH}, {
+        LootBox("potion_heal_50", 0.50, {Prototype::POTION_HEAL}),
+        LootBox(0.20, LootBoxes::POTIONS),
+        LootBox(0.80, LootBoxes::LOOT_TIER_2),
+        LootBox("g100", 0.90, {Prototype::GOLD->setCount(100)})
+    }, false),
+    LootBox("pixi", 0.90, {Prototype::GOLD->setCount(200)}, {
+        LootBox(0.40, LootBoxes::SCROLLS),
+        LootBox("speed_ring", 0.10, {Prototype::SPEED_RING})}, false),
+    LootBox("ogre", 0.80, {Prototype::GREAT_AXE}),
+    LootBox("skeleton", 1, {}, {
+        LootBox(0.80, LootBoxes::LOOT_TIER_1),
+        LootBox("g100", 0.90, {Prototype::GOLD->setCount(100)})
+    }, false),
+    LootBox("zombie", 1, {}, {
+        LootBox(0.80, LootBoxes::LOOT_TIER_1),
+        LootBox("g100", 0.90, {Prototype::GOLD->setCount(100)})
+    }, false),
+});
+
 const std::vector<LootBox> ALL = {
     POTIONS,        SCROLLS,        ARMOR_TIER_1, ARMOR_TIER_2, ARMOR_TIER_3,
     WEAPONS_TIER_1, WEAPONS_TIER_2, LOOT_TIER_0,  LOOT_TIER_1,  LOOT_TIER_2,
     DUNGEON_0,      DUNGEON_1,      DUNGEON_2,    DUNGEON_3,
+    ENEMIES,
 };
 } // namespace LootBoxes
 
