@@ -6,8 +6,8 @@
 #include <SFML/Graphics.hpp>
 #include <SFML/Graphics/RenderWindow.hpp>
 
-#include <hellfrost/game/components.hpp>
 #include <hellfrost/deps.hpp>
+#include <hellfrost/game/components.hpp>
 
 #include <hellfrost/ui/layers.hpp>
 #include <hellfrost/ui/tile.hpp>
@@ -30,7 +30,7 @@ class DrawEngine {
   std::shared_ptr<sf::RenderTexture> canvas =
       std::make_shared<sf::RenderTexture>();
   bool needRedraw = true;
-  LibLog::Logger &log = LibLog::Logger::getInstance();
+  LibLog::Logger log = LibLog::Logger(fmt::color::lime, "DRAW");
   sf::Color bgColor;
 
   std::shared_ptr<entt::observer> ob_visible;
@@ -43,8 +43,12 @@ class DrawEngine {
   sf::RectangleShape cursor;
 
   std::thread cacheThread;
+
 public:
-  ~DrawEngine() { tilesCache.clear(); }
+  ~DrawEngine() {
+    log.setParent(&LibLog::Logger::getInstance());
+    tilesCache.clear();
+  }
   std::shared_ptr<LayersManager> layers;
   std::map<std::string, std::shared_ptr<Tile>> tilesCache{};
   std::vector<std::pair<int, int>> damage{};
@@ -84,5 +88,5 @@ public:
   void resize(sf::Vector2u);
 };
 
-}; // namespace hellfrost
+};     // namespace hellfrost
 #endif // __DRAWENGINE_H_

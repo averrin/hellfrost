@@ -39,8 +39,6 @@ int main(int argc, char *argv[]) {
     }
     auto path = get_selfpath();
     Application app(APP_NAME, path, VERSION, seed);
-    app.log.start(APP_NAME);
     app.serve();
-    app.log.stop(APP_NAME);
     return EXIT_SUCCESS;
 }

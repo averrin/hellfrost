@@ -3,7 +3,7 @@
 #include <stdlib.h>         // NULL, malloc, free, atoi
 #include <stdio.h>          // vsnprintf, sscanf, printf
 
-#include <lss/deps.hpp>
+#include <hellfrost/deps.hpp>
 namespace hf = hellfrost;
 
 #include <vector>

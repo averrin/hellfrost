@@ -4,6 +4,8 @@
 
 #include <librandom/random.hpp>
 
+#include <hellfrost/deps.hpp>
+
 #include <hellfrost/game/cell.hpp>
 #include <hellfrost/game/location.hpp>
 #include <hellfrost/ui/tile.hpp>
@@ -17,12 +19,14 @@ struct TileSet {
 };
 
 class Viewport {
+  LibLog::Logger log = LibLog::Logger(fmt::color::orange, "VIEW");
   std::shared_ptr<R::Generator> gen = std::make_shared<R::Generator>();
   std::mutex mutex;
 
 public:
+  Viewport() { log.setParent(&LibLog::Logger::getInstance()); }
   ~Viewport() { tilesTextures.clear(); }
-  void update(std::shared_ptr<Location> l) {location = l;}
+  void update(std::shared_ptr<Location> l) { location = l; }
 
   sf::IntRect getTileRect(int x, int y) {
     return sf::IntRect((tileSet.size.first + tileSet.gap) * x,
@@ -31,6 +35,8 @@ public:
   }
 
   void loadTileset(fs::path path) {
+    log.info("Loading tileset from: {}", lu::green(path.string()));
+    log.start("Loading");
     std::ifstream file(path / "tiles.json");
     json tilesSpec;
     file >> tilesSpec;
@@ -44,14 +50,18 @@ public:
     std::ifstream cfile(path / "colors.json");
     cfile >> colors;
 
+    //TODO: move to drawEngine
     tilesTextures.clear();
     for (auto t_path : tileSet.maps) {
       sf::Texture t;
       t.loadFromFile(path / t_path);
       tilesTextures.push_back(t);
     }
+    log.debug("tileset size: {}x{}", tileSet.size.first, tileSet.size.second);
+    log.debug("sprites: {}", tileSet.sprites.size());
+
+    log.stop("Loading");
   }
-  Viewport() {}
   TileSet tileSet;
   json colors;
   // std::shared_ptr<Tile> UT;
@@ -66,7 +76,7 @@ public:
   int view_z = 0;
 
   std::vector<sf::Texture> tilesTextures;
-    std::shared_ptr<Location> location;
+  std::shared_ptr<Location> location;
 
   void setSize(std::pair<int, int> size) {
     width = size.first;
@@ -106,128 +116,128 @@ public:
   }
 
   std::optional<std::shared_ptr<Tile>> getTile(int x, int y, int z) {
-      return std::nullopt;
+    return std::nullopt;
 
-      /*
-    auto [c, rz] = getCell(x, y, z);
-    if (!c) {
-      fmt::print("nullopt @ {}.{}.{}\n", x, y, z);
-      return std::nullopt;
-    }
-    auto cell = *c;
+    /*
+  auto [c, rz] = getCell(x, y, z);
+  if (!c) {
+    fmt::print("nullopt @ {}.{}.{}\n", x, y, z);
+    return std::nullopt;
+  }
+  auto cell = *c;
 
-    if (cell->type == CellType::UNKNOWN) {
-      return std::nullopt;
-    }
+  if (cell->type == CellType::UNKNOWN) {
+    return std::nullopt;
+  }
 
-    // mutex.lock();
-    auto fgColor = sf::Color(220, 220, 220);
-    auto sprite = std::make_shared<sf::Sprite>();
-    auto tile = std::make_shared<Tile>();
-    tile->sprites.push_back(sprite);
-    auto sprite_spec = tileSet.sprites["UNKNOWN"];
-    if (cell->type == CellType::UPSTAIRS) {
-      sprite_spec = tileSet.sprites["UPSTAIRS"];
-    } else if (cell->type == CellType::DOWNSTAIRS) {
-      sprite_spec = tileSet.sprites["DOWNSTAIRS"];
-    } else if (cell->type == CellType::WATER) {
-      sprite_spec = tileSet.sprites["WATER"];
-      auto c = Color::fromHexString(colors["ENV"]["WATER"]);
-      c.value(c.value() + gen->R(0, 30) / 100.f);
-      fgColor = sf::Color(c.r, c.g, c.b, c.a);
-      tile->bgColor = getColor(colors["ENV"]["WATER_BG"]);
+  // mutex.lock();
+  auto fgColor = sf::Color(220, 220, 220);
+  auto sprite = std::make_shared<sf::Sprite>();
+  auto tile = std::make_shared<Tile>();
+  tile->sprites.push_back(sprite);
+  auto sprite_spec = tileSet.sprites["UNKNOWN"];
+  if (cell->type == CellType::UPSTAIRS) {
+    sprite_spec = tileSet.sprites["UPSTAIRS"];
+  } else if (cell->type == CellType::DOWNSTAIRS) {
+    sprite_spec = tileSet.sprites["DOWNSTAIRS"];
+  } else if (cell->type == CellType::WATER) {
+    sprite_spec = tileSet.sprites["WATER"];
+    auto c = Color::fromHexString(colors["ENV"]["WATER"]);
+    c.value(c.value() + gen->R(0, 30) / 100.f);
+    fgColor = sf::Color(c.r, c.g, c.b, c.a);
+    tile->bgColor = getColor(colors["ENV"]["WATER_BG"]);
+    tile->hasBackground = true;
+  } else if (cell->type == CellType::VOID) {
+    sprite_spec = tileSet.sprites["VOID"];
+    fgColor = getColor(colors["ENV"]["VOID"]);
+    tile->bgColor = getColor(colors["ENV"]["VOID"]);
+    tile->hasBackground = true;
+  } else if (cell->passThrough) {
+
+    if (cell->type == CellType::GROUND) {
+      sprite_spec = tileSet.sprites["GRASS"];
+      auto brown = Color::fromHexString(colors["PALETTE"]["BROWN"]);
+      brown.g += gen->R(0, 60);
+      fgColor = sf::Color(brown.r, brown.g, brown.b, brown.a);
+      tile->bgColor = getColor(colors["ENV"]["GROUND_BG"]);
       tile->hasBackground = true;
-    } else if (cell->type == CellType::VOID) {
-      sprite_spec = tileSet.sprites["VOID"];
-      fgColor = getColor(colors["ENV"]["VOID"]);
-      tile->bgColor = getColor(colors["ENV"]["VOID"]);
-      tile->hasBackground = true;
-    } else if (cell->passThrough) {
-
-      if (cell->type == CellType::GROUND) {
-        sprite_spec = tileSet.sprites["GRASS"];
-        auto brown = Color::fromHexString(colors["PALETTE"]["BROWN"]);
-        brown.g += gen->R(0, 60);
-        fgColor = sf::Color(brown.r, brown.g, brown.b, brown.a);
-        tile->bgColor = getColor(colors["ENV"]["GROUND_BG"]);
-        tile->hasBackground = true;
-        if (cell->hasFeature(CellFeature::CAVE)) {
-          tile->bgColor = getColor(colors["ENV"]["CAVE_BG"]);
-          tile->hasBackground = true;
-        }
-      } else if (cell->type == CellType::FLOOR) {
-        sprite_spec = tileSet.sprites["FLOOR"];
-        fgColor = getColor(colors["ENV"]["FLOOR"]);
-      }
-
-      // if (region) {
-      //   auto doors =
-      //       utils::castObjects<Door>((*region)->location->getObjects(cell));
-      //   if (doors.size() != 0) {
-      //     if (doors.front()->hidden) {
-      //       sprite_spec = getWallSpec(cell);
-      //       fgColor = getColor(colors["ENV"]["WALL"]);
-      //       if (cell->hasFeature(CellFeature::CAVE)) {
-      //         fgColor = getColor(colors["ENV"]["WALL_CAVE"]);
-      //         tile->bgColor = getColor(colors["ENV"]["CAVE_BG"]);
-      //         tile->hasBackground = true;
-      //       }
-      //     } else {
-      //       sprite_spec = tileSet.sprites["DOOR"];
-      //       fgColor = getColor(colors["ENV"]["DOOR"]);
-      //     }
-      //   }
-      // }
-    } else if (cell->type == CellType::WALL) {
-      sprite_spec = getWallSpec(cell);
-      fgColor = getColor(colors["ENV"]["WALL"]);
       if (cell->hasFeature(CellFeature::CAVE)) {
-        fgColor = getColor(colors["ENV"]["WALL_CAVE"]);
         tile->bgColor = getColor(colors["ENV"]["CAVE_BG"]);
         tile->hasBackground = true;
       }
-    } else if (cell->type == CellType::ROOF) {
-      sprite_spec = {0, 1, 17};
+    } else if (cell->type == CellType::FLOOR) {
+      sprite_spec = tileSet.sprites["FLOOR"];
+      fgColor = getColor(colors["ENV"]["FLOOR"]);
     }
 
-    sprite->setTexture(tilesTextures[sprite_spec[0]]);
-
-    auto src = getTileRect(sprite_spec[1], sprite_spec[2]);
-    sprite->setTextureRect(src);
-    sprite->setColor(fgColor);
-
-    // tile->bgColor = sf::Color(255, 255, 255, rand()%256);
-
-    // if (cell->type != CellType::UNKNOWN) {
-    for (auto f : cell->features) {
-      if (f == CellFeature::BLOOD) {
-        tile->bgColor = getColor(colors["ENV"]["BLOOD"]);
-        tile->hasBackground = true;
-      }
-      if (f == CellFeature::FROST) {
-        tile->bgColor = getColor(colors["ENV"]["FROST"]);
-        tile->hasBackground = true;
-      }
-      if (f == CellFeature::CORRUPT) {
-        tile->bgColor = getColor(colors["ENV"]["CORRUPT"]);
-        tile->hasBackground = true;
-      }
-    }
+    // if (region) {
+    //   auto doors =
+    //       utils::castObjects<Door>((*region)->location->getObjects(cell));
+    //   if (doors.size() != 0) {
+    //     if (doors.front()->hidden) {
+    //       sprite_spec = getWallSpec(cell);
+    //       fgColor = getColor(colors["ENV"]["WALL"]);
+    //       if (cell->hasFeature(CellFeature::CAVE)) {
+    //         fgColor = getColor(colors["ENV"]["WALL_CAVE"]);
+    //         tile->bgColor = getColor(colors["ENV"]["CAVE_BG"]);
+    //         tile->hasBackground = true;
+    //       }
+    //     } else {
+    //       sprite_spec = tileSet.sprites["DOOR"];
+    //       fgColor = getColor(colors["ENV"]["DOOR"]);
+    //     }
+    //   }
     // }
-
-    tile->pos = sf::Vector3f((cell->anchor.first + cell->x),
-                             (cell->anchor.second + cell->y), rz);
-    for (auto s : tile->sprites) {
-      s->setPosition(sf::Vector2f(tile->pos.x, tile->pos.y));
+  } else if (cell->type == CellType::WALL) {
+    sprite_spec = getWallSpec(cell);
+    fgColor = getColor(colors["ENV"]["WALL"]);
+    if (cell->hasFeature(CellFeature::CAVE)) {
+      fgColor = getColor(colors["ENV"]["WALL_CAVE"]);
+      tile->bgColor = getColor(colors["ENV"]["CAVE_BG"]);
+      tile->hasBackground = true;
     }
-    tile->cell = cell;
+  } else if (cell->type == CellType::ROOF) {
+    sprite_spec = {0, 1, 17};
+  }
 
-    return tile;
+  sprite->setTexture(tilesTextures[sprite_spec[0]]);
+
+  auto src = getTileRect(sprite_spec[1], sprite_spec[2]);
+  sprite->setTextureRect(src);
+  sprite->setColor(fgColor);
+
+  // tile->bgColor = sf::Color(255, 255, 255, rand()%256);
+
+  // if (cell->type != CellType::UNKNOWN) {
+  for (auto f : cell->features) {
+    if (f == CellFeature::BLOOD) {
+      tile->bgColor = getColor(colors["ENV"]["BLOOD"]);
+      tile->hasBackground = true;
+    }
+    if (f == CellFeature::FROST) {
+      tile->bgColor = getColor(colors["ENV"]["FROST"]);
+      tile->hasBackground = true;
+    }
+    if (f == CellFeature::CORRUPT) {
+      tile->bgColor = getColor(colors["ENV"]["CORRUPT"]);
+      tile->hasBackground = true;
+    }
+  }
+  // }
+
+  tile->pos = sf::Vector3f((cell->anchor.first + cell->x),
+                           (cell->anchor.second + cell->y), rz);
+  for (auto s : tile->sprites) {
+    s->setPosition(sf::Vector2f(tile->pos.x, tile->pos.y));
+  }
+  tile->cell = cell;
+
+  return tile;
 */
   }
 
   std::array<int, 3> getWallSpec(std::shared_ptr<Cell> cell) {
-    return {0,0,0};
+    return {0, 0, 0};
     /*
     auto coords = getCoords(cell);
     auto [_l, _z1] = getCell(coords.first - 1, coords.second, view_z);
@@ -310,5 +320,5 @@ public:
 */
   }
 };
-}
+} // namespace hellfrost
 #endif // __VIEWPORT_H_

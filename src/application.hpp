@@ -1,22 +1,22 @@
 #ifndef __APPLICATION_H_
 #define __APPLICATION_H_
 #include <string>
-#include <mutex>
 
 #include <SFML/Graphics.hpp>
 #include <SFML/Graphics/RenderWindow.hpp>
-#include <dukglue/dukglue.h>
 #include <entt/entt.hpp>
 
 #include <hellfrost/game/gameManager.hpp>
-#include <editor/editor.hpp>
 #include <hellfrost/ui/drawEngine.hpp>
+
+#include <editor/editor.hpp>
 
 namespace hf = hellfrost;
 
 class Application {
   sf::RectangleShape rectangle;
   std::shared_ptr<std::mutex> reg_mutex = std::make_shared<std::mutex>();
+  LibLog::Logger &log = LibLog::Logger::getInstance();
 
   sf::Vector2<float> current_pos;
   void setupGui();
@@ -40,7 +40,6 @@ public:
   std::string VERSION;
   fs::path PATH;
   bool DEBUG = true;
-  LibLog::Logger &log = LibLog::Logger::getInstance();
 
   int serve();
 };

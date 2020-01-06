@@ -6,9 +6,11 @@
 namespace hellfrost {
 class Cell;
 class Location {
+  bool damaged = true;
+
 public:
   std::optional<std::shared_ptr<Cell>> getCell(int x, int y, int z);
-  void invalidate();
+  void invalidate() { damaged = true; }
 
   int width = 0;
   int height = 0;

@@ -4,6 +4,7 @@
 #include <imgui-etc/imgui-stl.hpp>
 #include <imgui-sfml/imgui-SFML.h>
 #include <magic_enum.hpp>
+#include <dukglue/dukglue.h>
 
 #include <hellfrost/deps.hpp>
 #include <hellfrost/ui/drawEngine.hpp>
@@ -15,6 +16,78 @@
 // #include <lss/generator/mapUtils.hpp>
 
 #include <fonts/material_design_icons.h>
+
+Editor::Editor(fs::path _path) : PATH(_path) {
+  log.setParent(&LibLog::Logger::getInstance());
+  gm = entt::service_locator<hf::GameManager>::get().lock();
+
+  auto n = 0;
+  for (auto entity : fs::directory_iterator(PATH / fs::path("data/tilesets"))) {
+    if (fs::is_directory(entity)) {
+      auto tileset = entity.path().filename().string();
+      if (tileset == "ascii") { // TODO: add config
+        ts_idx = n;
+      }
+      ts.push_back(tileset);
+      n++;
+    }
+  }
+//   auto emitter = entt::service_locator<hf::event_emitter>::get().lock();
+
+//   emitter->on<hf::log_event>([&](const auto &event, auto &em) {
+//     log.info(lu::yellow("DUK"), event.msg);
+//     console.AddLog(event.msg.data());
+//   });
+
+//   emitter->on<hf::clear_markers_event>([&](const auto &event, auto &em) {
+//     markers.clear();
+//     duk_editor.SetErrorMarkers(markers);
+//   });
+
+//   emitter->on<hf::duk_error>([&](auto event, auto &em) {
+//     std::string err = std::string(event.msg);
+//     std::string line;
+//     std::vector<std::string> lines;
+//     std::istringstream ss(err);
+//     std::regex re("eval:(\\d+)");
+//     std::smatch m;
+//     while (std::getline(ss, line, '\n')) {
+//       lines.push_back(line);
+//     }
+//     std::regex_search(lines.back(), m, re);
+
+//     markers.insert(std::make_pair<int, std::string>(
+//         std::atoi(std::string(m[m.size() - 1]).data()),
+//         std::string(lines.front())));
+//     duk_editor.SetErrorMarkers(markers);
+
+//     console.AddLog("[error] %s", event.msg.data());
+//   });
+
+//   emitter->on<hf::exec_event>(
+//       [&](auto event, auto &em) { duk_exec(event.code.data()); });
+
+//   // TODO: move to separate class
+//   /*
+//   duk_console_init(duk_ctx, 0);
+//   dukglue_register_function(duk_ctx, &duk_log_ev, "log");
+//   dukglue_register_function(duk_ctx, &duk_sleep, "sleep");
+//   dukglue_register_function(duk_ctx, &duk_regen, "regen");
+
+//   dukglue_register_global(duk_ctx, engine, "engine");
+//   dukglue_register_method(duk_ctx, &DrawEngine::invalidate, "invalidate");
+// */
+//   auto fileToEdit = PATH / "data/init.js";
+
+//   {
+//     std::ifstream t(fileToEdit);
+//     if (t.good()) {
+//       std::string str((std::istreambuf_iterator<char>(t)),
+//                       std::istreambuf_iterator<char>());
+//       duk_editor.SetText(str);
+//     }
+//   }
+}
 
 void duk_log_ev(const std::string msg) {
   auto emitter = entt::service_locator<hf::event_emitter>::get().lock();
@@ -108,79 +181,6 @@ void Editor::drawEntityEditor(std::shared_ptr<entt::registry> registry) {
     }
   });
 }
-
-Editor::Editor(std::shared_ptr<hf::GameManager> _gm, fs::path _path)
-    : gm(_gm), PATH(_path) {
-
-  auto n = 0;
-  for (auto entity : fs::directory_iterator(PATH / "tilesets")) {
-    if (fs::is_directory(entity)) {
-      auto tileset = entity.path().filename().string();
-      if (tileset == "ascii") { // TODO: add config
-        ts_idx = n;
-      }
-      ts.push_back(tileset);
-      n++;
-    }
-  }
-  auto emitter = entt::service_locator<hf::event_emitter>::get().lock();
-
-  emitter->on<hf::log_event>([&](const auto &event, auto &em) {
-    log.info(lu::yellow("DUK"), event.msg);
-    console.AddLog(event.msg.data());
-  });
-
-  emitter->on<hf::clear_markers_event>([&](const auto &event, auto &em) {
-    markers.clear();
-    duk_editor.SetErrorMarkers(markers);
-  });
-
-  emitter->on<hf::duk_error>([&](auto event, auto &em) {
-    std::string err = std::string(event.msg);
-    std::string line;
-    std::vector<std::string> lines;
-    std::istringstream ss(err);
-    std::regex re("eval:(\\d+)");
-    std::smatch m;
-    while (std::getline(ss, line, '\n')) {
-      lines.push_back(line);
-    }
-    std::regex_search(lines.back(), m, re);
-
-    markers.insert(std::make_pair<int, std::string>(
-        std::atoi(std::string(m[m.size() - 1]).data()),
-        std::string(lines.front())));
-    duk_editor.SetErrorMarkers(markers);
-
-    console.AddLog("[error] %s", event.msg.data());
-  });
-
-  emitter->on<hf::exec_event>(
-      [&](auto event, auto &em) { duk_exec(event.code.data()); });
-
-  // TODO: move to separate class
-  /*
-  duk_console_init(duk_ctx, 0);
-  dukglue_register_function(duk_ctx, &duk_log_ev, "log");
-  dukglue_register_function(duk_ctx, &duk_sleep, "sleep");
-  dukglue_register_function(duk_ctx, &duk_regen, "regen");
-
-  dukglue_register_global(duk_ctx, engine, "engine");
-  dukglue_register_method(duk_ctx, &DrawEngine::invalidate, "invalidate");
-*/
-  auto fileToEdit = PATH / "data/init.js";
-
-  {
-    std::ifstream t(fileToEdit);
-    if (t.good()) {
-      std::string str((std::istreambuf_iterator<char>(t)),
-                      std::istreambuf_iterator<char>());
-      duk_editor.SetText(str);
-    }
-  }
-}
-
-void Editor::processRegistry(std::shared_ptr<entt::registry>) {}
 
 void Editor::Pickable(std::shared_ptr<entt::registry> registry,
                       entt::entity e) {
@@ -957,7 +957,6 @@ void Editor::dukEditorWindow() {
 
 void Editor::duk_log(const std::string msg) { duk_log_ev(msg); }
 
-
 void Editor::drawViewportWindow() {
   if (!ImGui::Begin("Viewport")) {
     ImGui::End();
@@ -967,9 +966,10 @@ void Editor::drawViewportWindow() {
   float GUI_SCALE = entt::monostate<"gui_scale"_hs>{};
   auto engine = entt::service_locator<hf::DrawEngine>::get().lock();
   auto viewport = entt::service_locator<hf::Viewport>::get().lock();
-  auto cache_full =
-      gm->location->width * gm->location->height;
-  ImGui::Text("Cache len: %d/%d", engine->cache_count, cache_full);
+  // log.debug("viewport size: {}x{}", viewport->width, viewport->height);
+  // log.debug("viewport pos size: {}.{}.{}", viewport->view_x, viewport->view_y, viewport->view_z);
+  // auto cache_full = gm->location->width * gm->location->height;
+  // ImGui::Text("Cache len: %d/%d", engine->cache_count, cache_full);
   ImGui::Text("Redraws: %d", engine->redraws);
   ImGui::Text("Tiles updated: %d", engine->tilesUpdated);
   ImGui::Text("Objects in render: %d\n", engine->layers->size());
@@ -995,10 +995,14 @@ void Editor::drawViewportWindow() {
     if (engine->vH > 200)
       engine->vH = 200;
   }
-  if (ImGui::SliderInt("x", &viewport->view_x, -viewport->width, gm->location->width)) {
+  ImGui::End();
+  return;
+  if (ImGui::SliderInt("x", &viewport->view_x, -viewport->width,
+                       gm->location->width)) {
     engine->invalidate();
   }
-  if (ImGui::SliderInt("y", &viewport->view_y, -viewport->height, gm->location->height)) {
+  if (ImGui::SliderInt("y", &viewport->view_y, -viewport->height,
+                       gm->location->height)) {
     engine->invalidate();
   }
   if (ImGui::SliderInt("z", &viewport->view_z, -10, 10)) {
@@ -1030,6 +1034,7 @@ void Editor::drawLocationWindow() {
 
   auto engine = entt::service_locator<hf::DrawEngine>::get().lock();
   if (ImGui::InputInt("Seed", &gm->seed)) {
+
     gm->start();
     engine->invalidate();
   }
@@ -1040,4 +1045,18 @@ void Editor::drawLocationWindow() {
   }
   ImGui::Separator();
   ImGui::End();
+}
+
+void Editor::Draw() {
+
+  // editor->drawCellInfo(cc);
+  drawLocationWindow();
+  drawViewportWindow();
+  drawTilesetWindow();
+  drawSpecWindow();
+  drawObjectsWindow();
+  drawSelectedInfo();
+  console.Draw("Console");
+
+  dukEditorWindow();
 }

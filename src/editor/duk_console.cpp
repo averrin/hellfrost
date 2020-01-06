@@ -12,7 +12,7 @@
 #include <duktape/duktape.h>
 #include <editor/duk_console.h>
 
-#include <lss/deps.hpp>
+#include <hellfrost/deps.hpp>
 namespace hf = hellfrost;
 /* XXX: Add some form of log level filtering. */
 

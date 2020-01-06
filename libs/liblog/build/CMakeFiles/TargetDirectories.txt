@@ -1,3 +1,6 @@
-/home/averrin/projects/sfml-imgui-starter/include/liblog/build/CMakeFiles/rebuild_cache.dir
-/home/averrin/projects/sfml-imgui-starter/include/liblog/build/CMakeFiles/liblog.dir
-/home/averrin/projects/sfml-imgui-starter/include/liblog/build/CMakeFiles/edit_cache.dir
+/home/averrin/projects/hellfrost/libs/liblog/build/CMakeFiles/rebuild_cache.dir
+/home/averrin/projects/hellfrost/libs/liblog/build/CMakeFiles/liblog.dir
+/home/averrin/projects/hellfrost/libs/liblog/build/CMakeFiles/edit_cache.dir
+/home/averrin/projects/hellfrost/libs/liblog/build/fmt/CMakeFiles/edit_cache.dir
+/home/averrin/projects/hellfrost/libs/liblog/build/fmt/CMakeFiles/fmt.dir
+/home/averrin/projects/hellfrost/libs/liblog/build/fmt/CMakeFiles/rebuild_cache.dir

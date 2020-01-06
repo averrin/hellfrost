@@ -247,7 +247,8 @@ void DrawEngine::observe() {
 
 sf::Texture DrawEngine::Draw() {
   auto label = "frame";
-  log.start(lu::cyan("DRAW"), label, true);
+  // log.debug("start frame draw");
+  log.start(label, true);
   observe();
 
   auto viewport = entt::service_locator<Viewport>::get().lock();
@@ -269,7 +270,7 @@ sf::Texture DrawEngine::Draw() {
     }
 
     canvas->clear(bgColor);
-    log.start(lu::cyan("DRAW"), "full redraw", true);
+    log.start("full redraw", true);
     std::list<int> h(vH);
     std::iota(h.begin(), h.end(), 0);
     std::list<int> w(vW);
@@ -311,7 +312,7 @@ sf::Texture DrawEngine::Draw() {
     redraws++;
     log.stop("full redraw", 50);
   } else if (damage.size() > 0 || dirty) {
-    log.start(lu::cyan("DRAW"), "partial redraw", true);
+    log.start("partial redraw", true);
     canvas->clear(bgColor);
     for (auto d : damage) {
       auto t = cacheTile(d.first, d.second, viewport->view_z);

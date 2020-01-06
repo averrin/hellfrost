@@ -4,13 +4,18 @@ set(CMAKE_DEPENDS_LANGUAGES
   )
 # The set of files for implicit dependencies of each language:
 set(CMAKE_DEPENDS_CHECK_CXX
-  "/home/averrin/projects/sfml-imgui-starter/include/liblog/liblog_test.cpp" "/home/averrin/projects/sfml-imgui-starter/include/liblog/build/CMakeFiles/liblog.dir/liblog_test.cpp.o"
+  "/home/averrin/projects/hellfrost/libs/liblog/liblog_test.cpp" "/home/averrin/projects/hellfrost/libs/liblog/build/CMakeFiles/liblog.dir/liblog_test.cpp.o"
   )
 set(CMAKE_CXX_COMPILER_ID "GNU")
 
+# Preprocessor definitions for this target.
+set(CMAKE_TARGET_DEFINITIONS_CXX
+  "FMT_HEADER_ONLY=1"
+  )
+
 # The include file search paths:
 set(CMAKE_CXX_TARGET_INCLUDE_PATH
-  "/home/averrin/.conan/data/fmt/5.1.0/bincrafters/stable/package/a2582e1f57e524e15d7e84f4c862d0a472d3216f/include"
+  "../fmt/include"
   )
 
 # Targets to which this target links.

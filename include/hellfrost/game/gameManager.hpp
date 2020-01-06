@@ -15,7 +15,7 @@ struct generation_finish {};
 
 class GameManager {
   // std::unique_ptr<Generator> generator;
-  LibLog::Logger &log = LibLog::Logger::getInstance();
+  LibLog::Logger log = LibLog::Logger(fmt::color::coral, "GM");
   fs::path path;
 
 public:

@@ -6,9 +6,13 @@
 
 #IncludeRegexTransform: 
 
-/home/averrin/.conan/data/fmt/5.1.0/bincrafters/stable/package/a2582e1f57e524e15d7e84f4c862d0a472d3216f/include/fmt/core.h
-cassert
+../fmt/include/fmt/color.h
+format.h
+../fmt/include/fmt/format.h
+fmt/color.h
 -
+
+../fmt/include/fmt/core.h
 cstdio
 -
 cstring
@@ -23,19 +27,15 @@ string_view
 -
 experimental/string_view
 -
-functional
--
 fmt/core.h
 -
 
-/home/averrin/.conan/data/fmt/5.1.0/bincrafters/stable/package/a2582e1f57e524e15d7e84f4c862d0a472d3216f/include/fmt/format-inl.h
+../fmt/include/fmt/format-inl.h
 format.h
-/home/averrin/.conan/data/fmt/5.1.0/bincrafters/stable/package/a2582e1f57e524e15d7e84f4c862d0a472d3216f/include/fmt/format.h
-string.h
+../fmt/include/fmt/format.h
+cassert
 -
 cctype
--
-cerrno
 -
 climits
 -
@@ -43,25 +43,27 @@ cmath
 -
 cstdarg
 -
-cstddef
+cstring
+-
+cwchar
 -
 locale
--
-cstring
 -
 windows.h
 -
 windows.h
 -
 
-/home/averrin/.conan/data/fmt/5.1.0/bincrafters/stable/package/a2582e1f57e524e15d7e84f4c862d0a472d3216f/include/fmt/format.h
+../fmt/include/fmt/format.h
+core.h
+../fmt/include/fmt/core.h
 algorithm
 -
-cassert
+cerrno
 -
 cmath
 -
-cstring
+cstdint
 -
 limits
 -
@@ -69,25 +71,23 @@ memory
 -
 stdexcept
 -
-stdint.h
--
-core.h
-/home/averrin/.conan/data/fmt/5.1.0/bincrafters/stable/package/a2582e1f57e524e15d7e84f4c862d0a472d3216f/include/fmt/core.h
-iterator
--
 intrin.h
 -
 fmt/format.h
 -
-fmt/format.h
--
 format-inl.h
-/home/averrin/.conan/data/fmt/5.1.0/bincrafters/stable/package/a2582e1f57e524e15d7e84f4c862d0a472d3216f/include/fmt/format-inl.h
+../fmt/include/fmt/format-inl.h
 
-/home/averrin/projects/sfml-imgui-starter/include/liblog/liblog.hpp
+/home/averrin/projects/hellfrost/libs/liblog/liblog.hpp
 chrono
 -
+fmt/color.h
+-
 fmt/format.h
+-
+functional
+-
+iostream
 -
 limits
 -
@@ -95,12 +95,16 @@ map
 -
 regex
 -
+sstream
+-
 string
 -
 
-/home/averrin/projects/sfml-imgui-starter/include/liblog/liblog_test.cpp
+/home/averrin/projects/hellfrost/libs/liblog/liblog_test.cpp
 liblog.hpp
-/home/averrin/projects/sfml-imgui-starter/include/liblog/liblog.hpp
+/home/averrin/projects/hellfrost/libs/liblog/liblog.hpp
 string
+-
+thread
 -
 

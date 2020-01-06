@@ -6,6 +6,7 @@
 #include <imgui-etc/imgui_entt_entity_editor.hpp>
 #include <imguicolortextedit/TextEditor.h>
 
+#include <hellfrost/deps.hpp>
 #include <hellfrost/game/cell.hpp>
 #include <hellfrost/game/gameManager.hpp>
 #include <hellfrost/ui/drawEngine.hpp>
@@ -22,7 +23,14 @@ struct tree_node {
 };
 
 class Editor {
-  LibLog::Logger &log = LibLog::Logger::getInstance();
+public:
+  Editor(fs::path);
+
+  void Draw();
+  void processEvent(sf::Event event);
+
+private:
+  LibLog::Logger log = LibLog::Logger(fmt::color::cadet_blue, "EDIT");
 
   fs::path PATH;
   int ts_idx = 0;
@@ -58,8 +66,6 @@ class Editor {
   std::shared_ptr<hf::GameManager> gm;
   MM::ImGuiEntityEditor<entt::basic_registry<entt::entity>> entityEditor;
 
-  void processRegistry(std::shared_ptr<entt::registry>);
-
   Console console;
   TextEditor duk_editor;
   TextEditor::ErrorMarkers markers;
@@ -70,12 +76,6 @@ class Editor {
 
   std::optional<std::pair<int, int>> lockedPos = std::nullopt;
   std::thread jsThread;
-
-public:
-  Editor(std::shared_ptr<hf::GameManager> _gm, fs::path _path);
-
-  void Draw();
-  void processEvent(sf::Event event);
 };
 
 #endif // __EDITOR_H_

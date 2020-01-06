@@ -37,8 +37,11 @@ auto DATA_FILE = fs::path("data/game.bin");
 Application::Application(std::string app_name, fs::path path,
                          std::string version, int s)
     : APP_NAME(app_name), VERSION(version), PATH(path) {
-  fmt::print("Seed: {}\n", s);
-  fmt::print("Path: {}\n", PATH.string());
+
+  log.start(APP_NAME);
+  log.start("App init");
+  log.info("Seed: {}", lu::blue("{}", s));
+  log.info("Path: {}", lu::gray("{}", PATH.string()));
 
   entt::monostate<"gui_scale"_hs>{} = GUI_SCALE;
   entt::monostate<"path"_hs>{} = PATH.string().data();
@@ -48,7 +51,6 @@ Application::Application(std::string app_name, fs::path path,
       std::make_shared<hf::event_emitter>());
   entt::service_locator<hf::Viewport>::empty();
   // entt::service_locator<hf::GameData>::empty();
-  entt::service_locator<std::mutex>::set(reg_mutex);
 
   std::shared_ptr<R::Generator> gen = std::make_shared<R::Generator>();
   auto viewport = std::make_shared<hf::Viewport>();
@@ -60,12 +62,15 @@ Application::Application(std::string app_name, fs::path path,
 
   entt::service_locator<hf::DrawEngine>::set(engine);
   gm = std::make_shared<hf::GameManager>(PATH / DATA_FILE, s);
-  editor = std::make_unique<Editor>(gm, PATH);
+  entt::service_locator<hf::GameManager>::set(gm);
+  editor = std::make_shared<Editor>(PATH);
 
   setupGui();
+  log.stop("App init");
 }
 
 void Application::setupGui() {
+  log.start("GUI init");
 
   sf::ContextSettings settings;
   settings.antialiasingLevel = 8;
@@ -86,9 +91,9 @@ void Application::setupGui() {
   window->resetGLStates();
 
   auto emitter = entt::service_locator<hf::event_emitter>::get().lock();
-  auto viewport = entt::service_locator<hf::Viewport>::get().lock();
 
   emitter->on<hf::regen_event>([&](const auto &p, auto &em) {
+    auto viewport = entt::service_locator<hf::Viewport>::get().lock();
     auto seed = gm->seed;
     if (p.seed == -1) {
       seed = rand();
@@ -102,6 +107,7 @@ void Application::setupGui() {
     engine->invalidate();
   });
   emitter->on<hf::center_event>([&](const auto &p, auto &em) {
+    auto viewport = entt::service_locator<hf::Viewport>::get().lock();
     // lockedPos = {p.x, p.y};
     viewport->view_x = p.x - viewport->width / 2 / GUI_SCALE;
     viewport->view_y = p.y - viewport->height / 2 / GUI_SCALE;
@@ -118,17 +124,21 @@ void Application::setupGui() {
   });
 
   emitter->on<hf::resize_event>([&](const auto &p, auto &em) {
+    auto viewport = entt::service_locator<hf::Viewport>::get().lock();
+    log.start("resize event");
     sf::FloatRect visibleArea(0, 0, window->getSize().x, window->getSize().y);
     auto sv = sf::View(visibleArea);
     window->setView(sv);
     viewport->width = window->getSize().x / viewport->tileSet.size.first + 1;
     viewport->height = window->getSize().y / viewport->tileSet.size.second + 1;
+    log.debug("viewport new size: {}x{}", viewport->width, viewport->height);
     engine->vW = viewport->width / viewport->scale / GUI_SCALE;
     engine->vH = viewport->height / viewport->scale / GUI_SCALE;
     // engine->tilesCache.clear();
     engine->resize(window->getSize());
     rectangle.setSize(sf::Vector2f(window->getSize().x, window->getSize().y));
     engine->invalidate();
+    log.stop("resize event");
   });
 
   emitter->on<hf::gm::generation_finish>([&](const auto &p, auto &em) {
@@ -139,18 +149,22 @@ void Application::setupGui() {
     auto emitter = entt::service_locator<hf::event_emitter>::get().lock();
     emitter->publish<hf::resize_event>();
   });
+  log.stop("GUI init");
 }
 
 void Application::processEvent(sf::Event event) {
   auto viewport = entt::service_locator<hf::Viewport>::get().lock();
-  current_pos = window->mapPixelToCoords(sf::Mouse::getPosition(*window));
-  auto _x = int(current_pos.x /
-                (viewport->tileSet.size.first * viewport->scale * GUI_SCALE));
-  auto _y = int(current_pos.y /
-                (viewport->tileSet.size.second * viewport->scale * GUI_SCALE));
-  auto rx = _x + viewport->view_x;
-  auto ry = _y + viewport->view_y;
+  // current_pos = window->mapPixelToCoords(sf::Mouse::getPosition(*window));
+  // auto _x = int(current_pos.x /
+  //               (viewport->tileSet.size.first * viewport->scale *
+  //               GUI_SCALE));
+  // auto _y = int(current_pos.y /
+  //               (viewport->tileSet.size.second * viewport->scale *
+  //               GUI_SCALE));
+  // auto rx = _x + viewport->view_x;
+  // auto ry = _y + viewport->view_y;
 
+  log.start("app process event", true);
   ImGui::SFML::ProcessEvent(event);
   switch (event.type) {
   case sf::Event::KeyPressed:
@@ -198,16 +212,17 @@ void Application::processEvent(sf::Event event) {
   case sf::Event::Closed:
     window->close();
     break;
-    //TODO: move to editor
-  // case sf::Event::MouseButtonPressed:
-  //   if (event.mouseButton.button == sf::Mouse::Right) {
-  //     lockedPos = {rx, ry};
-  //   } else if (event.mouseButton.button == sf::Mouse::Middle) {
-  //     lockedPos = std::nullopt;
-  //   }
+    // TODO: move to editor
+    // case sf::Event::MouseButtonPressed:
+    //   if (event.mouseButton.button == sf::Mouse::Right) {
+    //     lockedPos = {rx, ry};
+    //   } else if (event.mouseButton.button == sf::Mouse::Middle) {
+    //     lockedPos = std::nullopt;
+    //   }
 
-  //   break;
+    //   break;
   }
+  log.stop("app process event", 10);
 }
 
 void Application::drawDocking(float padding) {
@@ -294,6 +309,8 @@ void Application::drawStatusBar(float width, float height, float pos_x,
     ImGui::SameLine();
     ImGui::Text("|  scale: %.3f", viewport->scale);
   }
+
+  /*
   ImGui::SameLine();
   auto cache_full = gm->location->width * gm->location->height;
   const ImU32 col = ImGui::GetColorU32(ImGuiCol_ButtonHovered);
@@ -304,7 +321,8 @@ void Application::drawStatusBar(float width, float height, float pos_x,
       const ImU32 bg = ImGui::GetColorU32(ImGuiCol_Button);
 
       ImGui::AlignTextToFramePadding();
-      ImGui::BufferingBar("##cache_bar", engine->cache_count / float(cache_full),
+      ImGui::BufferingBar("##cache_bar",
+                          engine->cache_count / float(cache_full),
                           ImVec2(100 * GUI_SCALE, 3 * GUI_SCALE), bg, col);
     }
   } else {
@@ -312,42 +330,43 @@ void Application::drawStatusBar(float width, float height, float pos_x,
     ImGui::SameLine();
     ImGui::Spinner("##generating", 5.f, 1.f, col);
   }
+*/
   ImGui::PopFont();
   ImGui::End();
 }
 
-  /*
-  auto rw = std::make_shared<RegistryWrapper>(gm->registry);
-  dukglue_register_global(duk_ctx, gm->location, "location");
-  dukglue_register_global(duk_ctx, rw, "registry");
-  dukglue_register_method(duk_ctx, &RegistryWrapper::size, "size");
-  dukglue_register_method(duk_ctx, &RegistryWrapper::create, "create");
-  dukglue_register_method(duk_ctx, &EntityWrapper::move, "move");
-  dukglue_register_method(duk_ctx, &EntityWrapper::center, "center");
-  dukglue_register_method(duk_ctx, &EntityWrapper::select, "select");
-  dukglue_register_method(duk_ctx, &EntityWrapper::unselect, "unselect");
-  dukglue_register_method(duk_ctx, &EntityWrapper::remove, "remove");
-  dukglue_register_method(duk_ctx, &EntityWrapper::hide, "hide");
-  dukglue_register_method(duk_ctx, &EntityWrapper::show, "show");
+/*
+auto rw = std::make_shared<RegistryWrapper>(gm->registry);
+dukglue_register_global(duk_ctx, gm->location, "location");
+dukglue_register_global(duk_ctx, rw, "registry");
+dukglue_register_method(duk_ctx, &RegistryWrapper::size, "size");
+dukglue_register_method(duk_ctx, &RegistryWrapper::create, "create");
+dukglue_register_method(duk_ctx, &EntityWrapper::move, "move");
+dukglue_register_method(duk_ctx, &EntityWrapper::center, "center");
+dukglue_register_method(duk_ctx, &EntityWrapper::select, "select");
+dukglue_register_method(duk_ctx, &EntityWrapper::unselect, "unselect");
+dukglue_register_method(duk_ctx, &EntityWrapper::remove, "remove");
+dukglue_register_method(duk_ctx, &EntityWrapper::hide, "hide");
+dukglue_register_method(duk_ctx, &EntityWrapper::show, "show");
 
-  dukglue_register_property(duk_ctx, &EntityWrapper::getId, nullptr, "id");
-  dukglue_register_property(duk_ctx, &EntityWrapper::getX, nullptr, "x");
-  dukglue_register_property(duk_ctx, &EntityWrapper::getY, nullptr, "y");
-  dukglue_register_property(duk_ctx, &EntityWrapper::getZ, nullptr, "z");
-   */
+dukglue_register_property(duk_ctx, &EntityWrapper::getId, nullptr, "id");
+dukglue_register_property(duk_ctx, &EntityWrapper::getX, nullptr, "x");
+dukglue_register_property(duk_ctx, &EntityWrapper::getY, nullptr, "y");
+dukglue_register_property(duk_ctx, &EntityWrapper::getZ, nullptr, "z");
+ */
 
-  // cache_count = 0;
-  // engine->clearCache();
-  // cacheThread = std::thread([&]() {
-  //   log.start("bg caching");
-  //   for (auto x = 0; x < gm->location->width; x++) {
-  //     for (auto y = 0; y < gm->location->height; y++) {
-  //       auto t = engine->cacheTile(x, y, viewport->view_z);
-  //       cache_count++;
-  //     }
-  //   }
-  //   log.stop("bg caching");
-  // });
+// cache_count = 0;
+// engine->clearCache();
+// cacheThread = std::thread([&]() {
+//   log.start("bg caching");
+//   for (auto x = 0; x < gm->location->width; x++) {
+//     for (auto y = 0; y < gm->location->height; y++) {
+//       auto t = engine->cacheTile(x, y, viewport->view_z);
+//       cache_count++;
+//     }
+//   }
+//   log.stop("bg caching");
+// });
 
 int Application::serve() {
   sf::Clock deltaClock;
@@ -364,15 +383,15 @@ int Application::serve() {
   rectangle.setPosition(0, 0);
   rectangle.setSize(sf::Vector2f(window->getSize().x, window->getSize().y));
 
-
+  log.debug("serve loop started");
   while (window->isOpen()) {
     sf::Event event;
     while (window->pollEvent(event)) {
       processEvent(event);
     }
-    sf::FloatRect visibleArea(0, 0, window->getSize().x, window->getSize().y);
-    auto sv = sf::View(visibleArea);
-    window->setView(sv);
+    // sf::FloatRect visibleArea(0, 0, window->getSize().x,
+    // window->getSize().y); auto sv = sf::View(visibleArea);
+    // window->setView(sv);
 
     float current_fps = ImGui::GetIO().Framerate;
 
@@ -382,12 +401,14 @@ int Application::serve() {
     window->draw(rectangle);
     // window->clear(sf::Color::Cyan);
 
-    auto x = int(current_pos.x /
-                 (viewport->tileSet.size.first * viewport->scale * GUI_SCALE));
-    auto y = int(current_pos.y /
-                 (viewport->tileSet.size.second * viewport->scale * GUI_SCALE));
-    auto rx = x + viewport->view_x;
-    auto ry = y + viewport->view_y;
+    // auto x = int(current_pos.x /
+    //              (viewport->tileSet.size.first * viewport->scale *
+    //              GUI_SCALE));
+    // auto y = int(current_pos.y /
+    //              (viewport->tileSet.size.second * viewport->scale *
+    //              GUI_SCALE));
+    // auto rx = x + viewport->view_x;
+    // auto ry = y + viewport->view_y;
     // if (lockedPos) {
     //   rx = (*lockedPos).first;
     //   ry = (*lockedPos).second;
@@ -417,19 +438,6 @@ int Application::serve() {
     if (DEBUG) {
       drawDocking(24.0f * GUI_SCALE);
 
-      /*
-      editor->drawCellInfo(cc);
-
-      drawLocationWindow();
-      drawViewportWindow();
-      editor->drawTilesetWindow();
-      editor->drawSpecWindow();
-      editor->drawObjectsWindow();
-      editor->drawSelectedInfo();
-      console.Draw("Console");
-
-      dukEditorWindow();
-       */
       editor->Draw();
     }
     ImGui::SFML::Render(*window);
@@ -452,4 +460,5 @@ Application::~Application() {
     cacheThread.join();
   }
    */
+  log.stop(APP_NAME);
 }
