@@ -18,7 +18,7 @@ fs::path get_selfpath() {
   GetModuleFileName(NULL, buff, sizeof(buff));
 #elif __APPLE__
   char buff[PROC_PIDPATHINFO_MAXSIZE];
-  fmt::print("PID: {}\n", getpid());
+  // fmt::print("PID: {}\n", getpid());
   proc_pidpath(getpid(), buff, sizeof(buff));
 #else
 #include <linux/limits.h>

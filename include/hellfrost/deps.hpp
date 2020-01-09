@@ -13,17 +13,12 @@
 using lu = LibLog::utils;
 
 #include <entt/entt.hpp>
-#include <cereal/types/string.hpp>
-#include <cereal/types/map.hpp>
-#include <cereal/types/vector.hpp>
+#include <cereal_json.hpp>
 #include <cereal/types/memory.hpp>
 #include <cereal/archives/binary.hpp>
-// #include <cereal/archives/json.hpp>
-#include <fmt/format.h>
 
-//TODO: migrate json to cereal
-#include <json.hpp>
-using json = nlohmann::json;
+
+#include <fmt/format.h>
 
 // #if defined(__cplusplus) && __cplusplus >= 201703L && defined(__has_include)
 // #if __has_include(<filesystem>)

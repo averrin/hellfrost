@@ -9,28 +9,46 @@ namespace hellfrost {
 GameManager::GameManager(fs::path p, int s) : path(p), seed(s) {
   log.setParent(&LibLog::Logger::getInstance());
   loadData();
-  // generator = std::make_unique<Generator>();
+  generator = std::make_unique<Generator>();
 }
 
 void GameManager::start() {
   start(seed);
 }
 void GameManager::start(int s) {
-  auto label = "Generate location";
-  log.start(label);
+  status = gm::status::GENERATING;
+  auto eventLog = entt::service_locator<LibLog::Logger>::get().lock();
+  eventLog->setParent(&log);
+  auto label = "GM start";
+  log.start(label, true);
 
   seed = s;
   auto emitter = entt::service_locator<event_emitter>::get().lock();
-  emitter->publish<gm::generation_start>();
   srand(seed);
   registry->reset();
 
   //TODO: make thread here
-  // location = generator->getLocation();
+  location = generator->getLocation();
   // registry = location->registry;
-  location = std::shared_ptr<Location>();
   entt::service_locator<entt::registry>::set(registry);
-  emitter->publish<gm::generation_finish>();
+  emitter->publish<gm::generation_start>(location);
+
+  // generator->log.setParent(&log);
+  generator->log.setAsync(true);
+  if (genThread.joinable()) {
+    genThread.join();
+  }
+  genThread = std::thread([this]() {
+    auto emitter = entt::service_locator<event_emitter>::get().lock();
+    generator->start();
+    emitter->publish<gm::generation_finish>();
+    // generator->log.setParent(&LibLog::Logger::getInstance());
+    generator->log.setAsync(false);
+    status = gm::status::DONE;
+  });
+
+
+  eventLog->setParent(&LibLog::Logger::getInstance());
   log.stop(label);
   return;
 

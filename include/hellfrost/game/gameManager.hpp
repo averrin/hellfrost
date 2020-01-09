@@ -3,23 +3,38 @@
 
 #include <hellfrost/deps.hpp>
 #include <hellfrost/game/location.hpp>
+#include <hellfrost/generator/generator.hpp>
 
 #include <liblog/liblog.hpp>
 using lu = LibLog::utils;
 
 namespace hellfrost {
 namespace gm {
-struct generation_start {};
-struct generation_finish {};
+struct generation_start {
+  std::shared_ptr<Location> location;
+};
+struct generation_finish {
+  std::shared_ptr<Location> location;
+};
+
+enum class status { GENERATING, DONE };
 }; // namespace gm
 
 class GameManager {
-  // std::unique_ptr<Generator> generator;
+  std::unique_ptr<Generator> generator;
   LibLog::Logger log = LibLog::Logger(fmt::color::coral, "GM");
   fs::path path;
+  std::thread genThread;
 
 public:
   GameManager(fs::path, int s);
+  ~GameManager() {
+    // entt::service_locator<GameData>::reset();
+    if (genThread.joinable()) {
+      genThread.join();
+    }
+  }
+  gm::status status = gm::status::DONE;
   int seed;
   std::shared_ptr<Location> location;
   std::shared_ptr<entt::registry> registry = std::make_shared<entt::registry>();

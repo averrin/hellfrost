@@ -182,9 +182,16 @@ private:
   const std::string FORMAT_ALIAS = "{: ^8}";
   const std::string FORMAT = "{} ≫ {}[{}] ⊸\t{{}}\n";
   const std::string FORMAT_START = "{} ≫ {}[{}] ⊷\t{}\n";
-  const std::string FORMAT_STOP = "{} ≫ {}[{}] ⊶\t{}{}\n";
+  const std::string OFFSET_START =         "┏";
+  const std::string OFFSET       =         "┃ ";
+  const std::string OFFSET_END   =         "┗";
+  const std::string OFFSET_START_ASYNC =   "┍";
+  const std::string OFFSET_ASYNC       =   "╎ ";
+  const std::string OFFSET_END_ASYNC   =   "┕";
+  const std::string OFFSET_END_SILENT   =  "╼━";
+  const std::string FORMAT_STOP  = "{} ≫ {}[{}] ⊶\t{}{}\n";
+  const std::string FORMAT_MARK = "{} ≫ {}[{}] ⊙\t{}{}\n";
 
-  std::map<std::string, std::string> _aliases;
   float threshold = 50;
   int static_offset = 0;
   std::map<std::string, std::chrono::time_point<std::chrono::system_clock>>
@@ -192,27 +199,42 @@ private:
 
   std::string getName(std::string label) {
     auto pName = name;
-    if (_aliases.find(label) != _aliases.end()) {
-      pName = _aliases[label];
-    }
     auto alias = fmt::format(fmt::fg(color), FORMAT_ALIAS, pName);
     return alias;
   }
 
+  std::vector<std::string> _labels;
+  std::map<std::string, fmt::internal::color_type> label_colors;
+    fmt::internal::color_type getLabelColor(std::string label) {
+      auto c = color;
+      if (label_colors.find(label) != label_colors.end()) {
+        return label_colors.at(label);
+      }
+      label.erase(std::remove(label.begin(), label.end(), '#'), label.end());
+      if (label_colors.find(label) != label_colors.end()) {
+        return label_colors.at(label);
+      }
+      return c;
+    }
+
 public:
+  bool async = false;
   std::string getOffset(int d = 0) {
     std::string offset = "";
     if (parent != nullptr) {
+      auto pa = parent->async;
+      parent->setAsync(async);
       offset = parent->getOffset();
+      parent->setAsync(pa);
     }
     for (auto n = 0; n < d; n++) {
-      offset += fmt::format(fmt::fg(color), "│ ");
+      offset += fmt::format(fmt::fg(color), async ? OFFSET_ASYNC : OFFSET);
     }
     if (_start.size() == 0) {
       return offset;
     }
-    for (auto n = 0; n < _start.size(); n++) {
-      offset += fmt::format(fmt::fg(color), "│ ");
+    for (auto l : _labels) {
+      offset += fmt::format(fmt::fg(getLabelColor(l)), async ? OFFSET_ASYNC : OFFSET);
     }
     return offset;
   }
@@ -249,32 +271,47 @@ public:
     print(utils::bold(utils::grayBg(utils::yellow("WARN"))), msg_format,
           std::forward<const Args &>(args)...);
   }
+
   template <typename... Args>
   void info(std::string msg_format, const Args &... args) {
     print(utils::bold(utils::blue("INFO")), msg_format,
           std::forward<const Args &>(args)...);
   }
+
   template <typename... Args> void error(std::string msg_format, Args... args) {
     print(utils::bold(utils::redBg("!ERR")), msg_format,
           std::forward<const Args &>(args)...);
   }
+
   template <typename... Args> void debug(std::string msg_format, Args... args) {
     print(utils::gray(utils::italic("_dbg")), msg_format,
           std::forward<const Args &>(args)...);
   }
+
   void start(std::string label, bool silent = false) {
     auto offset = getOffset(static_offset);
+    if (silent) {
+      label = "#"+label;
+    }
     _start[label] = std::chrono::system_clock::now();
+    _labels.push_back(label);
     if (silent)
       return;
     if (muted)
       return;
+    offset += fmt::format(fmt::fg(getLabelColor(label)), async ? OFFSET_START_ASYNC : OFFSET_START);
     fmt::print(FORMAT_START, getName(label), offset, label,
                utils::yellow("start"));
   }
+
   void stop(std::string label, float b = 0) { stop(label, label, b); }
 
   void stop(std::string label, std::string msg, float b = 0) {
+    auto silent = false;
+    if (_start.find("#"+label) != _start.end()) {
+      silent = true;
+      label = "#" + label;
+    } else
     if (_start.find(label) == _start.end()) {
       warn("label '{}' not found", label);
       return;
@@ -282,6 +319,7 @@ public:
     auto start = _start.at(label);
     milliseconds ms = std::chrono::system_clock::now() - start;
     _start.erase(label);
+    _labels.erase(std::remove(_labels.begin(), _labels.end(), label), _labels.end());
     if (ms.count() < b) {
       return;
     }
@@ -291,20 +329,47 @@ public:
     }
     auto offset = getOffset(static_offset);
     _start.erase(label);
-    _aliases.erase(label);
     if (muted)
       return;
+    if (!silent) {
+      offset += fmt::format(fmt::fg(getLabelColor(label)), async ? OFFSET_END_ASYNC : OFFSET_END);
+    } else {
+      offset += fmt::format(fmt::fg(getLabelColor(label)), OFFSET_END_SILENT);
+    }
     fmt::print(FORMAT_STOP, getName(label), offset, msg, time,
                utils::yellow("ms"));
+  }
+
+  void mark(std::string msg, float b = 0) {
+    auto label = _labels.back();
+    auto start = _start[label];
+    milliseconds ms = std::chrono::system_clock::now() - start;
+    if (ms.count() < b) {
+      return;
+    }
+    auto time = utils::green("{}", ms.count());
+    if (ms.count() > threshold) {
+      time = utils::style(fmt::emphasis::bold, utils::redBg("{}", ms.count()));
+    }
+    auto offset = getOffset(static_offset);
+    if (muted)
+      return;
+    fmt::print(FORMAT_MARK, getName(label), offset, msg, time, utils::yellow("ms"));
   }
 
   void setParent(Logger *p) { parent = p; }
   void setThreshold(float t) { threshold = t; }
   void setOffset(int o) { static_offset = o; }
+  void setColor(fmt::internal::color_type c) { color = c; }
+  void resetColor() { color = fmt::internal::color_type{}; }
 
   void mute() { muted = true; }
   void unmute() { muted = false; }
   void setMuted(bool m) { muted = m; }
+
+  void setAsync(bool m) { async = m; }
+
+  void setLabelColor(std::string label, fmt::internal::color_type c) { label_colors[label] = c; }
 };
 } // namespace LibLog
 #endif // __LOGGER_H_

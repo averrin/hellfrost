@@ -27,6 +27,7 @@ bool Spinner(const char *label, float radius, int thickness,
 
   ImVec2 pos = window->DC.CursorPos;
   ImVec2 size((radius)*2, (radius + style.FramePadding.y) * 2);
+  pos.y -= style.FramePadding.y / 2;
 
   const ImRect bb(pos, ImVec2(pos.x + size.x, pos.y + size.y));
   ItemSize(bb, style.FramePadding.y);

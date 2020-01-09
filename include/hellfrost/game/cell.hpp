@@ -4,9 +4,9 @@
 #include <hellfrost/game/cell_spec.hpp>
 
 namespace hellfrost {
-class Cell {
+class RawCell {
 public:
-  CellSpec type = CellType::EMPTY;
+  CellSpec type = CellType::UNKNOWN;
 
   int x = 0;
   int y = 0;
@@ -15,8 +15,10 @@ public:
   bool passThrough = false;
   bool seeThrough = false;
   std::vector<CellFeature> features;
-
-  static std::vector<CellSpec> types;
 };
+
+typedef std::optional<std::shared_ptr<RawCell>> Cell;
+typedef std::vector<std::vector<Cell>> Cells;
+
 } // namespace hellfrost
 #endif // __CELL_H_

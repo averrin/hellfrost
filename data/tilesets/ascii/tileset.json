@@ -1,0 +1,575 @@
+
+{
+  "gap": 0,
+  "size": [
+    20,
+    20
+  ],
+  "sprites": {
+    "ITEMS": {
+      "CANDLE": [
+        0,
+        11,
+        5
+      ],
+      "CLOAK": [
+        0,
+        11,
+        5
+      ],
+      "CLUTTER": [
+        0,
+        11,
+        5
+      ],
+      "CORPSE": [
+        0,
+        11,
+        5
+      ],
+      "AMULET": [
+        0,
+        7,
+        2
+      ],
+      "BONES": [
+        0,
+        5,
+        2
+      ],
+      "CUIRASS": [
+        0,
+        11,
+        5
+      ],
+      "GOLD_COINS": [
+        0,
+        11,
+        5
+      ],
+      "GREAVES": [
+        0,
+        11,
+        5
+      ],
+      "HELMET": [
+        0,
+        11,
+        5
+      ],
+      "HERB": [
+        0,
+        12,
+        2
+      ],
+      "LANTERN": [
+        0,
+        11,
+        5
+      ],
+      "LEFT_GAUNTLET": [
+        0,
+        11,
+        5
+      ],
+      "LEFT_PAULDRON": [
+        0,
+        11,
+        5
+      ],
+      "LIGHT_WEAPON": [
+        0,
+        11,
+        5
+      ],
+      "ONE_HAND": [
+        0,
+        11,
+        5
+      ],
+      "PICK_AXE": [
+        0,
+        11,
+        5
+      ],
+      "PLATE": [
+        0,
+        11,
+        5
+      ],
+      "POTION": [
+        0,
+        13,
+        10
+      ],
+      "RIGHT_GAUNTLET": [
+        0,
+        11,
+        5
+      ],
+      "RIGHT_PAULDRON": [
+        0,
+        11,
+        5
+      ],
+      "RING": [
+        0,
+        13,
+        3
+      ],
+      "ROCK": [
+        0,
+        10,
+        2
+      ],
+      "SCROLL": [
+        0,
+        7,
+        10
+      ],
+      "SHIELD": [
+        0,
+        11,
+        5
+      ],
+      "SWORD": [
+        0,
+        11,
+        5
+      ],
+      "THROWING_KNIVES": [
+        0,
+        8,
+        1
+      ],
+      "TORCH": [
+        0,
+        8,
+        15
+      ],
+      "TWO_HAND": [
+        0,
+        11,
+        5
+      ],
+      "BOOTS": [
+        0,
+        11,
+        5
+      ]
+    },
+    "ENV": {
+      "WALL_C": [
+        0,
+        7,
+        12
+      ],
+      "WALL_CROSS": [
+        0,
+        14,
+        12
+      ],
+      "WALL_H": [
+        0,
+        13,
+        12
+      ],
+      "WALL_HB": [
+        0,
+        11,
+        12
+      ],
+      "WALL_HLS": [
+        0,
+        8,
+        11
+      ],
+      "WALL_HRS": [
+        0,
+        4,
+        13
+      ],
+      "WALL_HT": [
+        0,
+        10,
+        12
+      ],
+      "WALL_LB": [
+        0,
+        11,
+        11
+      ],
+      "WALL_LT": [
+        0,
+        12,
+        11
+      ],
+      "WALL_RB": [
+        0,
+        9,
+        12
+      ],
+      "WALL_RT": [
+        0,
+        8,
+        12
+      ],
+      "WALL_V": [
+        0,
+        10,
+        11
+      ],
+      "WALL_VBS": [
+        0,
+        3,
+        13
+      ],
+      "WALL_VL": [
+        0,
+        9,
+        11
+      ],
+      "WALL_VR": [
+        0,
+        12,
+        12
+      ],
+      "WALL_VTS": [
+        0,
+        7,
+        11
+      ],
+      "WATER": [
+        0,
+        7,
+        15
+      ],
+      "UNKNOWN": [
+        0,
+        15,
+        3
+      ],
+      "UPSTAIRS": [
+        0,
+        12,
+        3
+      ],
+      "TORCH_STAND": [
+        0,
+        8,
+        15
+      ],
+      "TREE": [
+        0,
+        4,
+        5
+      ],
+      "STATUE": [
+        0,
+        6,
+        2
+      ],
+      "OVERLAY": [
+        0,
+        0,
+        11
+      ],
+      "GROUND": [
+        0,
+        12,
+        2
+      ],
+      "GRASS": [
+        0,
+        14,
+        2
+      ],
+      "DOOR": [
+        0,
+        5,
+        12
+      ],
+      "DOWNSTAIRS": [
+        0,
+        14,
+        3
+      ],
+      "EMPTY_CELL": [
+        0,
+        0,
+        0
+      ],
+      "FLOOR": [
+        0,
+        11,
+        2
+      ],
+      "BUSH": [
+        0,
+        7,
+        14
+      ],
+      "CRATE": [
+        0,
+        14,
+        15
+      ],
+      "ALTAR": [
+        0,
+        6,
+        1
+      ]
+    },
+    "ENEMIES": {
+      "WRAITH": [
+        0,
+        7,
+        7
+      ],
+      "ZOMBIE": [
+        0,
+        10,
+        7
+      ],
+      "VIPER": [
+        0,
+        3,
+        7
+      ],
+      "STEEL_GOLEM": [
+        0,
+        2,
+        6
+      ],
+      "STONE_GOLEM": [
+        0,
+        2,
+        6
+      ],
+      "SNAKE": [
+        0,
+        3,
+        7
+      ],
+      "SKELETON": [
+        0,
+        10,
+        7
+      ],
+      "RAT": [
+        0,
+        2,
+        7
+      ],
+      "PIXI": [
+        0,
+        0,
+        7
+      ],
+      "ORK": [
+        0,
+        15,
+        6
+      ],
+      "ORK_BERSERK": [
+        0,
+        15,
+        6
+      ],
+      "ORK_BLACK": [
+        0,
+        15,
+        6
+      ],
+      "OGRE": [
+        0,
+        15,
+        4
+      ],
+      "I_OGRE": [
+        0,
+        15,
+        4
+      ],
+      "LARGE_BAT": [
+        0,
+        2,
+        4
+      ],
+      "GIANT_ANT": [
+        0,
+        1,
+        6
+      ],
+      "GOBLIN": [
+        0,
+        7,
+        6
+      ],
+      "GOBLIN_LIEUTENANT": [
+        0,
+        7,
+        6
+      ],
+      "GOBLIN_ROCKTHROWER": [
+        0,
+        7,
+        6
+      ],
+      "GOBLIN_ROGUE": [
+        0,
+        7,
+        6
+      ],
+      "FROST_DRAGON": [
+        0,
+        2,
+        6
+      ],
+      "FROST_ELEMENTAL": [
+        0,
+        2,
+        6
+      ],
+      "FIRE_DRAGON": [
+        0,
+        2,
+        6
+      ],
+      "FIRE_ELEMENTAL": [
+        0,
+        2,
+        6
+      ],
+      "CULTIST": [
+        0,
+        11,
+        6
+      ],
+      "ACID_DRAGON": [
+        0,
+        2,
+        6
+      ],
+      "ACID_ELEMENTAL": [
+        0,
+        2,
+        6
+      ],
+      "ANT": [
+        0,
+        1,
+        6
+      ],
+      "ANT_QUEEN": [
+        0,
+        1,
+        6
+      ],
+      "BAT": [
+        0,
+        2,
+        6
+      ]
+    }
+  },
+  "maps": [
+    "sprites/ascii.png"
+  ],
+  "colors": {
+    "ENEMY": {
+      "ACID_DRAGON": "#11cc11",
+      "ACID_ELEMENTAL": "#11cc11",
+      "ANT": "#8f4f4f",
+      "ANT_QUEEN": "#8f6f4f",
+      "BAT": "#808080",
+      "CULTIST": "#881111",
+      "FIRE_DRAGON": "#cc1111",
+      "FIRE_ELEMENTAL": "#cc1111",
+      "FROST_DRAGON": "#add8e6",
+      "FROST_ELEMENTAL": "#add8e6",
+      "GIANT_ANT": "#8f4f4f",
+      "GOBLIN": "#00f000",
+      "GOBLIN_LIEUTENANT": "#008b8b",
+      "GOBLIN_ROCKTHROWER": "#5050e0",
+      "GOBLIN_ROGUE": "#2f4f4f",
+      "I_OGRE": "#cc0044",
+      "LARGE_BAT": "#a9a9a9",
+      "OGRE": "#006400",
+      "ORK": "#22aa22",
+      "ORK_BERSERK": "#aa2222",
+      "ORK_BLACK": "#555",
+      "PIXI": "#ff1493",
+      "RAT": "#808080",
+      "SKELETON": "#fafafa",
+      "SNAKE": "#808080",
+      "STEEL_GOLEM": "#2f4f4f",
+      "STONE_GOLEM": "#808080",
+      "VIPER": "#006400",
+      "WRAITH": "#808080",
+      "ZOMBIE": "#8A9A5B"
+    },
+    "ENV": {
+      "BLOOD": "#771d1f89",
+      "CAVE_BG": "#6b4f2055",
+      "CORRUPT": "#550088aa",
+      "DOOR": "#8B5F20",
+      "FLOOR": "#5f554188",
+      "FROST": "#3c4092ac",
+      "GROUND": "#6B4F2099",
+      "GROUND_BG": "#1935026c",
+      "OVERLAY": "#aaaaaa88",
+      "WALL": "#6d6359",
+      "WALL_CAVE": "#6B4F20cc",
+      "WATER": "#393973d9",
+      "WATER_BG": "#48488687"
+    },
+    "ITEMS": {
+      "AMULET": "#9043c7ff",
+      "BONES": "#f0f0ec",
+      "BOOTS": "#dfdfdf",
+      "CANDLE": "#dfdfdf",
+      "CLOAK": "#dfdfdf",
+      "CLUTTER": "#dfdfdf",
+      "CORPSE": "#dfdfdf",
+      "CUIRASS": "#dfdfdf",
+      "EMPTY": "#dfdfdf",
+      "ENEMY": "#dfdfdf",
+      "GOLD_COINS": "#dfdfdf",
+      "GREAT_AXE": "#dfdfdf",
+      "GREAVES": "#dfdfdf",
+      "HELMET": "#dfdfdf",
+      "HERB": "#82aa22",
+      "LANTERN": "#dfdfdf",
+      "LEFT_GAUNTLET": "#dfdfdf",
+      "LEFT_PAULDRON": "#dfdfdf",
+      "LIGHT_WEAPON": "#dfdfdf",
+      "ONE_HAND": "#dfdfdf",
+      "PICK_AXE": "#dfdfdf",
+      "PLATE": "#dfdfdf",
+      "POTION": "#dfdfdf",
+      "RIGHT_GAUNTLET": "#dfdfdf",
+      "RIGHT_PAULDRON": "#dfdfdf",
+      "RING": "#dfdfdf",
+      "ROCK": "#616060ff",
+      "SCROLL": "#aa8500",
+      "SHIELD": "#dfdfdf",
+      "SWORD": "#dfdfdf",
+      "THROWING_KNIVES": "#dfdfdf",
+      "TORCH": "#dfdfdf",
+      "TWO_HAND": "#dfdfdf"
+    },
+    "PALETTE": {
+      "BACKGROUND": "#111100",
+      "BROWN": "#5f5541aa"
+    },
+    "TERRAIN": {
+      "ALTAR": "#b7b6b6ff",
+      "BUSH": "#2cb10eff",
+      "CRATE": "#7d7369",
+      "STATUE": "#f0f0ff",
+      "TORCH_STAND": "#ffa500",
+      "TREE": "#348e48ff"
+    }
+  }
+}

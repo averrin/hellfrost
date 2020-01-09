@@ -26,7 +26,9 @@ class Editor {
 public:
   Editor(fs::path);
 
-  void Draw();
+  void Draw(std::shared_ptr<sf::RenderWindow> window);
+  void DrawStatusBar(std::shared_ptr<sf::RenderWindow> window);
+  void DrawCursor(std::shared_ptr<sf::RenderWindow> window);
   void processEvent(sf::Event event);
 
 private:
@@ -35,6 +37,7 @@ private:
   fs::path PATH;
   int ts_idx = 0;
   std::vector<std::string> ts;
+  sf::Vector2<float> current_pos;
 
   void Meta(std::shared_ptr<entt::registry>, entt::entity);
   void Visible(std::shared_ptr<entt::registry>, entt::entity);
@@ -48,7 +51,7 @@ private:
   void Glow(std::shared_ptr<entt::registry>, entt::entity);
 
   void drawSelectedInfo();
-  void drawCellInfo(std::optional<std::shared_ptr<hf::Cell>> cell);
+  void drawCellInfo(hf::Cell cell);
   void drawSpecWindow();
   void drawObjectsWindow();
   void drawTilesetWindow();

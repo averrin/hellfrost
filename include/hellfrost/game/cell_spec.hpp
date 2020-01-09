@@ -2,6 +2,7 @@
 #define __CELL_SPEC_H_
 #include <lss/deps.hpp>
 
+namespace hellfrost {
 struct CellSpec {
   friend class cereal::access;
   template <class Archive> void save(Archive &ar) const {
@@ -27,7 +28,6 @@ struct CellSpec {
 };
 
 namespace CellType {
-const CellSpec EMPTY = CellSpec{"empty", true, true};
 const CellSpec UNKNOWN = CellSpec{"unknown", false, false};
 const CellSpec FLOOR = CellSpec{"floor", true, true};
 const CellSpec GROUND = CellSpec{"ground", true, true};
@@ -36,7 +36,11 @@ const CellSpec ROOF = CellSpec{"roof", true, false};
 const CellSpec DOWNSTAIRS = CellSpec{"downstairs", true, true};
 const CellSpec UPSTAIRS = CellSpec{"upstairs", true, false};
 const CellSpec WATER = CellSpec{"water", false, true};
-const CellSpec VOID = CellSpec{"void", false, true};
 }; // namespace CellType
 
+const std::vector<CellSpec> CellTypes = std::vector<CellSpec>{
+      CellType::UNKNOWN, CellType::FLOOR,
+      CellType::GROUND,   CellType::WALL,    CellType::DOWNSTAIRS,
+      CellType::UPSTAIRS, CellType::WATER};
+} // namespace hellfrost
 #endif // __CELL_SPEC_H_

@@ -8,13 +8,17 @@
 
 #include <hellfrost/deps.hpp>
 #include <hellfrost/game/components.hpp>
+#include <hellfrost/game/gameManager.hpp>
 
 #include <hellfrost/ui/layers.hpp>
 #include <hellfrost/ui/tile.hpp>
+#include <hellfrost/ui/tileSet.hpp>
 #include <hellfrost/ui/viewport.hpp>
+
 
 namespace hellfrost {
 struct renderable {
+  std::string spriteCat = "ENV";
   std::string spriteKey = "UNKNOWN";
   std::string fgColor = "#fff";
   bool hasBg = false;
@@ -26,7 +30,7 @@ struct renderable {
 };
 
 class DrawEngine {
-  sf::RenderWindow *window;
+  std::shared_ptr<sf::RenderWindow> window;
   std::shared_ptr<sf::RenderTexture> canvas =
       std::make_shared<sf::RenderTexture>();
   bool needRedraw = true;
@@ -40,18 +44,29 @@ class DrawEngine {
   std::shared_ptr<entt::observer> ob_ineditor;
 
   std::mutex cache_mutex;
-  sf::RectangleShape cursor;
 
   std::thread cacheThread;
 
+  std::shared_ptr<sf::Sprite> makeSprite(std::string cat, std::string key);
+  std::array<int, 3> getWallSpec(std::shared_ptr<Cell> cell);
+  std::optional<std::shared_ptr<Tile>> getTile(int x, int y, int z);
+  sf::Color getColor(std::string color) {
+    auto c = Color::fromHexString(color);
+    return sf::Color(c.r, c.g, c.b, c.a);
+  }
+  std::shared_ptr<sf::RectangleShape> makeBg(sf::Vector2f pos);
+
 public:
   ~DrawEngine() {
-    log.setParent(&LibLog::Logger::getInstance());
+    entt::service_locator<Viewport>::reset();
+    tilesTextures.clear();
     tilesCache.clear();
   }
   std::shared_ptr<LayersManager> layers;
   std::map<std::string, std::shared_ptr<Tile>> tilesCache{};
   std::vector<std::pair<int, int>> damage{};
+  std::shared_ptr<TileSet> tileSet;
+  std::vector<sf::Texture> tilesTextures;
 
   int vW = 0;
   int vH = 0;
@@ -60,15 +75,15 @@ public:
   int tilesUpdated = 0;
   int cache_count = 0;
 
+  sf::IntRect getTileRect(int x, int y) {
+    return sf::IntRect((tileSet->size.first + tileSet->gap) * x,
+                       (tileSet->size.second + tileSet->gap) * y,
+                       tileSet->size.first, tileSet->size.second);
+  }
+  void loadTileset(fs::path path);
   std::optional<std::shared_ptr<Tile>> cacheTile(int x, int y, int z);
 
-  DrawEngine(sf::RenderWindow *w) : window(w) {
-    layers = std::make_shared<LayersManager>();
-
-    auto viewport = entt::service_locator<Viewport>::get().lock();
-    auto c = Color::fromHexString(viewport->colors["PALETTE"]["BACKGROUND"]);
-    bgColor = sf::Color(c.r, c.g, c.b, c.a);
-  }
+  DrawEngine(std::shared_ptr<sf::RenderWindow> w, fs::path PATH);
   void invalidate() {
     needRedraw = true;
     layers->invalidate();
@@ -85,7 +100,7 @@ public:
   void updateEntity(entt::entity e);
 
   sf::Texture Draw();
-  void resize(sf::Vector2u);
+  void resize();
 };
 
 };     // namespace hellfrost

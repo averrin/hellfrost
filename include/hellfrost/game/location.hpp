@@ -1,15 +1,15 @@
 #ifndef __LOCATION_H_
 #define __LOCATION_H_
 #include <memory>
-#include <optional>
+
+#include <hellfrost/game/cell.hpp>
 
 namespace hellfrost {
-class Cell;
 class Location {
   bool damaged = true;
 
 public:
-  std::optional<std::shared_ptr<Cell>> getCell(int x, int y, int z);
+  Cell getCell(int x, int y, int z);
   void invalidate() { damaged = true; }
 
   int width = 0;

@@ -1,10 +1,10 @@
 #include <editor/editor.hpp>
 
 #include <SFML/Graphics.hpp>
+#include <dukglue/dukglue.h>
 #include <imgui-etc/imgui-stl.hpp>
 #include <imgui-sfml/imgui-SFML.h>
 #include <magic_enum.hpp>
-#include <dukglue/dukglue.h>
 
 #include <hellfrost/deps.hpp>
 #include <hellfrost/ui/drawEngine.hpp>
@@ -32,61 +32,61 @@ Editor::Editor(fs::path _path) : PATH(_path) {
       n++;
     }
   }
-//   auto emitter = entt::service_locator<hf::event_emitter>::get().lock();
+  //   auto emitter = entt::service_locator<hf::event_emitter>::get().lock();
 
-//   emitter->on<hf::log_event>([&](const auto &event, auto &em) {
-//     log.info(lu::yellow("DUK"), event.msg);
-//     console.AddLog(event.msg.data());
-//   });
+  //   emitter->on<hf::log_event>([&](const auto &event, auto &em) {
+  //     log.info(lu::yellow("DUK"), event.msg);
+  //     console.AddLog(event.msg.data());
+  //   });
 
-//   emitter->on<hf::clear_markers_event>([&](const auto &event, auto &em) {
-//     markers.clear();
-//     duk_editor.SetErrorMarkers(markers);
-//   });
+  //   emitter->on<hf::clear_markers_event>([&](const auto &event, auto &em) {
+  //     markers.clear();
+  //     duk_editor.SetErrorMarkers(markers);
+  //   });
 
-//   emitter->on<hf::duk_error>([&](auto event, auto &em) {
-//     std::string err = std::string(event.msg);
-//     std::string line;
-//     std::vector<std::string> lines;
-//     std::istringstream ss(err);
-//     std::regex re("eval:(\\d+)");
-//     std::smatch m;
-//     while (std::getline(ss, line, '\n')) {
-//       lines.push_back(line);
-//     }
-//     std::regex_search(lines.back(), m, re);
+  //   emitter->on<hf::duk_error>([&](auto event, auto &em) {
+  //     std::string err = std::string(event.msg);
+  //     std::string line;
+  //     std::vector<std::string> lines;
+  //     std::istringstream ss(err);
+  //     std::regex re("eval:(\\d+)");
+  //     std::smatch m;
+  //     while (std::getline(ss, line, '\n')) {
+  //       lines.push_back(line);
+  //     }
+  //     std::regex_search(lines.back(), m, re);
 
-//     markers.insert(std::make_pair<int, std::string>(
-//         std::atoi(std::string(m[m.size() - 1]).data()),
-//         std::string(lines.front())));
-//     duk_editor.SetErrorMarkers(markers);
+  //     markers.insert(std::make_pair<int, std::string>(
+  //         std::atoi(std::string(m[m.size() - 1]).data()),
+  //         std::string(lines.front())));
+  //     duk_editor.SetErrorMarkers(markers);
 
-//     console.AddLog("[error] %s", event.msg.data());
-//   });
+  //     console.AddLog("[error] %s", event.msg.data());
+  //   });
 
-//   emitter->on<hf::exec_event>(
-//       [&](auto event, auto &em) { duk_exec(event.code.data()); });
+  //   emitter->on<hf::exec_event>(
+  //       [&](auto event, auto &em) { duk_exec(event.code.data()); });
 
-//   // TODO: move to separate class
-//   /*
-//   duk_console_init(duk_ctx, 0);
-//   dukglue_register_function(duk_ctx, &duk_log_ev, "log");
-//   dukglue_register_function(duk_ctx, &duk_sleep, "sleep");
-//   dukglue_register_function(duk_ctx, &duk_regen, "regen");
+  //   // TODO: move to separate class
+  //   /*
+  //   duk_console_init(duk_ctx, 0);
+  //   dukglue_register_function(duk_ctx, &duk_log_ev, "log");
+  //   dukglue_register_function(duk_ctx, &duk_sleep, "sleep");
+  //   dukglue_register_function(duk_ctx, &duk_regen, "regen");
 
-//   dukglue_register_global(duk_ctx, engine, "engine");
-//   dukglue_register_method(duk_ctx, &DrawEngine::invalidate, "invalidate");
-// */
-//   auto fileToEdit = PATH / "data/init.js";
+  //   dukglue_register_global(duk_ctx, engine, "engine");
+  //   dukglue_register_method(duk_ctx, &DrawEngine::invalidate, "invalidate");
+  // */
+  //   auto fileToEdit = PATH / "data/init.js";
 
-//   {
-//     std::ifstream t(fileToEdit);
-//     if (t.good()) {
-//       std::string str((std::istreambuf_iterator<char>(t)),
-//                       std::istreambuf_iterator<char>());
-//       duk_editor.SetText(str);
-//     }
-//   }
+  //   {
+  //     std::ifstream t(fileToEdit);
+  //     if (t.good()) {
+  //       std::string str((std::istreambuf_iterator<char>(t)),
+  //                       std::istreambuf_iterator<char>());
+  //       duk_editor.SetText(str);
+  //     }
+  //   }
 }
 
 void duk_log_ev(const std::string msg) {
@@ -288,6 +288,7 @@ void Editor::Position(std::shared_ptr<entt::registry> registry,
 }
 void Editor::Renderable(std::shared_ptr<entt::registry> registry,
                         entt::entity e) {
+  auto engine = entt::service_locator<hf::DrawEngine>::get().lock();
   float GUI_SCALE = entt::monostate<"gui_scale"_hs>{};
   auto viewport = entt::service_locator<hf::Viewport>::get().lock();
   auto r = hf::renderable{};
@@ -306,22 +307,22 @@ void Editor::Renderable(std::shared_ptr<entt::registry> registry,
   if (ImGui::InputInt("zIndex", &r.zIndex)) {
     registry->assign_or_replace<hf::renderable>(e, r);
   }
+  /*
   auto k = r.spriteKey;
-  auto v = viewport->tileSet.sprites[k];
+  auto v = engine->tileSet->sprites[k];
   sf::Sprite s;
-  s.setTexture(viewport->tilesTextures[v[0]]);
-  s.setTextureRect(viewport->getTileRect(v[1], v[2]));
+  s.setTexture(engine->tilesTextures[v[0]]);
+  s.setTextureRect(engine->getTileRect(v[1], v[2]));
   ImGui::Image(s,
-               sf::Vector2f(viewport->tileSet.size.first * GUI_SCALE,
-                            viewport->tileSet.size.second * GUI_SCALE),
+               sf::Vector2f(engine->tileSet->size.first * GUI_SCALE,
+                            engine->tileSet->size.second * GUI_SCALE),
                sf::Color::White, sf::Color::Transparent);
   ImGui::SameLine();
   std::vector<const char *> _ts;
   int s_idx = 0;
   auto n = 0;
-  std::transform(viewport->tileSet.sprites.begin(),
-                 viewport->tileSet.sprites.end(), std::back_inserter(_ts),
-                 [&](auto sk) {
+  std::transform(engine->tileSet->sprites.begin(), engine->tileSet->sprites.end(),
+                 std::back_inserter(_ts), [&](auto sk) {
                    if (sk.first == r.spriteKey) {
                      s_idx = n;
                    }
@@ -334,7 +335,7 @@ void Editor::Renderable(std::shared_ptr<entt::registry> registry,
     r.spriteKey = std::string(_ts[s_idx]);
     registry->assign_or_replace<hf::renderable>(e, r);
   }
-
+*/
   ImGui::SetNextItemWidth(150);
   if (ImGui::InputText("Color", r.fgColor, 10)) {
     registry->assign_or_replace<hf::renderable>(e, r);
@@ -644,7 +645,7 @@ void Editor::drawEntityInfo(entt::entity e,
   }
 }
 
-void Editor::drawCellInfo(std::optional<std::shared_ptr<hf::Cell>> cc) {
+void Editor::drawCellInfo(hf::Cell cc) {
   if (!ImGui::Begin("Current cell info")) {
     ImGui::End();
     return;
@@ -665,7 +666,7 @@ void Editor::drawCellInfo(std::optional<std::shared_ptr<hf::Cell>> cc) {
   auto cti = 0;
   auto n = 0;
   std::vector<std::string> ct_names;
-  for (auto ct : hf::Cell::types) {
+  for (auto ct : hf::CellTypes) {
     ct_names.push_back(ct.name);
     if (ct == cell->type) {
       cti = n;
@@ -732,12 +733,12 @@ void Editor::drawTilesetWindow() {
 
   if (ImGui::Combo("Tileset", &ts_idx, ts)) {
     auto path = PATH / fs::path("tilesets") / ts[ts_idx];
-    viewport->loadTileset(path);
+    engine->loadTileset(path);
     emitter->publish<hf::resize_event>();
   }
-  ImGui::BulletText("Size: %dx%d; gap: %d\n", viewport->tileSet.size.first,
-                    viewport->tileSet.size.second, viewport->tileSet.gap);
-  ImGui::BulletText("Maps: %lu\n", viewport->tileSet.maps.size());
+  ImGui::BulletText("Size: %dx%d; gap: %d\n", engine->tileSet->size.first,
+                    engine->tileSet->size.second, engine->tileSet->gap);
+  ImGui::BulletText("Maps: %lu\n", engine->tileSet->maps.size());
 
   if (ImGui::Button("Apply")) {
     emitter->publish<hf::regen_event>();
@@ -745,7 +746,7 @@ void Editor::drawTilesetWindow() {
   ImGui::SameLine();
   if (ImGui::Button("Reload")) {
     auto path = PATH / fs::path("tilesets") / ts[ts_idx];
-    viewport->loadTileset(path);
+    engine->loadTileset(path);
     emitter->publish<hf::regen_event>();
   }
   ImGui::SameLine();
@@ -754,6 +755,7 @@ void Editor::drawTilesetWindow() {
   }
   ImGui::Separator();
 
+  /*
   viewport->colors.erase("");
   if (ImGui::TreeNode("Colors")) {
     for (auto &el : viewport->colors.items()) {
@@ -812,16 +814,16 @@ void Editor::drawTilesetWindow() {
     ImGui::TreePop();
   }
 
-  viewport->tileSet.sprites.erase("");
+  engine->tileSet->sprites.erase("");
   if (ImGui::TreeNode("Sprites")) {
     std::vector<std::string> to_remove;
-    for (auto [k, v] : viewport->tileSet.sprites) {
+    for (auto [k, v] : engine->tileSet->sprites) {
       sf::Sprite s;
-      s.setTexture(viewport->tilesTextures[v[0]]);
+      s.setTexture(engine->tilesTextures[v[0]]);
       s.setTextureRect(viewport->getTileRect(v[1], v[2]));
       ImGui::Image(s,
-                   sf::Vector2f(viewport->tileSet.size.first,
-                                viewport->tileSet.size.second) *
+                   sf::Vector2f(engine->tileSet->size.first,
+                                engine->tileSet->size.second) *
                        GUI_SCALE,
                    sf::Color::White, sf::Color::Transparent);
       ImGui::SameLine();
@@ -829,21 +831,21 @@ void Editor::drawTilesetWindow() {
       ImGui::SameLine(220);
       ImGui::SetNextItemWidth(80);
       if (ImGui::InputInt(fmt::format("##{}{}", k, 0).c_str(),
-                          &(viewport->tileSet.sprites[k][0]))) {
+                          &(engine->tileSet->sprites[k][0]))) {
         engine->tilesCache.clear();
         engine->invalidate();
       }
       ImGui::SameLine();
       ImGui::SetNextItemWidth(80);
       if (ImGui::InputInt(fmt::format("##{}{}", k, 1).c_str(),
-                          &(viewport->tileSet.sprites[k][1]))) {
+                          &(engine->tileSet->sprites[k][1]))) {
         engine->tilesCache.clear();
         engine->invalidate();
       }
       ImGui::SameLine();
       ImGui::SetNextItemWidth(80);
       if (ImGui::InputInt(fmt::format("##{}{}", k, 2).c_str(),
-                          &(viewport->tileSet.sprites[k][2]))) {
+                          &(engine->tileSet->sprites[k][2]))) {
         engine->tilesCache.clear();
         engine->invalidate();
       }
@@ -853,29 +855,27 @@ void Editor::drawTilesetWindow() {
       }
     }
     for (auto rk : to_remove) {
-      viewport->tileSet.sprites.erase(rk);
+      engine->tileSet->sprites.erase(rk);
     }
     if (to_remove.size() > 0) {
       emitter->publish<hf::regen_event>();
     }
 
-    auto new_key =
-        fmt::format("NEW_SPRITE_{}", viewport->tileSet.sprites.size());
+    auto new_key = fmt::format("NEW_SPRITE_{}", engine->tileSet->sprites.size());
     ImGui::InputText("key", new_key);
     ImGui::SameLine();
     if (ImGui::Button("Add")) {
-      viewport->tileSet.sprites[new_key] = {0, 0, 0};
+      engine->tileSet->sprites[new_key] = {0, 0, 0};
     }
     ImGui::TreePop();
   }
-
   if (ImGui::TreeNode("Preview")) {
     auto n = 0;
-    for (auto t : viewport->tilesTextures) {
+    for (auto t : engine->tilesTextures) {
       auto size = t.getSize();
       sf::Sprite s;
-      s.setTexture(viewport->tilesTextures[n]);
-      ImGui::Text("%s", viewport->tileSet.maps[n].c_str());
+      s.setTexture(engine->tilesTextures[n]);
+      ImGui::Text("%s", engine->tileSet->maps[n].c_str());
       ImGui::Image(s, sf::Vector2f(size.x, size.y), sf::Color::White,
                    sf::Color::Transparent);
       ImGui::Text("\n");
@@ -884,23 +884,16 @@ void Editor::drawTilesetWindow() {
     ImGui::TreePop();
   }
 
+*/
   ImGui::End();
 }
 
 void Editor::saveTileset() {
-  auto viewport = entt::service_locator<hf::Viewport>::get().lock();
-  auto path = PATH / fs::path("tilesets") / ts[ts_idx];
-  std::ofstream o(path / "colors.json");
-  o << std::setw(4) << viewport->colors << std::endl;
-
-  json j;
-  j["TILEMAPS"] = viewport->tileSet.maps;
-  j["SIZE"] = viewport->tileSet.size;
-  j["GAP"] = viewport->tileSet.gap;
-  j["SPRITES"] = viewport->tileSet.sprites;
-
-  std::ofstream o2(path / "tiles.json");
-  o2 << std::setw(4) << j << std::endl;
+  auto engine = entt::service_locator<hf::DrawEngine>::get().lock();
+  auto path = PATH / fs::path("data/tilesets") / fs::path(ts[ts_idx]) / "tileset.json";
+  std::ofstream file(path, std::ios::out);
+  cereal::JSONOutputArchive oarchive(file);
+  oarchive(*engine->tileSet);
 }
 
 void Editor::duk_exec(const char *code) {
@@ -967,10 +960,15 @@ void Editor::drawViewportWindow() {
   auto engine = entt::service_locator<hf::DrawEngine>::get().lock();
   auto viewport = entt::service_locator<hf::Viewport>::get().lock();
   // log.debug("viewport size: {}x{}", viewport->width, viewport->height);
-  // log.debug("viewport pos size: {}.{}.{}", viewport->view_x, viewport->view_y, viewport->view_z);
-  // auto cache_full = gm->location->width * gm->location->height;
-  // ImGui::Text("Cache len: %d/%d", engine->cache_count, cache_full);
+  // log.debug("viewport pos size: {}.{}.{}", viewport->view_x,
+  // viewport->view_y, viewport->view_z); auto cache_full = gm->location->width
+  // * gm->location->height; ImGui::Text("Cache len: %d/%d",
+  // engine->cache_count, cache_full);
   ImGui::Text("Redraws: %d", engine->redraws);
+  ImGui::SameLine();
+  if (ImGui::SmallButton(ICON_MDI_REFRESH)) {
+    engine->invalidate();
+  }
   ImGui::Text("Tiles updated: %d", engine->tilesUpdated);
   ImGui::Text("Objects in render: %d\n", engine->layers->size());
   for (auto [k, l] : engine->layers->layers) {
@@ -1047,9 +1045,22 @@ void Editor::drawLocationWindow() {
   ImGui::End();
 }
 
-void Editor::Draw() {
+void Editor::Draw(std::shared_ptr<sf::RenderWindow> window) {
+  DrawCursor(window);
 
-  // editor->drawCellInfo(cc);
+  float GUI_SCALE = entt::monostate<"gui_scale"_hs>{};
+  auto engine = entt::service_locator<hf::DrawEngine>::get().lock();
+  auto viewport = entt::service_locator<hf::Viewport>::get().lock();
+
+  auto x = int(current_pos.x /
+               (engine->tileSet->size.first * viewport->scale * GUI_SCALE));
+  auto y = int(current_pos.y /
+               (engine->tileSet->size.second * viewport->scale * GUI_SCALE));
+  auto rx = x + viewport->view_x;
+  auto ry = y + viewport->view_y;
+  auto [cc, rz] = viewport->getCell(rx, ry, viewport->view_z);
+  drawCellInfo(cc);
+
   drawLocationWindow();
   drawViewportWindow();
   drawTilesetWindow();
@@ -1060,3 +1071,152 @@ void Editor::Draw() {
 
   dukEditorWindow();
 }
+
+void Editor::processEvent(sf::Event event) {
+  log.start("editor process event", true);
+  auto viewport = entt::service_locator<hf::Viewport>::get().lock();
+  auto engine = entt::service_locator<hf::DrawEngine>::get().lock();
+  switch (event.type) {
+  case sf::Event::KeyPressed:
+    switch (event.key.code) {
+    case sf::Keyboard::Right:
+      viewport->view_x += 1;
+      engine->invalidate();
+      break;
+    case sf::Keyboard::Left:
+      viewport->view_x -= 1;
+      engine->invalidate();
+      break;
+    case sf::Keyboard::Up:
+      if (!event.key.control) {
+        viewport->view_y -= 1;
+      } else {
+        viewport->view_z += 1;
+      }
+      engine->invalidate();
+      break;
+    case sf::Keyboard::Down:
+      if (!event.key.control) {
+        viewport->view_y += 1;
+      } else {
+        viewport->view_z -= 1;
+      }
+      engine->invalidate();
+      break;
+      break;
+      // case sf::Event::MouseButtonPressed:
+      //   if (event.mouseButton.button == sf::Mouse::Right) {
+      //     lockedPos = {rx, ry};
+      //   } else if (event.mouseButton.button == sf::Mouse::Middle) {
+      //     lockedPos = std::nullopt;
+      //   }
+
+      //   break;
+    }
+  }
+  log.stop("editor process event", 10);
+}
+
+void Editor::DrawStatusBar(std::shared_ptr<sf::RenderWindow> window) {
+  float GUI_SCALE = entt::monostate<"gui_scale"_hs>{};
+  auto engine = entt::service_locator<hf::DrawEngine>::get().lock();
+  auto viewport = entt::service_locator<hf::Viewport>::get()
+                      .lock(); // TODO: use gamemanager instead
+  current_pos = window->mapPixelToCoords(sf::Mouse::getPosition(*window));
+  auto _x = int(current_pos.x /
+                (engine->tileSet->size.first * viewport->scale * GUI_SCALE));
+  auto _y = int(current_pos.y /
+                (engine->tileSet->size.second * viewport->scale * GUI_SCALE));
+
+  ImGui::SameLine();
+  ImGui::Text("|  pos: %d.%d", _x, _y);
+  auto rx = _x + viewport->view_x;
+  auto ry = _y + viewport->view_y;
+  ImGui::SameLine();
+  ImGui::Text("|  cell: %d.%d", rx, ry);
+  if (viewport->scale != 1) {
+    ImGui::SameLine();
+    ImGui::Text("|  scale: %.3f", viewport->scale);
+  }
+
+  ImGui::SameLine();
+  auto cache_full = gm->location->width * gm->location->height;
+  const ImU32 col = ImGui::GetColorU32(ImGuiCol_ButtonHovered);
+  /*
+  if (cache_full > 0) {
+    if (engine->cache_count / float(cache_full) != 1.f) {
+      ImGui::Text("|  cache:");
+      ImGui::SameLine();
+      const ImU32 bg = ImGui::GetColorU32(ImGuiCol_Button);
+
+      ImGui::AlignTextToFramePadding();
+      ImGui::BufferingBar("##cache_bar",
+                          engine->cache_count / float(cache_full),
+                          ImVec2(100 * GUI_SCALE, 3 * GUI_SCALE), bg, col);
+    }
+  } else {
+*/
+  if (gm->status == hf::gm::status::GENERATING) {
+    ImGui::Text("|  gen:");
+    ImGui::SameLine();
+    ImGui::Spinner("##generating", 5.f * GUI_SCALE, 1.f * GUI_SCALE, col);
+  }
+}
+
+void Editor::DrawCursor(std::shared_ptr<sf::RenderWindow> window) {
+  float GUI_SCALE = entt::monostate<"gui_scale"_hs>{};
+  auto viewport = entt::service_locator<hf::Viewport>::get().lock();
+  auto engine = entt::service_locator<hf::DrawEngine>::get().lock();
+  auto x = int(current_pos.x /
+               (engine->tileSet->size.first * viewport->scale * GUI_SCALE));
+  auto y = int(current_pos.y /
+               (engine->tileSet->size.second * viewport->scale * GUI_SCALE));
+  auto rx = x + viewport->view_x;
+  auto ry = y + viewport->view_y;
+  if (lockedPos) {
+    rx = (*lockedPos).first;
+    ry = (*lockedPos).second;
+    x = rx - viewport->view_x;
+    y = ry - viewport->view_y;
+  }
+  auto [cc, rz] = viewport->getCell(rx, ry, viewport->view_z);
+
+  sf::RectangleShape cursor;
+  cursor.setFillColor(sf::Color::Transparent);
+  cursor.setOutlineThickness(1);
+  cursor.setSize(
+      sf::Vector2f(engine->tileSet->size.first, engine->tileSet->size.second) *
+      viewport->scale * GUI_SCALE);
+  if (!cc || (*cc)->type == hf::CellType::UNKNOWN) {
+    cursor.setOutlineColor(sf::Color(70, 70, 70));
+  } else {
+    cursor.setOutlineColor(sf::Color(200, 124, 70));
+  }
+  if (lockedPos) {
+    cursor.setOutlineColor(sf::Color(70, 70, 255));
+  }
+  cursor.setPosition(sf::Vector2f(x * engine->tileSet->size.first,
+                                  y * engine->tileSet->size.second) *
+                     viewport->scale * GUI_SCALE);
+  window->draw(cursor);
+}
+
+/*
+auto rw = std::make_shared<RegistryWrapper>(gm->registry);
+dukglue_register_global(duk_ctx, gm->location, "location");
+dukglue_register_global(duk_ctx, rw, "registry");
+dukglue_register_method(duk_ctx, &RegistryWrapper::size, "size");
+dukglue_register_method(duk_ctx, &RegistryWrapper::create, "create");
+dukglue_register_method(duk_ctx, &EntityWrapper::move, "move");
+dukglue_register_method(duk_ctx, &EntityWrapper::center, "center");
+dukglue_register_method(duk_ctx, &EntityWrapper::select, "select");
+dukglue_register_method(duk_ctx, &EntityWrapper::unselect, "unselect");
+dukglue_register_method(duk_ctx, &EntityWrapper::remove, "remove");
+dukglue_register_method(duk_ctx, &EntityWrapper::hide, "hide");
+dukglue_register_method(duk_ctx, &EntityWrapper::show, "show");
+
+dukglue_register_property(duk_ctx, &EntityWrapper::getId, nullptr, "id");
+dukglue_register_property(duk_ctx, &EntityWrapper::getX, nullptr, "x");
+dukglue_register_property(duk_ctx, &EntityWrapper::getY, nullptr, "y");
+dukglue_register_property(duk_ctx, &EntityWrapper::getZ, nullptr, "z");
+ */
