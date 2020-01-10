@@ -1,0 +1,6 @@
+[submodule "libs/liblog"]
+	path = libs/liblog
+	url = https://github.com/averrin/liblog.git
+[submodule "libs/libcolor"]
+	path = libs/libcolor
+	url = https://github.com/averrin/libcolor.git

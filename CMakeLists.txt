@@ -31,8 +31,6 @@ include_directories(
 set(SFML_STATIC_LIBRARIES TRUE)
 find_package(SFML 2.5 COMPONENTS CONFIG REQUIRED system window graphics)
 
-add_subdirectory(libs/3rdparty/fmt EXCLUDE_FROM_ALL)
-
 add_subdirectory("${LIBS}/3rdparty/imgui")
 add_definitions(-DIMGUI_USER_CONFIG="${LIBS}/3rdparty/imgui-sfml/imconfig-SFML.h")
 add_definitions(-D_USE_MATH_DEFINES)
@@ -71,7 +69,6 @@ if(CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_GNUCXX)
 target_link_libraries(${EXE_NAME} PRIVATE imgui-sfml fmt
   OpenGL
   stdc++fs
-  fmt::fmt-header-only
   tbb
   imgui ${CONAN_LIBS})
 else()

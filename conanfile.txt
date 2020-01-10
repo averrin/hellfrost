@@ -1,6 +1,10 @@
 [requires]
 sfml/2.5.1@bincrafters/stable
 gl3w/0.2@tuebel/testing
+entt/3.2.2
+fmt/6.1.1
+cereal/1.2.2@conan/stable
+#spdlog/1.4.2
 
 [options]
 sfml:graphics=True

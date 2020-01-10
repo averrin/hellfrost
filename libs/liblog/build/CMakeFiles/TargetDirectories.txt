@@ -1,3 +1,0 @@
-/Users/wrikeczech/Projects/hellfrost/libs/liblog/build/CMakeFiles/rebuild_cache.dir
-/Users/wrikeczech/Projects/hellfrost/libs/liblog/build/CMakeFiles/edit_cache.dir
-/Users/wrikeczech/Projects/hellfrost/libs/liblog/build/CMakeFiles/liblog.dir
