@@ -4,11 +4,13 @@ gl3w/0.2@tuebel/testing
 entt/3.2.2
 fmt/6.1.1
 cereal/1.2.2@conan/stable
+#backward-cpp/1.4
 #spdlog/1.4.2
 
 [options]
 sfml:graphics=True
 sfml:window=True
+#backward-cpp:stack_details=backtrace_symbol
 
 [generators]
 cmake

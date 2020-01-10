@@ -185,4 +185,26 @@ bool InputText(const char *label, std::string &str, size_t maxInputSize,
   return changed;
 }
 
+inline bool Button( std::string label, bool enabled, const ImVec2& size)
+  {
+    if ( enabled )
+    {
+      return ImGui::Button( label.c_str(), size );
+    }
+    else
+    {
+      auto disabled_fg = IM_COL32_BLACK;
+      auto disabled_bg = IM_COL32( 64, 64, 64, 255 );
+
+      ImGui::PushStyleColor( ImGuiCol_Text, disabled_fg );
+      ImGui::PushStyleColor( ImGuiCol_Button, disabled_bg );
+      ImGui::PushStyleColor( ImGuiCol_ButtonHovered, disabled_bg );
+      ImGui::PushStyleColor( ImGuiCol_ButtonActive, disabled_bg );
+      ImGui::Button( label.c_str(), size );
+      ImGui::PopStyleColor( 4 );
+
+      return false;
+    }
+  }
+
 } // end of namespace ImGui

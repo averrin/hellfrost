@@ -18,6 +18,8 @@ bool InputText(const char* label, std::string& str, size_t maxInputSize = 255,
 bool BufferingBar(const char* label, float value,  const ImVec2& size_arg, const ImU32& bg_col, const ImU32& fg_col);
 
 bool Spinner(const char* label, float radius, int thickness, const ImU32& color);
+
+bool Button( std::string label, bool enabled = true, const ImVec2& size = ImVec2( 0, 0 ));
 } // end of namespace ImGui
 
 #endif // __IMGUI-STL_H_
