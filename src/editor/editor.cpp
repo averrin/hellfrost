@@ -321,10 +321,9 @@ void Editor::Renderable(std::shared_ptr<entt::registry> registry,
   std::vector<const char *> _ts;
   int s_idx = 0;
   auto n = 0;
-  std::transform(engine->tileSet->sprites.begin(), engine->tileSet->sprites.end(),
-                 std::back_inserter(_ts), [&](auto sk) {
-                   if (sk.first == r.spriteKey) {
-                     s_idx = n;
+  std::transform(engine->tileSet->sprites.begin(),
+  engine->tileSet->sprites.end(), std::back_inserter(_ts), [&](auto sk) { if
+  (sk.first == r.spriteKey) { s_idx = n;
                    }
                    char *r = new char[sk.first.size() + 1];
                    std::strcpy(r, sk.first.c_str());
@@ -553,7 +552,7 @@ void Editor::drawSelectedInfo() {
 template <typename... T>
 void Editor::drawEntityTree(std::shared_ptr<entt::registry> registry) {
   auto ents = registry->view<T...>();
-  auto entityTree = std::make_shared<tree_node>();
+  auto entityTree = std::make_shared<tree_node<entt::entity>>();
 
   for (auto e : ents) {
     if (!registry->has<hf::ineditor>(e) ||
@@ -568,7 +567,8 @@ void Editor::drawEntityTree(std::shared_ptr<entt::registry> registry) {
         auto current_node = entityTree;
         for (auto f : ie.folders) {
           if (current_node->children.find(f) == current_node->children.end()) {
-            current_node->children[f] = std::make_shared<tree_node>();
+            current_node->children[f] =
+                std::make_shared<tree_node<entt::entity>>();
           }
           current_node = current_node->children[f];
         }
@@ -586,8 +586,8 @@ void Editor::drawEntityTree(std::shared_ptr<entt::registry> registry) {
       registry->assign<T...>(e);
     }
 
-    std::function<void(std::shared_ptr<tree_node> v)> it;
-    it = [&](std::shared_ptr<tree_node> v) {
+    std::function<void(std::shared_ptr<tree_node<entt::entity>> v)> it;
+    it = [&](std::shared_ptr<tree_node<entt::entity>> v) {
       for (auto e : v->entities) {
         drawEntityInfo(e, registry);
       }
@@ -861,8 +861,8 @@ void Editor::drawTilesetWindow() {
       emitter->publish<hf::regen_event>();
     }
 
-    auto new_key = fmt::format("NEW_SPRITE_{}", engine->tileSet->sprites.size());
-    ImGui::InputText("key", new_key);
+    auto new_key = fmt::format("NEW_SPRITE_{}",
+  engine->tileSet->sprites.size()); ImGui::InputText("key", new_key);
     ImGui::SameLine();
     if (ImGui::Button("Add")) {
       engine->tileSet->sprites[new_key] = {0, 0, 0};
@@ -890,7 +890,8 @@ void Editor::drawTilesetWindow() {
 
 void Editor::saveTileset() {
   auto engine = entt::service_locator<hf::DrawEngine>::get().lock();
-  auto path = PATH / fs::path("data/tilesets") / fs::path(ts[ts_idx]) / "tileset.json";
+  auto path =
+      PATH / fs::path("data/tilesets") / fs::path(ts[ts_idx]) / "tileset.json";
   std::ofstream file(path, std::ios::out);
   cereal::JSONOutputArchive oarchive(file);
   oarchive(*engine->tileSet);
@@ -971,13 +972,20 @@ void Editor::drawViewportWindow() {
   }
   ImGui::Text("Tiles updated: %d", engine->tilesUpdated);
   ImGui::Text("Objects in render: %d\n", engine->layers->size());
-  for (auto [k, l] : engine->layers->layers) {
+  for (auto &[k, l] : engine->layers->layers) {
     ImGui::AlignTextToFramePadding();
-    ImGui::BulletText(fmt::format("{}: {}", k, l->children.size()).c_str());
+    ImGui::BulletText(fmt::format("{}{}: {}", l->locked ? ICON_MDI_LOCK : " ",
+                                  k, l->children.size())
+                          .c_str());
     ImGui::SameLine();
     if (ImGui::Checkbox(fmt::format("##{}", k).c_str(), &l->enabled)) {
       engine->invalidate();
     }
+    // ImGui::SameLine();
+    // if(ImGui::Button(ICON_MDI_DELETE_FOREVER)) {
+    //   engine->layers->layers[k]->unlock();
+    //   engine->layers->layers[k]->clear();
+    // }
   }
   ImGui::Text("\n");
   auto emitter = entt::service_locator<hf::event_emitter>::get().lock();
@@ -993,8 +1001,6 @@ void Editor::drawViewportWindow() {
     if (engine->vH > 200)
       engine->vH = 200;
   }
-  ImGui::End();
-  return;
   if (ImGui::SliderInt("x", &viewport->view_x, -viewport->width,
                        gm->location->width)) {
     engine->invalidate();
@@ -1042,6 +1048,162 @@ void Editor::drawLocationWindow() {
     emitter->publish<hf::regen_event>(-1);
   }
   ImGui::Separator();
+
+  std::function<void(std::shared_ptr<hf::Region> v)> it;
+  it = [&](std::shared_ptr<hf::Region> v) {
+    if (ImGui::TreeNode(fmt::format("{} {} ({})", ICON_MDI_FOLDER, v->name,
+                                    v->regions.size())
+                            .c_str())) {
+      // ImGui::Text("Position: %d.%d.%d", v->x, v->y, v->z);
+      auto vh = v->cells->size();
+      auto vw = vh == 0 ? 0 : v->cells->front().size();
+      // ImGui::SameLine();
+      if (ImGui::Button(ICON_MDI_TARGET)) {
+        auto emitter = entt::service_locator<hf::event_emitter>::get().lock();
+        emitter->publish<hf::debug_clear_event>();
+        emitter->publish<hf::center_event>(v->x, v->y);
+
+        emitter->publish<hf::debug_draw_event>(
+            (int)"total-size"_hs, [&, v]() -> std::shared_ptr<sf::Drawable> {
+              auto viewport = entt::service_locator<hf::Viewport>::get().lock();
+              auto engine = entt::service_locator<hf::DrawEngine>::get().lock();
+              float GUI_SCALE = entt::monostate<"gui_scale"_hs>{};
+              auto rScale = viewport->scale * GUI_SCALE;
+              auto tr = std::make_shared<sf::RectangleShape>();
+              auto e_size =
+                  sf::Vector2f(engine->tileSet->size.first * v->width,
+                               engine->tileSet->size.second * v->height) *
+                  rScale;
+              auto e_pos = sf::Vector2f(v->x * engine->tileSet->size.first,
+                                        v->y * engine->tileSet->size.second) *
+                           rScale;
+              e_pos.x +=
+                  -engine->tileSet->size.first * viewport->view_x * rScale;
+              e_pos.y +=
+                  -engine->tileSet->size.second * viewport->view_y * rScale;
+
+              tr->setSize(e_size);
+              tr->setPosition(e_pos);
+              tr->setFillColor(sf::Color::Transparent);
+              tr->setOutlineColor(sf::Color::Green);
+              tr->setOutlineThickness(1);
+              return tr;
+            });
+
+        emitter->publish<hf::debug_draw_event>(
+            (int)"virtual-size"_hs,
+            [&, v, vw, vh]() -> std::shared_ptr<sf::Drawable> {
+              auto viewport = entt::service_locator<hf::Viewport>::get().lock();
+              auto engine = entt::service_locator<hf::DrawEngine>::get().lock();
+              float GUI_SCALE = entt::monostate<"gui_scale"_hs>{};
+              auto rScale = viewport->scale * GUI_SCALE;
+              auto vr = std::make_shared<sf::RectangleShape>();
+              auto e_size = sf::Vector2f(engine->tileSet->size.first * vw,
+                                         engine->tileSet->size.second * vh) *
+                            rScale;
+              auto e_pos = sf::Vector2f(v->x * engine->tileSet->size.first,
+                                        v->y * engine->tileSet->size.second) *
+                           rScale;
+              e_pos.x +=
+                  -engine->tileSet->size.first * viewport->view_x * rScale;
+              e_pos.y +=
+                  -engine->tileSet->size.second * viewport->view_y * rScale;
+
+              vr->setSize(e_size);
+              vr->setPosition(e_pos);
+              vr->setFillColor(sf::Color::Transparent);
+              vr->setOutlineColor(sf::Color::Blue);
+              vr->setOutlineThickness(1);
+              return vr;
+            });
+        auto n = 0;
+        for (auto r : v->regions) {
+          emitter->publish<hf::debug_draw_event>(
+              n, [&, n, r]() -> std::shared_ptr<sf::Drawable> {
+                auto viewport =
+                    entt::service_locator<hf::Viewport>::get().lock();
+                auto engine =
+                    entt::service_locator<hf::DrawEngine>::get().lock();
+                float GUI_SCALE = entt::monostate<"gui_scale"_hs>{};
+                auto rScale = viewport->scale * GUI_SCALE;
+                auto vr = std::make_shared<sf::RectangleShape>();
+                auto e_size =
+                    sf::Vector2f(engine->tileSet->size.first * r->width,
+                                 engine->tileSet->size.second * r->height) *
+                    rScale;
+                auto e_pos = sf::Vector2f(r->x * engine->tileSet->size.first,
+                                          r->y * engine->tileSet->size.second) *
+                             rScale;
+                e_pos.x +=
+                    -engine->tileSet->size.first * viewport->view_x * rScale;
+                e_pos.y +=
+                    -engine->tileSet->size.second * viewport->view_y * rScale;
+
+                vr->setSize(e_size);
+                vr->setPosition(e_pos);
+                vr->setFillColor(sf::Color::Transparent);
+                vr->setOutlineColor(r->active ? sf::Color::Red
+                                              : sf::Color(150, 150, 150));
+                vr->setOutlineThickness(1);
+                return vr;
+              });
+          n++;
+        }
+      }
+
+      float GUI_SCALE = entt::monostate<"gui_scale"_hs>{};
+      ImGui::SameLine();
+      ImGui::SetNextItemWidth(90 * GUI_SCALE);
+      if (ImGui::InputInt("x##Position", &v->x)) {
+        v->update();
+        gm->location->invalidate(true);
+        auto emitter = entt::service_locator<hf::event_emitter>::get().lock();
+        emitter->publish<hf::redraw_event>();
+      }
+      ImGui::SameLine();
+      ImGui::SetNextItemWidth(90 * GUI_SCALE);
+      if (ImGui::InputInt("y##Position", &v->y)) {
+        v->update();
+        gm->location->invalidate(true);
+        auto emitter = entt::service_locator<hf::event_emitter>::get().lock();
+        emitter->publish<hf::redraw_event>();
+      }
+      ImGui::SameLine();
+      ImGui::SetNextItemWidth(90 * GUI_SCALE);
+      if (ImGui::InputInt("z##Position", &v->z)) {
+        v->update();
+        gm->location->invalidate(true);
+        auto emitter = entt::service_locator<hf::event_emitter>::get().lock();
+        emitter->publish<hf::redraw_event>();
+      }
+
+      if (ImGui::Checkbox("Active", &v->active)) {
+        gm->location->invalidate(true);
+        auto emitter = entt::service_locator<hf::event_emitter>::get().lock();
+        emitter->publish<hf::redraw_event>();
+      }
+      ImGui::Text("Damaged: %s", v->damaged ? "true" : "false");
+      ImGui::SameLine();
+      if (ImGui::SmallButton("Invalidate")) {
+        v->invalidate(true);
+        auto emitter = entt::service_locator<hf::event_emitter>::get().lock();
+        emitter->publish<hf::redraw_event>();
+      }
+
+      ImGui::Text("Total Size: %dx%d", v->width, v->height);
+      ImGui::SameLine();
+      ImGui::Text("Virtual Size: %lux%lu", vw, vh);
+      if(ImGui::TreeNode(fmt::format("Children: {}", v->regions.size()).c_str())) {
+        for (auto &r : v->regions) {
+          it(r);
+        }
+        ImGui::TreePop();
+      }
+      ImGui::TreePop();
+    }
+  };
+  it(gm->location);
+
   ImGui::End();
 }
 

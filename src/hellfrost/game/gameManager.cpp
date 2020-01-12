@@ -10,6 +10,7 @@ GameManager::GameManager(fs::path p, int s) : path(p), seed(s) {
   log.setParent(&LibLog::Logger::getInstance());
   loadData();
   generator = std::make_unique<Generator>();
+  generator->log.setParent(&log);
 }
 
 void GameManager::start() {
@@ -35,17 +36,32 @@ void GameManager::start(int s) {
 
   // generator->log.setParent(&log);
   generator->log.setAsync(true);
-  if (genThread.joinable()) {
-    genThread.join();
-  }
-  genThread = std::thread([this]() {
-    auto emitter = entt::service_locator<event_emitter>::get().lock();
-    generator->start();
-    emitter->publish<gm::generation_finish>();
-    // generator->log.setParent(&LibLog::Logger::getInstance());
-    generator->log.setAsync(false);
-    status = gm::status::DONE;
-  });
+  // if (genThread.joinable()) {
+  //   genThread.join();
+  // }
+  // genThread = std::thread([this]() {
+  //   auto emitter = entt::service_locator<event_emitter>::get().lock();
+  //   generator->start();
+  //   emitter->publish<gm::generation_finish>();
+  //   // generator->log.setParent(&LibLog::Logger::getInstance());
+  //   generator->log.setAsync(false);
+  //   status = gm::status::DONE;
+  // });
+      // generator->start();
+      // return;
+  generation = std::async(std::launch::async,
+    [this]() {
+      try {
+        generator->start();
+        auto emitter = entt::service_locator<event_emitter>::get().lock();
+        emitter->publish<gm::generation_finish>(location);
+      } catch(...) {
+       log.error("Generation error");
+      }
+      // generator->log.setParent(&LibLog::Logger::getInstance());
+      generator->log.setAsync(false);
+      status = gm::status::DONE;
+    });
 
 
   eventLog->setParent(&LibLog::Logger::getInstance());

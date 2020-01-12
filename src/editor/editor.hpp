@@ -16,10 +16,10 @@
 
 namespace hf = hellfrost;
 
-typedef std::vector<entt::entity> entity_list;
+template <typename T>
 struct tree_node {
-  entity_list entities;
-  std::map<std::string, std::shared_ptr<tree_node>> children;
+  std::vector<T> entities;
+  std::map<std::string, std::shared_ptr<tree_node<T>>> children;
 };
 
 class Editor {

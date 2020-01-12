@@ -1,6 +1,7 @@
 #include <lss/game/region.hpp>
 
 void Region::update() {
+  const std::lock_guard<std::mutex> lock(mutex);
   auto _x = 0;
   auto _y = 0;
   for (auto r : *cells) {
@@ -138,6 +139,7 @@ std::optional<std::shared_ptr<Cell>> Region::getRandomCell(CellSpec type) {
 }
 
 void Region::resize(int w, int h, CellSpec type) {
+  const std::lock_guard<std::mutex> lock(mutex);
   auto c = resize(*cells, w, h, type);
   cells = std::make_shared<Cells>(c);
   width = w;

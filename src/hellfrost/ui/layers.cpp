@@ -28,6 +28,7 @@ void Layer::update() {
 }
 
 void Layer::clear() {
+  if (locked) return;
   children.clear();
   invalidate();
 }

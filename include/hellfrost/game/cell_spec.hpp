@@ -28,6 +28,7 @@ struct CellSpec {
 };
 
 namespace CellType {
+const CellSpec EMPTY = CellSpec{}; //use only as function argument. it should produce std::nullopt
 const CellSpec UNKNOWN = CellSpec{"unknown", false, false};
 const CellSpec FLOOR = CellSpec{"floor", true, true};
 const CellSpec GROUND = CellSpec{"ground", true, true};

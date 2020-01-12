@@ -84,14 +84,14 @@ public:
                cache->size());
     fmt::print(dump());
   }
-  void printRegion(std::shared_ptr<Region> r) {
+  static void printRegion(std::shared_ptr<Region> r) {
     fmt::print(dump(r->getCells()));
   }
 
     void update();
 
   std::string dump() { return dump(getCells()); }
-  std::string dump(std::shared_ptr<Cells> _cells) {
+  static std::string dump(std::shared_ptr<Cells> _cells) {
     std::string out = "";
     for (auto r : *_cells) {
       for (auto c : r) {

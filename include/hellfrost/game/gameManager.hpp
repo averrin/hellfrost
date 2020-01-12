@@ -24,15 +24,15 @@ class GameManager {
   std::unique_ptr<Generator> generator;
   LibLog::Logger log = LibLog::Logger(fmt::color::coral, "GM");
   fs::path path;
-  std::thread genThread;
+  std::future<void> generation;
 
 public:
   GameManager(fs::path, int s);
   ~GameManager() {
     // entt::service_locator<GameData>::reset();
-    if (genThread.joinable()) {
-      genThread.join();
-    }
+    // if (genThread.joinable()) {
+    //   genThread.join();
+    // }
   }
   gm::status status = gm::status::DONE;
   int seed;

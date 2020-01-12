@@ -2,18 +2,12 @@
 #define __LOCATION_H_
 #include <memory>
 
-#include <hellfrost/game/cell.hpp>
+#include <hellfrost/game/region.hpp>
 
 namespace hellfrost {
-class Location {
-  bool damaged = true;
-
-public:
-  Cell getCell(int x, int y, int z);
-  void invalidate() { damaged = true; }
-
-  int width = 0;
-  int height = 0;
+class Location: public Region {
+  public:
+    Location() : Region() {}
 };
 } // namespace hellfrost
 #endif // __LOCATION_H_

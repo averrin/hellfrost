@@ -29,15 +29,25 @@ DrawEngine::DrawEngine(std::shared_ptr<sf::RenderWindow> w, fs::path PATH)
   auto emitter = entt::service_locator<event_emitter>::get().lock();
   emitter->on<center_event>([&](const auto &p, auto &em) {
     auto viewport = entt::service_locator<Viewport>::get().lock();
+    float GUI_SCALE = entt::monostate<"gui_scale"_hs>{};
     // lockedPos = {p.x, p.y};
+    log.info("Centering: {}.{}", p.x, p.y);
     viewport->view_x = p.x - viewport->width / 2 / GUI_SCALE;
     viewport->view_y = p.y - viewport->height / 2 / GUI_SCALE;
     invalidate();
   });
 
+  emitter->on<debug_draw_event>(
+      [&](const auto &p, auto &em) { debugFunctions[p.id] = p.func; });
+
+  emitter->on<debug_clear_event>(
+      [&](const auto &p, auto &em) { debugFunctions.clear(); });
+
   emitter->on<gm::generation_start>([&](const auto &event, auto &em) {
     auto viewport = entt::service_locator<Viewport>::get().lock();
     viewport->update(event.location);
+    log.debug("Location at start: {}.{}.{}", event.location->x,
+              event.location->y, event.location->z);
     update();
     resize();
   });
@@ -45,13 +55,19 @@ DrawEngine::DrawEngine(std::shared_ptr<sf::RenderWindow> w, fs::path PATH)
   emitter->on<gm::generation_finish>([&](const auto &event, auto &em) {
     auto viewport = entt::service_locator<Viewport>::get().lock();
     viewport->update(event.location);
-    update();
+    log.debug("Location at end: {}.{}.{}", event.location->x, event.location->y,
+              event.location->z);
+    // update();
     resize();
   });
 
   emitter->on<resize_event>([&](const auto &p, auto &em) { resize(); });
-  emitter->on<redraw_event>([&](const auto &p, auto &em) { invalidate(); });
-  emitter->on<location_update_event>([&](const auto &p, auto &em) { invalidate(); });
+  emitter->on<redraw_event>([&](const auto &p, auto &em) {
+    tilesCache.clear();
+    invalidate();
+  });
+  emitter->on<location_update_event>(
+      [&](const auto &p, auto &em) { invalidate(); });
 }
 
 void DrawEngine::loadTileset(fs::path path) {
@@ -77,6 +93,7 @@ void DrawEngine::loadTileset(fs::path path) {
 }
 
 void DrawEngine::update() {
+  const std::lock_guard<std::mutex> lock(cache_mutex);
   auto registry = entt::service_locator<entt::registry>::get().lock();
   auto viewport = entt::service_locator<Viewport>::get().lock();
   auto ents = registry->view<visible>();
@@ -84,11 +101,13 @@ void DrawEngine::update() {
     auto v = registry->get<visible>(e);
     registry->assign_or_replace<renderable>(
         e,
-        (v.sign != "" && tileSet->sprites.find(v.sign) != tileSet->sprites.end())
+        (v.sign != "" &&
+         tileSet->sprites.find(v.sign) != tileSet->sprites.end())
             ? v.sign
             : "UNKNOWN",
-        tileSet->colors[v.type].find(v.sign) != tileSet->colors[v.type].end() ? tileSet->colors[v.type][v.sign]
-                                                : "#aa3333ff");
+        tileSet->colors[v.type].find(v.sign) != tileSet->colors[v.type].end()
+            ? tileSet->colors[v.type][v.sign]
+            : "#aa3333ff");
   }
   ob_visible = std::make_shared<entt::observer>(
       *registry, entt::collector.group<visible>());
@@ -101,7 +120,7 @@ void DrawEngine::update() {
   ob_ineditor = std::make_shared<entt::observer>(
       *registry, entt::collector.replace<ineditor>());
 
-  layers->layers.clear();
+  layers->clear();
 
   layers->layers["cellsBg"] = std::make_shared<Layer>();
   layers->layers["cellsBg"]->zIndex = 0;
@@ -116,6 +135,10 @@ void DrawEngine::update() {
 
   layers->layers["overlay"] = std::make_shared<Layer>();
   layers->layers["overlay"]->zIndex = 1000;
+
+  layers->layers["debug"] = std::make_shared<Layer>();
+  layers->layers["debug"]->zIndex = 9999;
+  // layers->layers["debug"]->lock();
 }
 
 void DrawEngine::updateEntity(entt::entity e) {
@@ -145,7 +168,8 @@ void DrawEngine::renderEntity(entt::entity e) {
   if (pos.z != viewport->view_z)
     return;
 
-  auto e_size = sf::Vector2f(tileSet->size.first, tileSet->size.second) * rScale;
+  auto e_size =
+      sf::Vector2f(tileSet->size.first, tileSet->size.second) * rScale;
   auto e_pos =
       sf::Vector2f(pos.x * tileSet->size.first, pos.y * tileSet->size.second) *
       rScale;
@@ -191,7 +215,8 @@ std::shared_ptr<sf::RectangleShape> DrawEngine::makeBg(sf::Vector2f pos) {
   auto rScale = viewport->scale * GUI_SCALE;
   auto bg = std::make_shared<sf::RectangleShape>();
 
-  auto e_size = sf::Vector2f(tileSet->size.first, tileSet->size.second) * rScale;
+  auto e_size =
+      sf::Vector2f(tileSet->size.first, tileSet->size.second) * rScale;
   auto e_pos =
       sf::Vector2f(pos.x * tileSet->size.first, pos.y * tileSet->size.second) *
       rScale;
@@ -244,6 +269,7 @@ void DrawEngine::renderTile(std::shared_ptr<Tile> t) {
 }
 
 void DrawEngine::resize() {
+  const std::lock_guard<std::mutex> lock(cache_mutex);
   auto size = window->getSize();
   layers->resize(size);
   canvas->create(size.x, size.y);
@@ -259,7 +285,7 @@ void DrawEngine::resize() {
   viewport->height = size.y / tileSet->size.second + 1;
   vW = viewport->width / viewport->scale / GUI_SCALE;
   vH = viewport->height / viewport->scale / GUI_SCALE;
-  // tilesCache.clear();
+  tilesCache.clear();
   invalidate();
 }
 
@@ -353,6 +379,10 @@ sf::Texture DrawEngine::Draw() {
         renderEntity(e);
       }
     }
+
+    for (auto [id, f] : debugFunctions) {
+      layers->layers["debug"]->draw(f(), id);
+    }
     // #else
     //       #include <execution>
     //       #include <algorithm>
@@ -409,7 +439,9 @@ std::optional<std::shared_ptr<Tile>> DrawEngine::cacheTile(int x, int y,
   auto viewport = entt::service_locator<Viewport>::get().lock();
   x += viewport->view_x;
   y += viewport->view_y;
+  log.start(fmt::format("get cell: {}.{}.{}", x, y, z), true);
   auto [c, rz] = viewport->getCell(x, y, z);
+  log.stop(fmt::format("get cell: {}.{}.{}", x, y, z), 1);
   if (!c) {
     return std::nullopt;
   }
@@ -530,124 +562,116 @@ std::array<int, 3> DrawEngine::getWallSpec(std::shared_ptr<Cell> cell) {
 }
 
 std::optional<std::shared_ptr<Tile>> DrawEngine::getTile(int x, int y, int z) {
-  return std::nullopt;
+  auto viewport = entt::service_locator<Viewport>::get().lock();
+  auto [c, rz] = viewport->getCell(x, y, z);
+  if (!c) {
+    fmt::print("nullopt @ {}.{}.{}\n", x, y, z);
+    return std::nullopt;
+  }
+  auto cell = *c;
 
-  /*
-auto [c, rz] = getCell(x, y, z);
-if (!c) {
-  fmt::print("nullopt @ {}.{}.{}\n", x, y, z);
-  return std::nullopt;
-}
-auto cell = *c;
+  if (cell->type == CellType::UNKNOWN) {
+    return std::nullopt;
+  }
 
-if (cell->type == CellType::UNKNOWN) {
-  return std::nullopt;
-}
-
-// mutex.lock();
-auto fgColor = sf::Color(220, 220, 220);
-auto sprite = std::make_shared<sf::Sprite>();
-auto tile = std::make_shared<Tile>();
-tile->sprites.push_back(sprite);
-auto sprite_spec = tileSet->sprites["UNKNOWN"];
-if (cell->type == CellType::UPSTAIRS) {
-  sprite_spec = tileSet->sprites["UPSTAIRS"];
-} else if (cell->type == CellType::DOWNSTAIRS) {
-  sprite_spec = tileSet->sprites["DOWNSTAIRS"];
-} else if (cell->type == CellType::WATER) {
-  sprite_spec = tileSet->sprites["WATER"];
-  auto c = Color::fromHexString(colors["ENV"]["WATER"]);
-  c.value(c.value() + gen->R(0, 30) / 100.f);
-  fgColor = sf::Color(c.r, c.g, c.b, c.a);
-  tile->bgColor = getColor(colors["ENV"]["WATER_BG"]);
-  tile->hasBackground = true;
-} else if (cell->type == CellType::VOID) {
-  sprite_spec = tileSet->sprites["VOID"];
-  fgColor = getColor(colors["ENV"]["VOID"]);
-  tile->bgColor = getColor(colors["ENV"]["VOID"]);
-  tile->hasBackground = true;
-} else if (cell->passThrough) {
-
-  if (cell->type == CellType::GROUND) {
-    sprite_spec = tileSet->sprites["GRASS"];
-    auto brown = Color::fromHexString(colors["PALETTE"]["BROWN"]);
-    brown.g += gen->R(0, 60);
-    fgColor = sf::Color(brown.r, brown.g, brown.b, brown.a);
-    tile->bgColor = getColor(colors["ENV"]["GROUND_BG"]);
+  // mutex.lock();
+  auto fgColor = sf::Color(220, 220, 220);
+  auto sprite = std::make_shared<sf::Sprite>();
+  auto tile = std::make_shared<Tile>();
+  tile->sprites.push_back(sprite);
+  auto sprite_spec = tileSet->sprites["ENV"]["UNKNOWN"];
+  if (cell->type == CellType::UPSTAIRS) {
+    sprite_spec = tileSet->sprites["ENV"]["UPSTAIRS"];
+  } else if (cell->type == CellType::DOWNSTAIRS) {
+    sprite_spec = tileSet->sprites["ENV"]["DOWNSTAIRS"];
+  } else if (cell->type == CellType::WATER) {
+    sprite_spec = tileSet->sprites["ENV"]["WATER"];
+    auto c = Color::fromHexString(tileSet->colors["ENV"]["WATER"]);
+    // c.value(c.value() + gen->R(0, 30) / 100.f);
+    fgColor = sf::Color(c.r, c.g, c.b, c.a);
+    tile->bgColor = getColor(tileSet->colors["ENV"]["WATER_BG"]);
     tile->hasBackground = true;
+  } else /*if (cell->passThrough) {*/
+
+      if (cell->type == CellType::GROUND) {
+    sprite_spec = tileSet->sprites["ENV"]["GRASS"];
+    auto brown = Color::fromHexString(tileSet->colors["PALETTE"]["BROWN"]);
+    // brown.g += gen->R(0, 60);
+    fgColor = sf::Color(brown.r, brown.g, brown.b, brown.a);
+    tile->bgColor = getColor(tileSet->colors["ENV"]["GROUND_BG"]);
+    tile->hasBackground = true;
+    // if (cell->hasFeature(CellFeature::CAVE)) {
+    //   tile->bgColor = getColor(colors["ENV"]["CAVE_BG"]);
+    //   tile->hasBackground = true;
+    // }
+  } else if (cell->type == CellType::FLOOR) {
+    sprite_spec = tileSet->sprites["ENV"]["FLOOR"];
+    fgColor = getColor(tileSet->colors["ENV"]["FLOOR"]);
+    // }
+
+    // if (region) {
+    //   auto doors =
+    //       utils::castObjects<Door>((*region)->location->getObjects(cell));
+    //   if (doors.size() != 0) {
+    //     if (doors.front()->hidden) {
+    //       sprite_spec = getWallSpec(cell);
+    //       fgColor = getColor(colors["ENV"]["WALL"]);
+    //       if (cell->hasFeature(CellFeature::CAVE)) {
+    //         fgColor = getColor(colors["ENV"]["WALL_CAVE"]);
+    //         tile->bgColor = getColor(colors["ENV"]["CAVE_BG"]);
+    //         tile->hasBackground = true;
+    //       }
+    //     } else {
+    //       sprite_spec = tileSet->sprites["DOOR"];
+    //       fgColor = getColor(colors["ENV"]["DOOR"]);
+    //     }
+    //   }
+    // }
+  }
+  /*else if (cell->type == CellType::WALL) {
+    sprite_spec = getWallSpec(cell);
+    fgColor = getColor(colors["ENV"]["WALL"]);
     if (cell->hasFeature(CellFeature::CAVE)) {
+      fgColor = getColor(colors["ENV"]["WALL_CAVE"]);
       tile->bgColor = getColor(colors["ENV"]["CAVE_BG"]);
       tile->hasBackground = true;
     }
-  } else if (cell->type == CellType::FLOOR) {
-    sprite_spec = tileSet->sprites["FLOOR"];
-    fgColor = getColor(colors["ENV"]["FLOOR"]);
+  } else if (cell->type == CellType::ROOF) {
+    sprite_spec = {0, 1, 17};
   }
+  */
+  sprite->setTexture(tilesTextures[sprite_spec[0]]);
 
-  // if (region) {
-  //   auto doors =
-  //       utils::castObjects<Door>((*region)->location->getObjects(cell));
-  //   if (doors.size() != 0) {
-  //     if (doors.front()->hidden) {
-  //       sprite_spec = getWallSpec(cell);
-  //       fgColor = getColor(colors["ENV"]["WALL"]);
-  //       if (cell->hasFeature(CellFeature::CAVE)) {
-  //         fgColor = getColor(colors["ENV"]["WALL_CAVE"]);
-  //         tile->bgColor = getColor(colors["ENV"]["CAVE_BG"]);
-  //         tile->hasBackground = true;
-  //       }
-  //     } else {
-  //       sprite_spec = tileSet->sprites["DOOR"];
-  //       fgColor = getColor(colors["ENV"]["DOOR"]);
-  //     }
-  //   }
+  auto src = getTileRect(sprite_spec[1], sprite_spec[2]);
+  sprite->setTextureRect(src);
+  sprite->setColor(fgColor);
+
+  // tile->bgColor = sf::Color(255, 255, 255, rand()%256);
+
+  // if (cell->type != CellType::UNKNOWN) {
+  /*
+  for (auto f : cell->features) {
+    if (f == CellFeature::BLOOD) {
+      tile->bgColor = getColor(colors["ENV"]["BLOOD"]);
+      tile->hasBackground = true;
+    }
+    if (f == CellFeature::FROST) {
+      tile->bgColor = getColor(colors["ENV"]["FROST"]);
+      tile->hasBackground = true;
+    }
+    if (f == CellFeature::CORRUPT) {
+      tile->bgColor = getColor(colors["ENV"]["CORRUPT"]);
+      tile->hasBackground = true;
+    }
+  }*/
   // }
-} else if (cell->type == CellType::WALL) {
-  sprite_spec = getWallSpec(cell);
-  fgColor = getColor(colors["ENV"]["WALL"]);
-  if (cell->hasFeature(CellFeature::CAVE)) {
-    fgColor = getColor(colors["ENV"]["WALL_CAVE"]);
-    tile->bgColor = getColor(colors["ENV"]["CAVE_BG"]);
-    tile->hasBackground = true;
+
+  tile->pos = sf::Vector3f(cell->x, cell->y, rz);
+  for (auto s : tile->sprites) {
+    s->setPosition(sf::Vector2f(tile->pos.x, tile->pos.y));
   }
-} else if (cell->type == CellType::ROOF) {
-  sprite_spec = {0, 1, 17};
-}
 
-sprite->setTexture(tilesTextures[sprite_spec[0]]);
-
-auto src = getTileRect(sprite_spec[1], sprite_spec[2]);
-sprite->setTextureRect(src);
-sprite->setColor(fgColor);
-
-// tile->bgColor = sf::Color(255, 255, 255, rand()%256);
-
-// if (cell->type != CellType::UNKNOWN) {
-for (auto f : cell->features) {
-  if (f == CellFeature::BLOOD) {
-    tile->bgColor = getColor(colors["ENV"]["BLOOD"]);
-    tile->hasBackground = true;
-  }
-  if (f == CellFeature::FROST) {
-    tile->bgColor = getColor(colors["ENV"]["FROST"]);
-    tile->hasBackground = true;
-  }
-  if (f == CellFeature::CORRUPT) {
-    tile->bgColor = getColor(colors["ENV"]["CORRUPT"]);
-    tile->hasBackground = true;
-  }
-}
-// }
-
-tile->pos = sf::Vector3f((cell->anchor.first + cell->x),
-                         (cell->anchor.second + cell->y), rz);
-for (auto s : tile->sprites) {
-  s->setPosition(sf::Vector2f(tile->pos.x, tile->pos.y));
-}
-tile->cell = cell;
-
-return tile;
-*/
+  return tile;
 }
 
 } // namespace hellfrost

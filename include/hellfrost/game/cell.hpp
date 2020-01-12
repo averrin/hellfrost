@@ -6,6 +6,7 @@
 namespace hellfrost {
 class RawCell {
 public:
+  RawCell(int _x, int _y, int _z, CellSpec t) : x(_x), y(_y), z(_z), type(t) {}
   CellSpec type = CellType::UNKNOWN;
 
   int x = 0;

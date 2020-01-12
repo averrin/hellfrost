@@ -13,12 +13,15 @@ class Layer : public sf::Drawable {
 public:
   Layer();
   bool enabled = true;
+  bool locked = false;
   std::map<int, std::shared_ptr<sf::Drawable>> children;
   int zIndex = 0;
   void clear();
   void update();
   void remove(int);
   void draw(std::shared_ptr<sf::Drawable> child, int id);
+  void lock() { locked = true; }
+  void unlock() { locked = false; }
 
   std::shared_ptr<sf::RenderTexture> cache;
   void resize(sf::Vector2u size) {
@@ -45,6 +48,13 @@ public:
     return n;
   }
 
+  void clear() {
+    for (auto [k, l] : layers) {
+      l->clear();
+    }
+    layers.clear();
+  }
+
   void setLayerEnabled(std::string name, bool enabled) {
     layers[name]->enabled = enabled;
     if (enabled) {
@@ -65,5 +75,5 @@ public:
     }
   }
 };
-}
+} // namespace hellfrost
 #endif

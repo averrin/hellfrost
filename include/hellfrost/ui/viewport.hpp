@@ -36,12 +36,13 @@ public:
 
   std::shared_ptr<Location> location;
 
-  std::pair<Cell, int> getCell(int x, int y, int z) {
-    auto cell = location->getCell(x, y, z);
-    if (z > 0 && !cell) {
-      return getCell(x, y, z - 1);
+  std::pair<Cell, int> getCell(int _x, int _y, int _z) {
+    auto l = fmt::format("get cell: {}.{}.{}", _x, _y, _z);
+    auto cell = location->getCell(_x, _y, _z);
+    if (_z > 0 && !cell) {
+      return getCell(_x, _y, _z - 1);
     }
-    return std::make_pair(cell, z);
+    return std::make_pair(cell, _z);
   }
 };
 } // namespace hellfrost

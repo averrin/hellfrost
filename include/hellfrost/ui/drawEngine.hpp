@@ -15,7 +15,6 @@
 #include <hellfrost/ui/tileSet.hpp>
 #include <hellfrost/ui/viewport.hpp>
 
-
 namespace hellfrost {
 struct renderable {
   std::string spriteCat = "ENV";
@@ -28,6 +27,15 @@ struct renderable {
   bool hidden = false;
   int zIndex = 0;
 };
+
+typedef std::function<std::shared_ptr<sf::Drawable>()> debugDrawFunction;
+
+struct debug_draw_event {
+  int id;
+  debugDrawFunction func;
+};
+
+struct debug_clear_event {};
 
 class DrawEngine {
   std::shared_ptr<sf::RenderWindow> window;
@@ -43,9 +51,11 @@ class DrawEngine {
   std::shared_ptr<entt::observer> ob_new_renderable;
   std::shared_ptr<entt::observer> ob_ineditor;
 
+  std::mutex update_mutex;
   std::mutex cache_mutex;
 
   std::thread cacheThread;
+  std::map<int, debugDrawFunction> debugFunctions{};
 
   std::shared_ptr<sf::Sprite> makeSprite(std::string cat, std::string key);
   std::array<int, 3> getWallSpec(std::shared_ptr<Cell> cell);

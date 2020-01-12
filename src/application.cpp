@@ -58,8 +58,7 @@ Application::Application(std::string app_name, fs::path path,
   setupGui();
 
   log.start("Init game systems");
-  // std::shared_ptr<R::Generator> gen = std::make_shared<R::Generator>();
-  engine = std::make_unique<hf::DrawEngine>(window, PATH);
+  engine = std::make_shared<hf::DrawEngine>(window, PATH);
   entt::service_locator<hf::DrawEngine>::set(engine);
 
   auto config = entt::service_locator<hf::Config>::get().lock();

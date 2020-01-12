@@ -6,8 +6,10 @@
 #include <fstream>
 #include <mutex>
 #include <thread>
+#include <future>
 #include <memory>
 
+#include <librandom/random.hpp>
 #include <liblog/liblog.hpp>
 
 using lu = LibLog::utils;

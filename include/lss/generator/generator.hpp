@@ -14,12 +14,11 @@ public:
   Generator() {}
   std::shared_ptr<Location> getLocation();
   std::shared_ptr<Location> location;
-    std::thread bgThread;
 
-  void makeCavePassage(std::shared_ptr<Region> location);
-  void placeCaves(std::shared_ptr<Region> location);
-  void makeExterior(std::shared_ptr<Region> location);
-  void placeDoors(std::shared_ptr<Region> location);
+  void makeCavePassage(std::shared_ptr<Region>);
+  void placeCaves(std::shared_ptr<Region>);
+  void makeExterior(std::shared_ptr<Region>);
+  void placeDoors(std::shared_ptr<Region>);
   // std::shared_ptr<Location>
 //   getRandomLocation(std::shared_ptr<Player>, int depth = -1,
 //                     std::shared_ptr<Cell> enter = nullptr);
