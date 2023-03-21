@@ -1,5 +1,6 @@
 #ifndef __COMPONENTS_H_
 #define __COMPONENTS_H_
+#include "lss/game/cell.hpp"
 #include <string>
 #include <vector>
 #include <lss/deps.hpp>
@@ -51,15 +52,16 @@ namespace hellfrost {
         int x = 0;
         int y = 0;
         int z = 0;
+        bool movable = true;
 
         friend class cereal::access;
         template<class Archive>
         void save(Archive & ar) const {
-            ar( x, y, z );
+            ar( x, y, z, movable );
         };
         template<class Archive>
         void load(Archive & ar) {
-            ar( x, y, z );
+            ar( x, y, z, movable );
         };
     };
 
@@ -115,13 +117,37 @@ namespace hellfrost {
     struct glow {
         float distance;
         LightType type;
-        bool stable = false;
+        bool stable = false; // depricated
+        int bright = 80;
+        int flick = 5;
+        bool passive = false;
+        int pulse = 0;
 
         friend class cereal::access;
         template<class Archive>
-        void serialize(Archive & ar) {
-            ar( distance, type, stable );
+        void save(Archive & ar) const {
+            ar( distance, type, bright, flick, passive, pulse );
         };
+        template<class Archive>
+        void load(Archive & ar) {
+            ar( distance, type, bright, flick, passive, pulse );
+        };
+    };
+
+    struct cell {
+      std::shared_ptr<Cell> cell;
+    };
+
+    struct room {
+      std::shared_ptr<Room> room;
+    };
+
+    struct children {
+      std::vector<entt::entity> children;
+    };
+    struct size {
+      int width = 0;
+      int height = 0;
     };
 
     //TODO

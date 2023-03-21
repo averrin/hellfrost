@@ -1,9 +1,8 @@
 #ifndef __CREATURE_H_
 #define __CREATURE_H_
+#include "EventBus/EventBus.hpp"
 #include <algorithm>
 #include <thread>
-#include <liblog/liblog.hpp>
-#include "EventBus/EventBus.hpp"
 
 #include "lss/deps.hpp"
 #include "lss/game/content/traits.hpp"
@@ -17,12 +16,14 @@
 #include <lss/game/damageSpec.hpp>
 #include <lss/game/location.hpp>
 #include <lss/gameData.hpp>
+#include <lss/utils.hpp>
 
 class Creature : public Object {
-  LibLog::Logger &log = LibLog::Logger::getInstance();
+  ll::Logger &log = ll::Logger::getInstance();
+
 public:
   Creature();
-  std::string getId() {return name;}
+  std::string getId() { return name; }
   std::vector<std::shared_ptr<Cell>> viewField;
   std::shared_ptr<Location> currentLocation;
   std::vector<Trait> traits;
@@ -31,9 +32,7 @@ public:
   std::thread bgThread;
   bool move(Direction, bool autoAction = false);
   bool attack(Direction);
-  bool canSee(std::shared_ptr<Cell> c) {
-    return canSee(c, viewField);
-  };
+  bool canSee(std::shared_ptr<Cell> c) { return canSee(c, viewField); };
   bool canSee(std::shared_ptr<Cell> c, std::vector<std::shared_ptr<Cell>> vf) {
     auto data = entt::service_locator<GameData>::get().lock();
     // for (auto t : utils::castObjects<Terrain>(
@@ -43,8 +42,7 @@ public:
     //   }
     // }
 
-    return std::find(vf.begin(), vf.end(), c) !=
-               vf.end() ||
+    return std::find(vf.begin(), vf.end(), c) != vf.end() ||
            hasTrait(Traits::MIND_SIGHT);
   };
   std::vector<std::shared_ptr<Cell>> calcViewField(bool force = false);
@@ -95,7 +93,7 @@ public:
   std::optional<AiAction> execAction() {
     log.warn("call execAction on creature");
     log.info(fmt::format("creature [{}@{}.{}]", lu::magenta(name),
-                                  currentCell->x, currentCell->y));
+                         currentCell->x, currentCell->y));
     return std::nullopt;
   }
 
@@ -253,27 +251,27 @@ public:
   int waitedAP = 0;
 
   void heal(int min, int max) {
-    auto heal = R::Z(HP_MAX(this) / 100 * min,
-                    HP_MAX(this) / 100 * max);
+    auto heal = R::Z(HP_MAX(this) / 100 * min, HP_MAX(this) / 100 * max);
     hp += heal;
     if (HP(this) > HP_MAX(this)) {
       hp = HP_MAX(this);
     }
     commit("heal", 0);
-    auto a = std::make_shared<ColorAnimation>(shared_from_this(), Color::fromHexString("#2222ff"), 8, true);
+    auto a = std::make_shared<ColorAnimation>(
+        shared_from_this(), Color::fromHexString("#2222ff"), 8, true);
     AnimationEvent ae(a);
     eb::EventBus::FireEvent(ae);
   }
 
   void restoreMana(int min, int max) {
-    auto heal = R::Z(MP_MAX(this) / 100 * min,
-                    MP_MAX(this) / 100 * max);
+    auto heal = R::Z(MP_MAX(this) / 100 * min, MP_MAX(this) / 100 * max);
     mp += heal;
     if (MP(this) > MP_MAX(this)) {
       mp = MP_MAX(this);
     }
     commit("manaRestore", 0);
-    auto a = std::make_shared<ColorAnimation>(shared_from_this(), Color::fromHexString("#2222ff"), 8, true);
+    auto a = std::make_shared<ColorAnimation>(
+        shared_from_this(), Color::fromHexString("#2222ff"), 8, true);
     AnimationEvent ae(a);
     eb::EventBus::FireEvent(ae);
   }

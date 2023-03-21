@@ -34,7 +34,10 @@ class DrawEngine {
   std::shared_ptr<entt::observer> renderable;
   std::shared_ptr<entt::observer> new_renderable;
   std::shared_ptr<entt::observer> ineditor;
+  std::shared_ptr<entt::observer> glow;
 
+  std::map<int, std::vector<entt::entity>> lightMap;
+  bool fastRedraw = false;
 
 public:
   ~DrawEngine() { tilesCache.clear(); }
@@ -42,13 +45,24 @@ public:
   std::map<std::string, std::shared_ptr<Tile>> tilesCache{};
   std::vector<std::pair<int, int>> damage{};
 
+  int alpha_per_d = 10;
+  float alpha_blend_inc = 0.5;
+  std::string blend_mode = "add";
+  int max_bright = 100;
+
   int vW = 0;
   int vH = 0;
 
   int redraws = 0;
   int tilesUpdated = 0;
+  bool roomDebug = false;
 
   std::optional<std::shared_ptr<Tile>> cacheTile(int x, int y, int z);
+  void scheduleFastRedraw() {
+    fastRedraw = true;
+  }
+  void updateExistingLight();
+  void updateVisible();
 
   DrawEngine(sf::RenderWindow *w) : window(w) {
     layers = std::make_shared<LayersManager>();
@@ -67,6 +81,9 @@ public:
   void updateTile(std::shared_ptr<Tile>);
   void renderEntity(entt::entity e);
   void updateEntity(entt::entity e);
+  void updateLight();
+
+  sf::Color getGlowColorForCell(entt::entity e, std::shared_ptr<Cell> c, int);
 
   sf::Texture draw();
   void resize(sf::Vector2u);

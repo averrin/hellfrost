@@ -1,9 +1,9 @@
 {
-    "TILEMAPS": [
-        "sprites/lonesome.png"
-    ],
-    "SIZE": [20, 20],
     "GAP": 0,
+    "SIZE": [
+        20,
+        20
+    ],
     "SPRITES": {
         "ACID_DRAGON": [
             0,
@@ -18,7 +18,7 @@
         "ALTAR": [
             0,
             15,
-            15
+            5
         ],
         "AMULET": [
             0,
@@ -470,5 +470,8 @@
             10,
             7
         ]
-    }
+    },
+    "TILEMAPS": [
+        "sprites/lonesome.png"
+    ]
 }

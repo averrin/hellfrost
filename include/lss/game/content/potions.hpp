@@ -2,6 +2,7 @@
 #define __POTIONS_H_
 #include "lss/game/content/spells.hpp"
 #include "lss/game/item.hpp"
+#include "lss/utils.hpp"
 
 namespace Prototype {
 // TODO: make colors unique
@@ -9,8 +10,8 @@ const auto POTION_HEAL_LESSER = std::make_shared<Consumable>(
     fmt::format("{} potion", utils::getRandomColor()), "lesser heal potion",
     "POTION", Spells::HEAL_LESSER);
 const auto POTION_HEAL = std::make_shared<Consumable>(
-    fmt::format("{} potion", utils::getRandomColor()), "heal potion",
-    "POTION", Spells::HEAL);
+    fmt::format("{} potion", utils::getRandomColor()), "heal potion", "POTION",
+    Spells::HEAL);
 
 const auto POTION_MANA = std::make_shared<Consumable>(
     fmt::format("{} potion", utils::getRandomColor()), "restore mana potion",
@@ -41,8 +42,8 @@ const auto POTION_REGENERATION = std::make_shared<Consumable>(
     "POTION", Spells::EOT_HEAL);
 
 const auto POTION_POISON = std::make_shared<Consumable>(
-    fmt::format("{} potion", utils::getRandomColor()), "poison",
-    "POTION", Spells::EOT_POISON);
+    fmt::format("{} potion", utils::getRandomColor()), "poison", "POTION",
+    Spells::EOT_POISON);
 
 const auto POTION_CONFUSION = std::make_shared<Consumable>(
     fmt::format("{} potion", utils::getRandomColor()), "potion of confusion",

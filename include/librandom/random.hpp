@@ -65,6 +65,7 @@ public:
   T R(std::vector<T> list) {
     return list[R(0, list.size()-1)];
   }
+
 };
 } // namespace R
 

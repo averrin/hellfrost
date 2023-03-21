@@ -2,15 +2,12 @@
 #define __CELL_H_
 #include <algorithm>
 #include <cmath>
-#include <liblog/liblog.hpp>
 #include <lss/deps.hpp>
 #include <lss/game/content/traits.hpp>
+#include <lss/utils.hpp>
 #include <memory>
 #include <set>
 #include <vector>
-
-namespace ll = LibLog;
-using lu = ll::utils;
 
 const float TORCH_DISTANCE = 4.5f;
 
@@ -48,6 +45,7 @@ const CellSpec EMPTY = CellSpec{"empty", true, true};
 const CellSpec UNKNOWN = CellSpec{"unknown", false, false};
 const CellSpec FLOOR = CellSpec{"floor", true, true};
 const CellSpec GROUND = CellSpec{"ground", true, true};
+const CellSpec ROAD = CellSpec{"ground", true, true};
 const CellSpec WALL = CellSpec{"wall", false, false};
 const CellSpec ROOF = CellSpec{"roof", true, false};
 const CellSpec DOWNSTAIRS = CellSpec{"downstairs", true, true};
@@ -58,20 +56,20 @@ const CellSpec VOID = CellSpec{"void", false, true, {Traits::FLY}};
 }; // namespace CellType
 
 enum class VisibilityState { UNKNOWN, SEEN, VISIBLE };
-enum class CellFeature { BLOOD, CAVE, FROST, MARK1, MARK2, ACID, CORRUPT };
+enum class CellFeature { BLOOD, CAVE, FROST, MARK1, MARK2, ACID, CORRUPT, DUNGEON, POI, WIPE };
 
 class Cell {
-  LibLog::Logger &log = LibLog::Logger::getInstance();
+  ll::Logger &log = ll::Logger::getInstance();
 
 public:
   static std::vector<CellSpec> types;
   Cell(CellSpec t) : type(t) {}
-  Cell(int _x, int _y, CellSpec t)
-      : x(_x), y(_y), type(t), passThrough(type.passThrough),
-        seeThrough(type.seeThrough) {}
-  Cell(int _x, int _y, CellSpec t, std::vector<CellFeature> f)
-      : x(_x), y(_y), type(t), features(f), passThrough(type.passThrough),
-        seeThrough(type.seeThrough) {}
+  Cell(int __x, int __y, CellSpec t)
+      : x(__x), y(__y), type(t), passThrough(type.passThrough),
+        seeThrough(type.seeThrough), _x(__x), _y(__y), z(0), _z(0) {}
+  Cell(int __x, int __y, CellSpec t, std::vector<CellFeature> f)
+      : x(__x), y(__y), type(t), features(f), passThrough(type.passThrough),
+        seeThrough(type.seeThrough), _x(__x), _y(__y), z(0), _z(0) {}
   CellSpec type;
   VisibilityState visibilityState = VisibilityState::UNKNOWN;
   bool illuminated = false;
@@ -92,6 +90,14 @@ public:
   int x = 0;
   int y = 0;
   int z = 0;
+  int _x = 0;
+  int _y = 0;
+  int _z = 0;
+  int getId() { return x * 1000000 + y * 1000 + z; }
+  std::string getSId() {
+    return fmt::format("{}{}.{}.{}", type.name.front(), x, y,
+                       z);
+  }
   std::pair<int, int> anchor;
 
   bool passThrough = false;

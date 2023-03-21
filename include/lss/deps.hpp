@@ -1,6 +1,7 @@
 #ifndef __DEPS_H_
 #define __DEPS_H_
 
+#include <algorithm>
 #include <entt/entt.hpp>
 #include <cereal/types/string.hpp>
 #include <cereal/types/map.hpp>
@@ -15,6 +16,9 @@
 #include <iostream>
 #include <fstream>
 #include <mutex>
+#include <random.hpp>
+using Random = effolkronium::random_static;
+using namespace std::chrono;
 
 
 #if defined(__cplusplus) && __cplusplus >= 201703L && defined(__has_include)
@@ -38,11 +42,23 @@ struct redraw_event {};
 struct regen_event {int seed = -2;};
 struct resize_event {};
 struct center_event {int x; int y;};
+struct mouse_center_event {int x; int y;};
 struct damage_event {int x; int y;};
 struct exec_event {std::string code;};
 struct log_event {std::string msg;};
-struct duk_event {std::string msg;};
-struct duk_error {std::string msg;};
-struct clear_markers_event {};
+
+class Tags {
+public:
+  std::vector<std::string> tags;
+  void add(std::string tag) {
+    tags.push_back(tag);
+  }
+  bool has(std::string tag) {
+    return std::find(tags.begin(), tags.end(), tag) != tags.end();
+  }
+  void remove(std::string tag) {
+    tags.erase(std::remove(tags.begin(), tags.end(), tag), tags.end());
+  }
+};
 
 #endif // __DEPS_H_

@@ -1,0 +1,121 @@
+* multilevel locations
+* reseed random on every feature
+* pass threat levevl to lua (enemies, loot)
+* do not merge different wall types
+* render dungeon part embeded in cavern
+* ground count in features
+* features and rooms postprocess (after placing)
+* ensure scattre cell type
+* house random items / terrain
+* migrate doors to terrain
+* color wandering editor
+* color wandering component (or embed in renderable)
+* renderable add layer
+* make layers configurable (lua)
+* Fix walls after river
+* control for wall variants
+* dehardcode wall color
+* dig from point to point
+	* dig to link separated caverns
+* highlight location path
+* fix room debug checkbox
+* migrate all templates and features to lua
+  * holes
+  -- * cave pass feature
+  * void feature, holes
+  * doors feature
+  * treasure
+  * herb / flower field / water herbs
+  * rat / wolf pack, goblin / ork lair / camp
+  * roads, bridge, blood pathes
+* fix: proto to scene button
+* Legendary tileset
+* animated tiles
+* migrate cell types to lua
+* nested probabilities
+* FIX: weaved walls
+* Overworld location type
+* tile rotation [blocked by setOrigin]
+  * create rotated tileset, convert coords
+  * fire terrain
+* tile effects
+* ice/snow/dry env variants
+* cells render to entities
+* drag-n-drop
+* FIX: jumps on mouse pan
+* save shortcut
+* remove entity shortcut
+* expose proto names to lua
+* invisible (w/o renderable) lights proto
+* FIX: light wall bug
+* gradient cavern walls color
+* room shrink
+* rewrite animation thread to draw with animation engine
+* swamp tiles for river and lake (and standalone)
+* hardcode custom prototypes to be able remigrate them
+  * write proto migration code
+* rewrite enemy / loot placing from objects to entities
+* tile spec size in tilesets
+--  * combined feature bone + blood
+  -- * ponds
+  -- * blood
+  -- * bushes
+  -- * mashroom circle
+  -- * enemies feature
+  -- * loot feature
+  -- * statues
+--  * move river and torches from rooms to features
+-- * buttons to zero/one all features
+-- * Debug pather
+-- * add auto color variation specs to tileset. like for WATER
+-- * big tiles
+--  * size component (for rooms) and respect it in selection
+-- * display stairs in editor
+-- * check neighbors to prevent torch doubles
+--  * divide features for pre/post stairs placements
+-- * Smarter light animation [kinda]
+-- * color variations
+-- * Entity nesting
+-- * FIX: blobs
+-- * horizontal river
+-- * templates from lua
+-- * map templates on location types
+-- * Tile variants
+-- * clean entities on walls/unknown/water
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

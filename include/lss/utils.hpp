@@ -16,7 +16,8 @@
 #include <lss/game/direction.hpp>
 
 namespace ll = LibLog;
-using lu = ll::utils;
+namespace lp = LibPrint;
+using lu = lp::utils;
 using namespace std::string_literals;
 
 class utils {

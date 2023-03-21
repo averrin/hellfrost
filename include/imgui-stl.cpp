@@ -165,7 +165,7 @@ bool ListBox(const char *label, int *currIndex,
 }
 
 bool InputText(const char *label, std::string &str, size_t maxInputSize,
-               ImGuiInputTextFlags flags, ImGuiTextEditCallback callback,
+               ImGuiInputTextFlags flags, ImGuiInputTextCallback callback,
                void *user_data) {
   if (str.size() > maxInputSize) { // too large for editing
     ImGui::Text(str.c_str());

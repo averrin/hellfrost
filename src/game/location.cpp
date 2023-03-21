@@ -5,6 +5,7 @@
 #include "EventBus/EventBus.hpp"
 // #include "lss/game/enemy.hpp"
 // #include "lss/game/item.hpp"
+#include "lss/game/cell.hpp"
 #include "lss/game/location.hpp"
 // #include "lss/game/player.hpp"
 #include "lss/game/terrain.hpp"
@@ -12,6 +13,7 @@
 #include "lss/generator/room.hpp"
 #include "lss/utils.hpp"
 #include <lss/gameData.hpp>
+#include <lss/generator/mapUtils.hpp>
 // #include "lss/generator/spawnTable.hpp"
 
 float getDistance(std::shared_ptr<Cell> c, std::shared_ptr<Cell> cc) {
@@ -19,6 +21,34 @@ float getDistance(std::shared_ptr<Cell> c, std::shared_ptr<Cell> cc) {
 }
 
 Location::~Location() { clearHandlers(); }
+
+void Location::addRoom(std::shared_ptr<Room> room, int x, int y) {
+  mapUtils::paste(room->cells, this, x, y);
+  rooms.push_back(room);
+  room->x = x;
+  room->y = y;
+
+  for (auto e : room->entities) {
+    auto &p = registry->get<hf::position>(e);
+    registry->assign_or_replace<hf::position>(e, p.x + x, p.y + y, p.z);
+  }
+  for (auto c : room->cells) {
+    c->x = c->_x + room->x;
+    c->y = c->_y + room->y;
+  }
+}
+
+std::vector<entt::entity> Location::getEntities(std::shared_ptr<Cell> cell) {
+  std::vector<entt::entity> result;
+  auto ents = registry->group(entt::get<hf::position, hf::meta>);
+  for (auto e : ents) {
+    auto p = registry->get<hf::position>(e);
+    if (p.movable && p.x == cell->x && p.y == cell->y) {
+      result.push_back(e);
+    }
+  }
+  return result;
+}
 
 // void Location::invalidateVisibilityCache(std::shared_ptr<Cell> cell) {
 //   std::vector<std::pair<std::shared_ptr<Cell>, float>> hits;
@@ -406,10 +436,14 @@ void Location::invalidate(std::string reason) {
 //   }
 // }
 
+// TODO: define cost in cell types
 float Location::LeastCostEstimate(void *stateStart, void *stateEnd) {
   auto c = static_cast<Cell *>(stateStart);
   auto cc = static_cast<Cell *>(stateEnd);
   auto d = sqrt(pow(cc->x - c->x, 2) + pow(cc->y - c->y, 2));
+  if (c->type == CellType::WATER || cc->type == CellType::WATER) {
+    d += 100;
+  }
   return d;
 }
 void Location::AdjacentCost(void *state,
@@ -417,8 +451,8 @@ void Location::AdjacentCost(void *state,
   auto cell = static_cast<Cell *>(state);
 
   for (auto n : getNeighbors(cell)) {
-    // if (!n->passThrough && (player == nullptr || n != player->currentCell))
-    //   continue;
+    if (!n->passThrough)
+      continue;
     micropather::StateCost nodeCost = {
         (void *)&(*n),
         LeastCostEstimate(state, (void *)&(*n)),
@@ -455,7 +489,8 @@ Objects Location::getObjects(std::shared_ptr<Cell> cell) {
 }
 
 std::vector<std::shared_ptr<Cell>>
-Location::getVisible(std::shared_ptr<Cell> start, float distance) {
+Location::getVisible(std::shared_ptr<Cell> start, float distance,
+                     bool useIllumination = true) {
   auto it = visibilityCache.find({start, distance});
   if (it != visibilityCache.end()) {
     return visibilityCache.at({start, distance});
@@ -469,10 +504,14 @@ Location::getVisible(std::shared_ptr<Cell> start, float distance) {
   for (auto v : field) {
     auto c = cells.at(v.y).at(v.x);
     auto d = sqrt(pow(start->x - c->x, 2) + pow(start->y - c->y, 2));
-    if (c->illuminated || d <= distance) {
+    if ((useIllumination && c->illuminated) || d <= distance) {
       result.push_back(c);
     }
   }
+  auto ip = std::unique(result.begin(), result.end(), [](auto a, auto b) {
+    return a->x == b->x && a->y == b->y;
+  });
+  result.resize(std::distance(result.begin(), ip));
   start->seeThrough = os;
   visibilityCache[{start, distance}] = result;
   return result;
@@ -532,6 +571,29 @@ std::vector<std::shared_ptr<Cell>> Location::getLine(std::shared_ptr<Cell> c1,
   return result;
 }
 
+entt::entity Location::addEntity(std::string typeKey,
+                                 std::shared_ptr<Cell> cell) {
+  auto data = entt::service_locator<GameData>::get().lock();
+  auto e = registry->create();
+
+  auto ne = registry->create();
+  // for (auto e : data->prototypes->group(entt::get<entt::tag<"proto"_hs>)) {
+  for (auto e : data->prototypes->view<entt::tag<"proto"_hs>>()) {
+    if (data->prototypes->get<hf::meta>(e).id == typeKey) {
+      registry->stomp(ne, e, *data->prototypes,
+                      entt::exclude<entt::tag<"proto"_hs>>);
+      registry->assign<hf::ingame>(ne);
+      registry->assign<hf::position>(ne, cell->x, cell->y, 0);
+      auto meta = data->prototypes->get<hf::meta>(e);
+      meta.id = fmt::format("{}_{}", meta.id, (int)registry->entity(ne));
+      registry->assign_or_replace<hf::meta>(ne, meta);
+      // log.debug("Add entity: {} @ {}.{}", meta.id, cell->x, cell->y);
+      break;
+    }
+  }
+  return ne;
+}
+
 entt::entity Location::addTerrain(std::string typeKey,
                                   std::shared_ptr<Cell> cell) {
   auto data = entt::service_locator<GameData>::get().lock();
@@ -547,7 +609,17 @@ entt::entity Location::addTerrain(std::string typeKey,
       auto meta = data->prototypes->get<hf::meta>(e);
       meta.id = fmt::format("{}_{}", meta.id, (int)registry->entity(ne));
       registry->assign_or_replace<hf::meta>(ne, meta);
+      break;
     }
   }
   return ne;
+}
+
+std::shared_ptr<Door> Location::placeDoor(std::shared_ptr<Cell> c) {
+
+  auto door = std::make_shared<Door>();
+  door->setCurrentCell(c);
+  c->seeThrough = false;
+  addObject<Door>(door);
+  return door;
 }

@@ -1,30 +1,32 @@
+#include "lss/game/location.hpp"
 #include <chrono>
+#include <fstream>
 #include <iostream>
 #include <regex>
+#include <string>
 #include <thread>
 #include <utility>
 
 #include <app/application.hpp>
 
-#include <imgui-sfml/imgui-SFML.h>
-#include <imgui/imgui.h>
+#include <imgui.h>
 
 #include <SFML/Graphics.hpp>
-#include <app/fonts/material_design_icons.h>
-#include <app/style/theme.h>
+// #include <app/fonts/material_design_icons.h>
+// #include <app/style/theme.h>
 #include <libcolor/libcolor.hpp>
 
-#include <lss/game/cell.hpp>
-#include <lss/generator/generator.hpp>
-#include <lss/generator/mapUtils.hpp>
-
-#include <app/style/theme.h>
+// #include <app/style/theme.h>
 #include <imgui-stl.hpp>
 
 #include <app/editor.hpp>
 #include <app/ui/drawEngine.hpp>
 
-#include "duk_console.h"
+#include <IconFontCppHeaders/IconsFontAwesome6.h>
+#include <lua/logger.hpp>
+#include <random.hpp>
+#include <sol/sol_ImGui.hpp>
+using Random = effolkronium::random_static;
 
 #ifdef __APPLE__
 float GUI_SCALE = 2.0f;
@@ -32,42 +34,135 @@ float GUI_SCALE = 2.0f;
 float GUI_SCALE = 1.f;
 #endif
 
-// static ImGuiDockNodeFlags opt_flags = ImGuiDockNodeFlags_PassthruCentralNode;
 static ImGuiDockNodeFlags opt_flags = ImGuiDockNodeFlags_PassthruCentralNode;
 
-void duk_log_ev(const std::string msg) {
-  auto emitter = entt::service_locator<event_emitter>::get().lock();
-  emitter->publish<log_event>(msg);
-}
-
-void duk_regen(const int s) {
-  auto emitter = entt::service_locator<event_emitter>::get().lock();
-  emitter->publish<regen_event>(s);
-}
-
-void duk_sleep(int ms) {
-  std::this_thread::sleep_for(std::chrono::milliseconds(ms));
-}
-
-void Application::duk_log(const std::string msg) { duk_log_ev(msg); }
-
 // TODO: add config file
-auto DEFAULT_TILESET = "ascii";
-auto DATA_FILE = "game.bin";
+std::string DEFAULT_TILESET = "ascii";
+std::string DATA_FILE = "game.bin";
+
+// TODO: remove by generating proper location in gm
+int lts_idx = 0;
+std::vector<std::string> lts = {"dungeon", "cavern", "exterior", "zero"};
+auto locationType = Location::A_LOCATION_TYPES[lts_idx];
+
+LocationSpec Application::randomLocationSpec(int s) {
+
+  Random::seed(s);
+  auto cave_pass = Random::get<bool>();
+  auto statue = Random::get<bool>();
+  auto altar = Random::get<bool>();
+  auto treasure = Random::get<bool>();
+  auto heal = Random::get<bool>();
+  auto mana = Random::get<bool>();
+  auto river = Random::get<bool>();
+  auto lake = Random::get<bool>();
+  auto torches = Random::get<bool>();
+  auto corrupt = Random::get<bool>();
+  auto ice = Random::get<bool>();
+
+  auto spec = LocationSpec{"Random"};
+  spec.type = *Random::get(Location::A_LOCATION_TYPES);
+  spec.threat = 1;
+  if (spec.type == LocationType::CAVERN) {
+    spec.floor = CellType::GROUND;
+    spec.cellFeatures = {CellFeature::CAVE};
+    cave_pass = false;
+  } else if (spec.type == LocationType::EXTERIOR) {
+    spec.floor = CellType::GROUND;
+    cave_pass = false;
+    river = false;
+    lake = false;
+  } else if (spec.type == LocationType::DUNGEON) {
+    spec.floor = CellType::FLOOR;
+    river = false;
+    lake = false;
+  }
+
+  std::vector<bool> flags = {
+      cave_pass, statue, altar,   treasure, heal, mana,
+      river,     lake,   torches, corrupt,  ice,
+  };
+
+  auto n = 0;
+  for (auto flag : flags) {
+    if (flag) {
+      spec.features.push_back(Location::A_FEATURES[n]);
+    }
+    n++;
+  }
+  return spec;
+}
+
+void Application::initConfig() {
+  fmt::print("Path: {}\n", PATH.string());
+  auto label = "exec config";
+  luaLog.setParent(&log);
+  injectLogger(lua, luaLog);
+
+  log.start(label);
+
+  lua.set("APP", APP_NAME);
+  lua.set("VERSION", VERSION);
+  lua.set("PATH", PATH.string());
+  lua.set_function("exit", [&]() { window->close(); });
+
+  // auto l = Logger(fmt::color::lime, "INPUT");
+  // l.setParent(&log);
+  // initInput(lua, &l);
+
+  auto cp = fs::path(PATH / "scripts" / "config.lua");
+  if (!fs::exists(cp)) {
+    log.error("config.lua soesn't exist!");
+    exit(111);
+  }
+  lua.script_file(cp);
+
+  auto df = lua.get<std::string>("data_file");
+  if (df != "") {
+    DATA_FILE = df;
+  }
+  log.info("Main data file: {}", DATA_FILE);
+  auto ts = lua.get<std::string>("tileset");
+  if (ts != "") {
+    DEFAULT_TILESET = ts;
+  }
+  log.info("Tileset: {}", DEFAULT_TILESET);
+  auto s = lua.get<int>("seed");
+  if (s > 0) {
+    seed = s;
+  }
+  log.info("Seed: {}", seed);
+
+  auto _lt = lua.get<std::string>("location_type");
+  if (_lt != "") {
+    for (auto n = 0; n < lts.size(); n++) {
+      if (lts[n] == _lt) {
+        lts_idx = n;
+      }
+    }
+    locationType = Location::A_LOCATION_TYPES[lts_idx];
+  }
+
+  log.stop(label);
+}
+
 Application::Application(std::string app_name, fs::path path,
                          std::string version, int s)
     : APP_NAME(app_name), VERSION(version), PATH(path) {
-  fmt::print("Seed: {}\n", seed);
-  fmt::print("Path: {}\n", PATH.string());
+
+  lua.open_libraries(sol::lib::base);
+
+  initConfig();
 
   entt::monostate<"gui_scale"_hs>{} = GUI_SCALE;
   entt::monostate<"path"_hs>{} = PATH.string().data();
+  entt::monostate<"tileset"_hs>{} = DEFAULT_TILESET.data();
 
   entt::service_locator<entt::registry>::empty();
   entt::service_locator<event_emitter>::set(std::make_shared<event_emitter>());
   entt::service_locator<Viewport>::empty();
   entt::service_locator<GameData>::empty();
-  entt::service_locator<GameData>::empty();
+  // entt::service_locator<GameData>::empty();
   entt::service_locator<std::mutex>::set(reg_mutex);
 
   std::shared_ptr<R::Generator> gen = std::make_shared<R::Generator>();
@@ -77,45 +172,24 @@ Application::Application(std::string app_name, fs::path path,
   engine = std::make_unique<DrawEngine>(window);
   engine->vW = viewport->width / viewport->scale;
   engine->vH = viewport->height / viewport->scale;
+  engine->alpha_per_d = lua.get<sol::table>("light")["alpha_per_d"];
+  engine->alpha_blend_inc = lua.get<sol::table>("light")["alpha_blend_inc"];
+  engine->blend_mode = lua.get<sol::table>("light")["blend_mode"];
+  engine->max_bright = lua.get<sol::table>("light")["max_bright"];
 
   entt::service_locator<DrawEngine>::set(engine);
   gm = std::make_shared<GameManager>(PATH / DATA_FILE);
   editor = std::make_unique<Editor>(gm, PATH);
+  ide = std::make_unique<IDE>(PATH);
+  if (seed > 0) {
+    s = seed;
+  }
   gm->setSeed(s);
   seed = gm->seed;
+
+  initLuaBindings();
+
   setupGui();
-
-  // TODO: move to separte class
-  duk_console_init(duk_ctx, 0 /*flags*/);
-  dukglue_register_function(duk_ctx, &duk_log_ev, "log");
-  dukglue_register_function(duk_ctx, &duk_sleep, "sleep");
-  dukglue_register_function(duk_ctx, &duk_regen, "regen");
-
-  dukglue_register_global(duk_ctx, engine, "engine");
-  dukglue_register_method(duk_ctx, &DrawEngine::invalidate, "invalidate");
-
-  auto fileToEdit = PATH / "init.js";
-
-  {
-    std::ifstream t(fileToEdit);
-    if (t.good()) {
-      std::string str((std::istreambuf_iterator<char>(t)),
-                      std::istreambuf_iterator<char>());
-      duk_editor.SetText(str);
-    }
-  }
-}
-
-void Application::duk_exec(const char *code) {
-  if (duk_peval_string(duk_ctx, code) != 0) {
-    auto emitter = entt::service_locator<event_emitter>::get().lock();
-    duk_get_prop_string(duk_ctx, -1, "stack");
-    auto err = duk_safe_to_string(duk_ctx, -1);
-    log.error(lu::red("DUK"),
-              fmt::format("Error running '{}':\n{}", code, err));
-    duk_pop(duk_ctx);
-    emitter->publish<duk_error>(err);
-  }
 }
 
 // TODO: remove by generating proper location in gm
@@ -133,21 +207,15 @@ bool ice = false;
 
 int cache_count = 0;
 
-// TODO: remove by generating proper location in gm
-int lts_idx = 2;
-std::vector<std::string> lts = {"dungeon", "cavern", "exterior"};
-auto lt = std::vector<LocationType>{LocationType::DUNGEON, LocationType::CAVERN,
-                                    LocationType::EXTERIOR};
-auto locationType = lt[lts_idx];
-
 void Application::setupGui() {
 
   sf::ContextSettings settings;
   settings.antialiasingLevel = 8;
   ImGui::CreateContext();
-  Theme::Init();
+  // Theme::Init();
 
   ImGuiIO &io = ImGui::GetIO();
+  (void)io;
   io.FontGlobalScale = GUI_SCALE;
   ImGui::GetStyle().ScaleAllSizes(GUI_SCALE);
 
@@ -155,23 +223,11 @@ void Application::setupGui() {
                                 sf::Style::Default, settings);
   window->setVerticalSyncEnabled(true);
 
-  ImGui::SFML::Init(*window);
-  io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
-  io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+  log.debug("Sfml init: {}", ImGui::SFML::Init(*window, false));
 
   window->resetGLStates();
 
   auto emitter = entt::service_locator<event_emitter>::get().lock();
-
-  emitter->on<clear_markers_event>([&](const auto &event, auto &em) {
-    markers.clear();
-    duk_editor.SetErrorMarkers(markers);
-  });
-
-  emitter->on<log_event>([&](const auto &event, auto &em) {
-    log.info(lu::yellow("DUK"), event.msg);
-    console.AddLog(event.msg.data());
-  });
 
   emitter->on<regen_event>([&](const auto &p, auto &em) {
     if (p.seed == -1) {
@@ -189,6 +245,20 @@ void Application::setupGui() {
     // lockedPos = {p.x, p.y};
     viewport->view_x = p.x - viewport->width / 2 / GUI_SCALE;
     viewport->view_y = p.y - viewport->height / 2 / GUI_SCALE;
+    engine->invalidate();
+  });
+  emitter->on<mouse_center_event>([&](const auto &p, auto &em) {
+    // lockedPos = {p.x, p.y};
+    current_pos = window->mapPixelToCoords(sf::Mouse::getPosition(*window));
+    auto _x = int(current_pos.x /
+                  (viewport->tileSet.size.first * viewport->scale * GUI_SCALE));
+    auto _y = int(current_pos.y / (viewport->tileSet.size.second *
+                                   viewport->scale * GUI_SCALE));
+    auto rx = _x + viewport->view_x;
+    auto ry = _y + viewport->view_y;
+    // fmt::print("{}.{} => {}.{}\n", p.x, p.y, rx, ry);
+    viewport->view_x += p.x - rx;
+    viewport->view_y += p.y - ry;
     engine->invalidate();
   });
 
@@ -212,31 +282,50 @@ void Application::setupGui() {
     engine->invalidate();
   });
 
-  emitter->on<duk_error>([&](auto event, auto &em) {
-    std::string err = std::string(event.msg);
-    std::string line;
-    std::vector<std::string> lines;
-    std::istringstream ss(err);
-    std::regex re("eval:(\\d+)");
-    std::smatch m;
-    while (std::getline(ss, line, '\n')) {
-      lines.push_back(line);
-    }
-    std::regex_search(lines.back(), m, re);
+  // emitter->on<duk_error>([&](auto event, auto &em) {
+  //   std::string err = std::string(event.msg);
+  //   std::string line;
+  //   std::vector<std::string> lines;
+  //   std::istringstream ss(err);
+  //   std::regex re("eval:(\\d+)");
+  //   std::smatch m;
+  //   while (std::getline(ss, line, '\n')) {
+  //     lines.push_back(line);
+  //   }
+  //   std::regex_search(lines.back(), m, re);
 
-    markers.insert(std::make_pair<int, std::string>(
-        std::atoi(std::string(m[m.size() - 1]).data()),
-        std::string(lines.front())));
-    duk_editor.SetErrorMarkers(markers);
+  //   markers.insert(std::make_pair<int, std::string>(
+  //       std::atoi(std::string(m[m.size() - 1]).data()),
+  //       std::string(lines.front())));
+  //   duk_editor.SetErrorMarkers(markers);
 
-    console.AddLog("[error] %s", event.msg.data());
-  });
+  //   console.AddLog("[error] %s", event.msg.data());
+  // });
 
-  emitter->on<exec_event>(
-      [&](auto event, auto &em) { duk_exec(event.code.data()); });
+  /* emitter->on<exec_event>(
+      [&](auto event, auto &em) { duk_exec(event.code.data()); }); */
+
+  ide->init();
+
+  sol_ImGui::Init(lua);
+
+  // std::function<void()> scale_f = [&]() {
+  //   auto _x = int(current_pos.x /
+  //                 (viewport->tileSet.size.first * viewport->scale *
+  //                 GUI_SCALE));
+  //   auto _y = int(current_pos.y / (viewport->tileSet.size.second *
+  //                                  viewport->scale * GUI_SCALE));
+  //   auto rx = _x + viewport->view_x;
+  //   auto ry = _y + viewport->view_y;
+  //   auto emitter = entt::service_locator<event_emitter>::get().lock();
+  //   emitter->publish<center_event>(rx, ry);
+  //   updateScale();
+  // };
+  // db_scale_f = Debounced(scale_f, 500);
 }
 
 void Application::processEvent(sf::Event event) {
+  ImGuiIO &io = ImGui::GetIO();
   current_pos = window->mapPixelToCoords(sf::Mouse::getPosition(*window));
   auto _x = int(current_pos.x /
                 (viewport->tileSet.size.first * viewport->scale * GUI_SCALE));
@@ -253,14 +342,20 @@ void Application::processEvent(sf::Event event) {
       window->close();
       break;
     case sf::Keyboard::Right:
+      if (io.WantCaptureKeyboard)
+        break;
       viewport->view_x += 1;
       engine->invalidate();
       break;
     case sf::Keyboard::Left:
+      if (io.WantCaptureKeyboard)
+        break;
       viewport->view_x -= 1;
       engine->invalidate();
       break;
     case sf::Keyboard::Up:
+      if (io.WantCaptureKeyboard)
+        break;
       if (!event.key.control) {
         viewport->view_y -= 1;
       } else {
@@ -269,6 +364,8 @@ void Application::processEvent(sf::Event event) {
       engine->invalidate();
       break;
     case sf::Keyboard::Down:
+      if (io.WantCaptureKeyboard)
+        break;
       if (!event.key.control) {
         viewport->view_y += 1;
       } else {
@@ -292,13 +389,106 @@ void Application::processEvent(sf::Event event) {
   case sf::Event::Closed:
     window->close();
     break;
-  case sf::Event::MouseButtonPressed:
-    if (event.mouseButton.button == sf::Mouse::Right) {
-      lockedPos = {rx, ry};
-    } else if (event.mouseButton.button == sf::Mouse::Middle) {
-      lockedPos = std::nullopt;
-    }
+  case sf::Event::MouseMoved:
+    if (io.WantCaptureMouse)
+      break;
+    if (is_mb_pressed) {
+      auto emitter = entt::service_locator<event_emitter>::get().lock();
+      auto _sx = int(start_drag_pos.x / (viewport->tileSet.size.first *
+                                         viewport->scale * GUI_SCALE));
+      auto _sy = int(start_drag_pos.y / (viewport->tileSet.size.second *
+                                         viewport->scale * GUI_SCALE));
 
+      emitter->publish<mouse_center_event>(_sx, _sy);
+    }
+    if (is_rb_pressed) {
+      auto ents = gm->registry->view<hf::ineditor>();
+
+      if (ents.size() > 0) {
+        for (auto e : ents) {
+          auto ie = gm->registry->get<hf::ineditor>(e);
+          if (ie.selected) {
+            auto p = gm->registry->get<hf::position>(e);
+            p.x = rx;
+            p.y = ry;
+            gm->registry->assign_or_replace<hellfrost::position>(e, p);
+          }
+        }
+      }
+    }
+    break;
+  case sf::Event::MouseButtonReleased:
+    if (io.WantCaptureMouse)
+      break;
+    start_drag_pos = {0, 0};
+    if (event.mouseButton.button == sf::Mouse::Right) {
+      is_rb_pressed = false;
+    } else if (event.mouseButton.button == sf::Mouse::Middle) {
+      is_mb_pressed = false;
+    }
+    break;
+  case sf::Event::MouseButtonPressed:
+    if (io.WantCaptureMouse)
+      break;
+    start_drag_pos = current_pos;
+    if (event.mouseButton.button == sf::Mouse::Right) {
+      is_rb_pressed = true;
+      lockedPos = {rx, ry};
+
+      auto ents = gm->registry->view<hf::ineditor>();
+
+      if (ents.size() > 0) {
+        for (auto e : ents) {
+          auto p = gm->registry->get<hf::ineditor>(e);
+          if (p.selected) {
+            p.selected = false;
+            gm->registry->assign_or_replace<hellfrost::ineditor>(e, p);
+          }
+        }
+      }
+
+      auto _ents = gm->registry->view<hf::position>();
+
+      if (_ents.size() > 0) {
+        for (auto e : _ents) {
+          auto p = gm->registry->get<hf::position>(e);
+          if (!p.movable)
+            continue;
+          auto ie = gm->registry->get<hf::ineditor>(e);
+          if (p.x == rx && p.y == ry) {
+            ie.selected = true;
+            gm->registry->assign_or_replace<hellfrost::ineditor>(e, ie);
+          }
+        }
+      }
+
+    } else if (event.mouseButton.button == sf::Mouse::Middle) {
+      is_mb_pressed = true;
+      lockedPos = std::nullopt;
+
+      auto ents = gm->registry->view<hf::ineditor>();
+
+      if (ents.size() > 0) {
+        for (auto e : ents) {
+          auto p = gm->registry->get<hf::ineditor>(e);
+          if (p.selected) {
+            p.selected = false;
+            gm->registry->assign_or_replace<hellfrost::ineditor>(e, p);
+          }
+        }
+      }
+    }
+    break;
+  case sf::Event::MouseWheelScrolled:
+    if (io.WantCaptureMouse)
+      break;
+    if (event.mouseWheelScroll.wheel == sf::Mouse::VerticalWheel) {
+      viewport->scale += event.mouseWheelScroll.delta * 0.05f; // step
+      updateScale();
+      auto emitter = entt::service_locator<event_emitter>::get().lock();
+      emitter->publish<mouse_center_event>(rx, ry);
+      // TODO: move previous cell under mouse
+    }
     break;
   }
 }
@@ -334,20 +524,22 @@ void Application::drawDocking(float padding) {
 
   // Dockspace
   ImGuiIO &io = ImGui::GetIO();
-  if (io.ConfigFlags & ImGuiConfigFlags_DockingEnable) {
-    ImGuiID dockspace_id = ImGui::GetID("MyDockspace");
-    ImGui::DockSpace(dockspace_id, ImVec2(0.0f, 0.0f), opt_flags);
-  } else {
+  // io.ConfigResizeWindowsFromEdges = true;
+  // if (io.ConfigFlags & ImGuiConfigFlags_DockingEnable) {
+  ImGuiID dockspace_id = ImGui::GetID("MyDockspace");
+  ImGui::DockSpace(dockspace_id, ImVec2(0.0f, 0.0f), opt_flags);
+  /* } else {
+    log.error("y no docking?");
     // TODO: emit a log message
-  }
+  } */
   ImGui::End();
 }
 
 void Application::drawStatusBar(float width, float height, float pos_x,
                                 float pos_y) {
   // Draw status bar (no docking)
-  ImGui::SetNextWindowSize(ImVec2(width, height), ImGuiSetCond_Always);
-  ImGui::SetNextWindowPos(ImVec2(pos_x, pos_y), ImGuiSetCond_Always);
+  ImGui::SetNextWindowSize(ImVec2(width, height), ImGuiCond_Always);
+  ImGui::SetNextWindowPos(ImVec2(pos_x, pos_y), ImGuiCond_Always);
   ImGui::Begin("statusbar", nullptr,
                ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoSavedSettings |
                    ImGuiWindowFlags_NoBringToFrontOnFocus |
@@ -358,9 +550,9 @@ void Application::drawStatusBar(float width, float height, float pos_x,
 
   // Draw the common stuff
   ImGui::SameLine(8.0f * GUI_SCALE);
-  Font font(Font::FAMILY_MONOSPACE);
-  font.Normal().Regular().SmallSize();
-  ImGui::PushFont(font.ImGuiFont());
+  // Font font(Font::FAMILY_MONOSPACE);
+  // font.Normal().Regular().SmallSize();
+  // ImGui::PushFont(font.ImGuiFont());
   auto fps = std::lround(ImGui::GetIO().Framerate);
   if (fps > 55) {
     ImGui::Text("FPS: %ld", fps);
@@ -382,22 +574,23 @@ void Application::drawStatusBar(float width, float height, float pos_x,
   ImGui::SameLine();
   ImGui::Text("|  cell: %d.%d", rx, ry);
   ImGui::SameLine();
-  auto cache_full =
-      gm->location->cells.front().size() * gm->location->cells.size();
-  if (cache_count / float(cache_full) != 1.f) {
-    ImGui::Text("|  cache:");
-    ImGui::SameLine();
-    const ImU32 col = ImGui::GetColorU32(ImGuiCol_ButtonHovered);
-    const ImU32 bg = ImGui::GetColorU32(ImGuiCol_Button);
+  if (gm->location && !gm->location->cells.empty()) {
+    auto cache_full =
+        gm->location->cells.front().size() * gm->location->cells.size();
+    if (cache_count / float(cache_full) != 1.f) {
+      ImGui::Text("|  cache:");
+      ImGui::SameLine();
+      const ImU32 col = ImGui::GetColorU32(ImGuiCol_ButtonHovered);
+      const ImU32 bg = ImGui::GetColorU32(ImGuiCol_Button);
 
-    ImGui::AlignTextToFramePadding();
-    ImGui::BufferingBar("##buffer_bar",
-                        cache_count / float(cache_full),
-                        ImVec2(100*GUI_SCALE, 3*GUI_SCALE), bg, col);
-  } else {
-    ImGui::Text("|  cache: %d/%lu", cache_count, cache_full);
+      ImGui::AlignTextToFramePadding();
+      ImGui::BufferingBar("##buffer_bar", cache_count / float(cache_full),
+                          ImVec2(100 * GUI_SCALE, 3 * GUI_SCALE), bg, col);
+    } else {
+      ImGui::Text("|  cache: %d/%lu", cache_count, cache_full);
+    }
   }
-  ImGui::PopFont();
+  // ImGui::PopFont();
   ImGui::End();
 }
 
@@ -407,19 +600,34 @@ void Application::drawViewportWindow() {
     return;
   }
 
+  if (!gm->location || gm->location->cells.empty()) {
+    ImGui::Text("No location generated");
+    ImGui::End();
+    return;
+  }
   auto cache_full =
       gm->location->cells.front().size() * gm->location->cells.size();
   ImGui::Text("Cache len: %d/%lu", cache_count, cache_full);
   ImGui::Text("Redraws: %d", engine->redraws);
   ImGui::Text("Tiles updated: %d", engine->tilesUpdated);
   ImGui::Text("Objects in render: %d\n", engine->layers->size());
-  for (auto [k, l] : engine->layers->layers) {
-    ImGui::AlignTextToFramePadding();
-    ImGui::BulletText(fmt::format("{}: {}", k, l->children.size()).c_str());
-    ImGui::SameLine();
-    if (ImGui::Checkbox(fmt::format("##{}", k).c_str(), &l->enabled)) {
-      engine->invalidate();
+
+  if (ImGui::BeginTable("layers", 3,
+                        ImGuiTableFlags_Resizable |
+                            ImGuiTableFlags_SizingFixedFit |
+                            ImGuiTableFlags_NoSavedSettings)) {
+    for (auto [k, l] : engine->layers->layers) {
+      ImGui::TableNextRow();
+      ImGui::TableNextColumn();
+      ImGui::Text(fmt::format("{}", k).c_str());
+      ImGui::TableNextColumn();
+      ImGui::Text(fmt::format("{}", l->children.size()).c_str());
+      ImGui::TableNextColumn();
+      if (ImGui::Checkbox(fmt::format("##{}", k).c_str(), &l->enabled)) {
+        engine->invalidate();
+      }
     }
+    ImGui::EndTable();
   }
   ImGui::Text("\n");
   auto emitter = entt::service_locator<event_emitter>::get().lock();
@@ -435,31 +643,56 @@ void Application::drawViewportWindow() {
     if (engine->vH > 200)
       engine->vH = 200;
   }
-  if (ImGui::SliderInt("x", &viewport->view_x, -viewport->width, gm->location->cells.front().size())) {
+  if (ImGui::SliderInt("x", &viewport->view_x, -viewport->width,
+                       gm->location->cells.front().size())) {
+
     engine->invalidate();
   }
-  if (ImGui::SliderInt("y", &viewport->view_y, -viewport->height, gm->location->cells.size())) {
+  if (ImGui::SliderInt("y", &viewport->view_y, -viewport->height,
+
+                       gm->location->cells.size())) {
     engine->invalidate();
   }
   if (ImGui::SliderInt("z", &viewport->view_z, -10, 10)) {
     engine->invalidate();
   }
+
   if (ImGui::SliderFloat("scale", &viewport->scale, 0.3f, 2.f)) {
-    engine->vW = viewport->width / viewport->scale / GUI_SCALE;
-    engine->vH = viewport->height / viewport->scale / GUI_SCALE;
-    if (engine->vW > 200)
-      engine->vW = 200;
-    if (engine->vH > 200)
-      engine->vH = 200;
-    emitter->publish<resize_event>();
+    updateScale();
   }
+  // ImGui::SetItemUsingMouseWheel();
+  // if (io.WantCaptureKeyboard) {
+  // float wheel = ImGui::GetIO().MouseWheel;
+  // if (wheel) {
+  //   if (ImGui::IsItemActive()) {
+  //     ImGui::ClearActiveID();
+  //   } else {
+  //     viewport->scale += wheel * 0.025f; // step
+  //     updateScale();
+  //   }
+  // }
+  // }
+
   ImGui::SameLine();
-  if (ImGui::Button(ICON_MDI_FORMAT_SIZE)) {
+  // if (ImGui::Button(ICON_FA_FORMAT_SIZE)) {
+  if (ImGui::Button("size")) {
     viewport->scale = 1;
     emitter->publish<resize_event>();
   }
+  ImGui::Checkbox("Room debug", &engine->roomDebug);
 
   ImGui::End();
+}
+
+void Application::updateScale() {
+  auto emitter = entt::service_locator<event_emitter>::get().lock();
+  engine->vW = viewport->width / viewport->scale / GUI_SCALE;
+  engine->vH = viewport->height / viewport->scale / GUI_SCALE;
+  if (engine->vW > 200)
+    engine->vW = 200;
+  if (engine->vH > 200)
+    engine->vH = 200;
+  emitter->publish<resize_event>();
 }
 
 void Application::drawLocationWindow() {
@@ -467,82 +700,120 @@ void Application::drawLocationWindow() {
     ImGui::End();
     return;
   }
+  auto data = entt::service_locator<GameData>::get().lock();
 
   if (ImGui::InputInt("Seed", &seed)) {
     genLocation(seed);
     engine->invalidate();
   }
   ImGui::SameLine();
-  if (ImGui::Button(ICON_MDI_DICE_3)) {
+  if (ImGui::Button(ICON_FA_DICE_THREE)) {
     auto emitter = entt::service_locator<event_emitter>::get().lock();
     emitter->publish<regen_event>(-1);
   }
+  ImGui::SameLine();
+  if (ImGui::Button("Redraw")) {
+    auto emitter = entt::service_locator<event_emitter>::get().lock();
+    emitter->publish<redraw_event>();
+  }
   ImGui::Separator();
   if (ImGui::Combo("Location type", &lts_idx, lts)) {
-    locationType = lt[lts_idx];
+    locationType = Location::A_LOCATION_TYPES[lts_idx];
     auto emitter = entt::service_locator<event_emitter>::get().lock();
     emitter->publish<regen_event>(seed);
   }
 
-  if (locationType != LocationType::EXTERIOR) {
-    ImGui::Text("\nFeatures\n");
-  } else {
-    ImGui::Text("\nNo features yet\n");
-  }
-  if (locationType == LocationType::CAVERN) {
-    if (ImGui::Checkbox("river", &river) || ImGui::Checkbox("lake", &lake)) {
-      genLocation(seed);
-      engine->invalidate();
+  ImGui::Text("Feature overrides:");
+  if (ImGui::Button("Disable all")) {
+    for (auto [k, v] : gm->location->type.templateMap) {
+      if (k == "")
+        continue;
+      gm->location->type.templateMap[k] = 0;
     }
-  } else if (locationType == LocationType::EXTERIOR) {
-  } else {
-    river = false;
-    lake = false;
-    if (ImGui::Checkbox("cave_pass", &cave_pass)) {
-      genLocation(seed);
+    genLocation(seed, gm->location->type);
+    engine->invalidate();
+    ImGui::End();
+    return;
+  }
+  ImGui::SameLine();
+  if (ImGui::Button("Enable all")) {
+    for (auto [k, v] : gm->location->type.templateMap) {
+      if (k == "")
+        continue;
+      gm->location->type.templateMap[k] = 1;
+    }
+    genLocation(seed, gm->location->type);
+    engine->invalidate();
+    ImGui::End();
+    return;
+  }
+  ImGui::Indent();
+  for (auto [k, v] : gm->location->type.templateMap) {
+    if (k == "")
+      continue;
+    if (ImGui::Button(fmt::format("1##{}", k).c_str())) {
+      gm->location->type.templateMap[k] = 1;
+      genLocation(seed, gm->location->type);
       engine->invalidate();
+      ImGui::End();
+      return;
+    }
+    ImGui::SameLine();
+    if (ImGui::Button(fmt::format("D##{}", k).c_str())) {
+      gm->location->type.templateMap[k] =
+          data->mapFeatures[gm->location->type.getType()][k];
+      genLocation(seed, gm->location->type);
+      engine->invalidate();
+      ImGui::End();
+      return;
+    }
+    ImGui::SameLine();
+    if (ImGui::Button(fmt::format("0##{}", k).c_str())) {
+      gm->location->type.templateMap[k] = 0;
+      genLocation(seed, gm->location->type);
+      engine->invalidate();
+      ImGui::End();
+      return;
+    }
+    ImGui::SameLine();
+
+    ImGui::SetNextItemWidth(80);
+    ImGui::InputFloat(fmt::format("##{}", k).c_str(),
+                      &gm->location->type.templateMap[k]);
+    ImGui::SameLine();
+    if (gm->templates.find(k) != gm->templates.end()) {
+      ImGui::Text(fmt::format("{} [{}] t", k, gm->templates[k]->stage).c_str());
+    } else if (gm->features.find(k) != gm->features.end()) {
+      ImGui::Text(fmt::format("{} [{}] f", k, gm->features[k]->stage).c_str());
+    } else {
+      ImGui::Text(fmt::format("{} [broken]", k).c_str());
     }
   }
-  if (locationType != LocationType::EXTERIOR) {
-    if (ImGui::Checkbox("torches", &torches) ||
-        ImGui::Checkbox("statue", &statue) ||
-        ImGui::Checkbox("altar", &altar) ||
-        ImGui::Checkbox("treasure", &treasure) ||
-        ImGui::Checkbox("heal", &heal) || ImGui::Checkbox("mana", &mana) ||
-        ImGui::Checkbox("ice", &ice) || ImGui::Checkbox("corrupt", &corrupt)) {
-      genLocation(seed);
-      engine->invalidate();
-    }
-  }
+  ImGui::Unindent();
+
   ImGui::End();
 }
 
+void Application::genLocation() {
+  auto s = rand();
+  genLocation(s);
+}
+
 void Application::genLocation(int s) {
-  if (cacheThread.joinable()) {
-    cacheThread.join();
-  }
 
-  auto emitter = entt::service_locator<event_emitter>::get().lock();
-  gm->setSeed(s);
-
-  auto label = "Generate location";
-  log.start(label);
   auto spec = LocationSpec{"Dungeon"};
-  spec.type = LocationType::DUNGEON;
+  spec.type = locationType;
   spec.threat = 1;
   if (locationType == LocationType::CAVERN) {
-    spec.type = LocationType::CAVERN;
     spec.floor = CellType::GROUND;
     spec.cellFeatures = {CellFeature::CAVE};
     cave_pass = false;
   } else if (locationType == LocationType::EXTERIOR) {
-    spec.type = LocationType::EXTERIOR;
     spec.floor = CellType::GROUND;
     cave_pass = false;
     river = false;
     lake = false;
   } else if (locationType == LocationType::DUNGEON) {
-    spec.type = LocationType::DUNGEON;
     spec.floor = CellType::FLOOR;
     river = false;
     lake = false;
@@ -553,22 +824,26 @@ void Application::genLocation(int s) {
       river,     lake,   torches, corrupt,  ice,
   };
 
-  std::vector<LocationFeature> features = {
-      LocationFeature::CAVE_PASSAGE, LocationFeature::STATUE,
-      LocationFeature::ALTAR,        LocationFeature::TREASURE_SMALL,
-      LocationFeature::HEAL,         LocationFeature::MANA,
-      LocationFeature::RIVER,        LocationFeature::LAKE,
-      LocationFeature::TORCHES,      LocationFeature::CORRUPT,
-      LocationFeature::ICE,
-  };
-
   auto n = 0;
   for (auto flag : flags) {
     if (flag) {
-      spec.features.push_back(features[n]);
+      spec.features.push_back(Location::A_FEATURES[n]);
     }
     n++;
   }
+  genLocation(s, spec);
+}
+
+void Application::genLocation(int s, LocationSpec spec) {
+  if (cacheThread.joinable()) {
+    cacheThread.join();
+  }
+
+  auto emitter = entt::service_locator<event_emitter>::get().lock();
+  gm->setSeed(s);
+
+  auto label = "Generate location";
+  log.start(label);
 
   gm->gen(spec);
   log.stop(label);
@@ -584,31 +859,15 @@ void Application::genLocation(int s) {
   engine->update();
   emitter->publish<resize_event>();
 
-  auto rw = std::make_shared<RegistryWrapper>(gm->registry);
-  dukglue_register_global(duk_ctx, location, "location");
-  dukglue_register_global(duk_ctx, rw, "registry");
-  dukglue_register_method(duk_ctx, &RegistryWrapper::size, "size");
-  dukglue_register_method(duk_ctx, &RegistryWrapper::create, "create");
-  dukglue_register_method(duk_ctx, &EntityWrapper::move, "move");
-  dukglue_register_method(duk_ctx, &EntityWrapper::center, "center");
-  dukglue_register_method(duk_ctx, &EntityWrapper::select, "select");
-  dukglue_register_method(duk_ctx, &EntityWrapper::unselect, "unselect");
-  dukglue_register_method(duk_ctx, &EntityWrapper::remove, "remove");
-  dukglue_register_method(duk_ctx, &EntityWrapper::hide, "hide");
-  dukglue_register_method(duk_ctx, &EntityWrapper::show, "show");
-
-  dukglue_register_property(duk_ctx, &EntityWrapper::getId, nullptr, "id");
-  dukglue_register_property(duk_ctx, &EntityWrapper::getX, nullptr, "x");
-  dukglue_register_property(duk_ctx, &EntityWrapper::getY, nullptr, "y");
-  dukglue_register_property(duk_ctx, &EntityWrapper::getZ, nullptr, "z");
-
   cache_count = 0;
   engine->tilesCache.clear();
   cacheThread = std::thread([&]() {
-    for (auto x = 0; x < gm->location->cells.front().size(); x++) {
-      for (auto y = 0; y < gm->location->cells.size(); y++) {
-        auto t = engine->cacheTile(x, y, viewport->view_z);
-        cache_count++;
+    if (!gm->location->cells.empty()) {
+      for (auto x = 0; x < gm->location->cells.front().size(); x++) {
+        for (auto y = 0; y < gm->location->cells.size(); y++) {
+          auto t = engine->cacheTile(x, y, viewport->view_z);
+          cache_count++;
+        }
       }
     }
     log.info("cache thread ends");
@@ -616,10 +875,14 @@ void Application::genLocation(int s) {
 }
 
 int Application::serve() {
+  log.start("init");
+  lua.script_file(PATH / "scripts" / "init.lua");
+  log.stop("init");
+
   log.info("serve");
   sf::Clock deltaClock;
 
-  genLocation(seed);
+  // genLocation(seed);
 
   auto c = Color::fromHexString(viewport->colors["PALETTE"]["BACKGROUND"]);
   auto bgColor = sf::Color(c.r, c.g, c.b, c.a);
@@ -636,11 +899,44 @@ int Application::serve() {
   cursor.setFillColor(sf::Color::Transparent);
   cursor.setOutlineThickness(1);
 
+  ImGuiIO &io = ImGui::GetIO();
+  (void)io;
+  io.ConfigDockingWithShift = false;
+  io.MouseDrawCursor = true;
+  io.ConfigFlags |=
+      ImGuiConfigFlags_NavEnableKeyboard; // Enable Keyboard Controls
+  io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+
+  static const ImWchar icons_ranges[] = {ICON_MIN_FA, ICON_MAX_FA, 0};
+  ImFontConfig icons_config;
+  icons_config.MergeMode = true;
+  icons_config.PixelSnapH = true;
+  io.Fonts->Clear();
+  // io.Fonts->AddFontDefault();
+  io.Fonts->AddFontFromFileTTF("Hack-Bold.ttf", 16.0f);
+  io.Fonts->AddFontFromFileTTF(FONT_ICON_FILE_NAME_FAS, 16.0f, &icons_config,
+                               icons_ranges);
+  log.info("fonts: {}", io.Fonts->Fonts.Size);
+  log.debug("Update font tex: {}", ImGui::SFML::UpdateFontTexture());
+  log.info("reg size: {}", gm->registry->size());
+
+  std::thread t([=]() {
+    auto d = lua.get<sol::table>("light")["flick_delay"];
+    while (true) {
+      std::this_thread::sleep_for(std::chrono::milliseconds(d));
+      // engine->updateExistingLight();
+      engine->scheduleFastRedraw();
+      // engine->invalidate();
+    }
+  });
+  t.detach();
+
   while (window->isOpen()) {
     sf::Event event;
     while (window->pollEvent(event)) {
       processEvent(event);
     }
+
     sf::FloatRect visibleArea(0, 0, window->getSize().x, window->getSize().y);
     auto sv = sf::View(visibleArea);
     window->setView(sv);
@@ -682,9 +978,13 @@ int Application::serve() {
 
     ImGui::SFML::Update(*window, deltaClock.restart());
     ImGuiViewport *vp = ImGui::GetMainViewport();
-    drawStatusBar(vp->Size.x, 16.0f * GUI_SCALE, 0.0f, vp->Size.y - 24*GUI_SCALE);
+
+    // lua.script_file(PATH / "scripts" / "draw.lua");
+    drawStatusBar(vp->Size.x, 16.0f * GUI_SCALE, 0.0f,
+                  vp->Size.y - 24 * GUI_SCALE);
 
     if (debug) {
+      ImGui::ShowDemoWindow();
       drawDocking(24.0f * GUI_SCALE);
 
       editor->drawCellInfo(cc);
@@ -695,9 +995,13 @@ int Application::serve() {
       editor->drawSpecWindow();
       editor->drawObjectsWindow();
       editor->drawSelectedInfo();
-      console.Draw("Console");
-
-      dukEditorWindow();
+      if (gm->location) {
+        editor->drawLocationWindow(gm->location);
+      }
+      // console.Draw("Console");
+      ide->render(lua);
+      ide->renderTodo();
+      editor->drawTemplates(lua);
     }
     ImGui::SFML::Render(*window);
 
@@ -706,46 +1010,6 @@ int Application::serve() {
   log.info("shutdown");
   ImGui::SFML::Shutdown();
   return 0;
-}
-
-void Application::dukEditorWindow() {
-  if (!ImGui::Begin("Script")) {
-    ImGui::End();
-    return;
-  }
-
-  if (ImGui::Button(ICON_MDI_CONTENT_SAVE)) {
-    auto fileToSave = PATH / "init.js";
-    std::ofstream o(fileToSave);
-
-    o << std::setw(4) << duk_editor.GetText().data() << std::endl;
-  }
-  ImGui::SameLine();
-  if (ImGui::Button(ICON_MDI_PLAY)) {
-    markers.clear();
-    duk_editor.SetErrorMarkers(markers);
-
-    if (jsThread.joinable()) {
-      jsThread.join();
-    }
-    jsThread = std::thread([&]() { duk_exec(duk_editor.GetText().data()); });
-  }
-
-  ImGui::SameLine();
-  if (ImGui::Button(ICON_MDI_STOP)) {
-  }
-
-  ImGui::SameLine();
-  if (ImGui::Button(ICON_MDI_UNDO)) {
-    duk_editor.Undo();
-  }
-  ImGui::SameLine();
-  if (ImGui::Button(ICON_MDI_REDO)) {
-    duk_editor.Redo();
-  }
-
-  duk_editor.Render("Init script");
-  ImGui::End();
 }
 
 Application::~Application() {

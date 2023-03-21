@@ -1,8 +1,9 @@
+#include "lss/game/cell.hpp"
+#include "lss/generator/room.hpp"
+#include <IconFontCppHeaders/IconsFontAwesome6.h>
 #include <SFML/Graphics.hpp>
 #include <app/editor.hpp>
-#include <app/fonts/material_design_icons.h>
 #include <app/ui/viewport.hpp>
-#include <imgui-sfml/imgui-SFML.h>
 #include <imgui-stl.hpp>
 #include <lss/deps.hpp>
 #include <lss/game/light.hpp>
@@ -19,55 +20,85 @@ void Editor::drawEntityEditor(std::shared_ptr<entt::registry> registry) {
   entityEditor.registerTrivial<hf::pickable>(*registry, "Pickable");
   entityEditor.registerTrivial<hf::wearable>(*registry, "Wearable");
   entityEditor.registerTrivial<hf::glow>(*registry, "Glow");
+  entityEditor.registerTrivial<hf::cell>(*registry, "Cell");
+  entityEditor.registerTrivial<hf::room>(*registry, "Room");
+  entityEditor.registerTrivial<hf::children>(*registry, "Children");
+  entityEditor.registerTrivial<hf::size>(*registry, "Size");
 
-  entityEditor.registerComponentWidgetFn(registry->type<hf::meta>(),
-                                         [&](entt::registry &reg, auto e) {
-                                           Meta(registry, e);
-                                         });
+  entityEditor.registerComponentWidgetFn(
+      registry->type<hf::meta>(),
+      [&](entt::registry &reg, auto e) { Meta(registry, e); });
   entityEditor.registerComponentWidgetFn(
       registry->type<hf::ineditor>(),
       [&](entt::registry &reg, auto e) { InEditor(registry, e); });
   entityEditor.registerComponentWidgetFn(
       registry->type<hf::position>(),
       [&](entt::registry &reg, auto e) { Position(registry, e); });
-  entityEditor.registerComponentWidgetFn(registry->type<hf::visible>(),
-                                         [&](entt::registry &reg, auto e) {
-                                           Visible(registry, e);
-                                         });
+  entityEditor.registerComponentWidgetFn(
+      registry->type<hf::visible>(),
+      [&](entt::registry &reg, auto e) { Visible(registry, e); });
   entityEditor.registerComponentWidgetFn(
       registry->type<hf::renderable>(),
       [&](entt::registry &reg, auto e) { Renderable(registry, e); });
+  entityEditor.registerComponentWidgetFn(
+      registry->type<hf::size>(),
+      [&](entt::registry &reg, auto e) { Size(registry, e); });
 
-  entityEditor.registerComponentWidgetFn(registry->type<hf::pickable>(),
-                                         [&](entt::registry &reg, auto e) {
-                                           Pickable(registry, e);
-                                         });
-  entityEditor.registerComponentWidgetFn(registry->type<hf::wearable>(),
-                                         [&](entt::registry &reg, auto e) {
-                                           Wearable(registry, e);
-                                         });
-  entityEditor.registerComponentWidgetFn(registry->type<hf::glow>(),
-                                         [&](entt::registry &reg, auto e) {
-                                           Glow(registry, e);
-                                         });
+  entityEditor.registerComponentWidgetFn(
+      registry->type<hf::pickable>(),
+      [&](entt::registry &reg, auto e) { Pickable(registry, e); });
+  entityEditor.registerComponentWidgetFn(
+      registry->type<hf::wearable>(),
+      [&](entt::registry &reg, auto e) { Wearable(registry, e); });
+  entityEditor.registerComponentWidgetFn(
+      registry->type<hf::glow>(),
+      [&](entt::registry &reg, auto e) { Glow(registry, e); });
+  entityEditor.registerComponentWidgetFn(
+      registry->type<hf::cell>(),
+      [&](entt::registry &reg, auto e) { CellW(registry, e); });
+  entityEditor.registerComponentWidgetFn(
+      registry->type<hf::room>(),
+      [&](entt::registry &reg, auto e) { RoomW(registry, e); });
+  entityEditor.registerComponentWidgetFn(
+      registry->type<hf::children>(),
+      [&](entt::registry &reg, auto e) { Children(registry, e); });
 
   entityEditor.registerToolbarFn([&](entt::registry &reg, auto e) {
     auto emitter = entt::service_locator<event_emitter>::get().lock();
     if (reg.has<entt::tag<"proto"_hs>>(e)) {
-      if (ImGui::Button(ICON_MDI_CONTENT_DUPLICATE)) {
+      auto data = entt::service_locator<GameData>::get().lock();
+      if (ImGui::Button(ICON_FA_PLUS)) {
+        auto viewport = entt::service_locator<Viewport>::get().lock();
+        auto location = viewport->regions.front()->location;
+        auto meta = reg.get<hf::meta>(e);
+        if (selectedCell) {
+          auto cell = *selectedCell;
+          location->addEntity(meta.id, cell);
+          emitter->publish<center_event>(cell->x, cell->y);
+        } else {
+          location->addEntity(meta.id, location->cells[0][0]);
+        }
+        emitter->publish<redraw_event>();
+      }
+      ImGui::SameLine();
+      if (ImGui::Button(ICON_FA_CLONE)) {
         auto data = entt::service_locator<GameData>::get().lock();
-        auto ne = gm->registry->create();
-        gm->registry->stomp(ne, e, *data->prototypes,
-                            entt::exclude<entt::tag<"proto"_hs>>);
-        gm->registry->assign<hf::ingame>(ne);
-        gm->registry->assign<hf::position>(ne, 0, 0, 0);
+        auto ne = reg.create();
+        reg.stomp(ne, e, *data->prototypes);
+        auto meta = reg.get<hf::meta>(ne);
+        meta.id = meta.id + "_copy";
+        // auto ne = gm->registry->create();
+        // gm->registry->stomp(ne, e, *data->prototypes,
+        //                     entt::exclude<entt::tag<"proto"_hs>>);
+        // gm->registry->assign<hf::ingame>(ne);
+        // gm->registry->assign<hf::position>(ne, 0, 0, 0);
       }
       ImGui::SameLine();
     }
     if (reg.has<hf::position>(e)) {
       auto &p = reg.get<hf::position>(e);
 
-      if (ImGui::Button(ICON_MDI_TARGET)) {
+      if (ImGui::Button(ICON_FA_ARROWS_TO_DOT)) {
         emitter->publish<center_event>(p.x, p.y);
       }
       ImGui::SameLine();
@@ -75,13 +106,13 @@ void Editor::drawEntityEditor(std::shared_ptr<entt::registry> registry) {
     if (reg.has<hf::ineditor>(e)) {
       auto &ie = reg.get<hf::ineditor>(e);
 
-      if (ImGui::Button(ICON_MDI_SELECT)) {
+      if (ImGui::Button(ICON_FA_OBJECT_GROUP)) {
         ie.selected = !ie.selected;
         reg.assign_or_replace<hellfrost::ineditor>(e, ie);
       }
       ImGui::SameLine();
     }
-    if (ImGui::Button(ICON_MDI_DELETE)) {
+    if (ImGui::Button(ICON_FA_TRASH)) {
       if (reg.has<hf::renderable>(e)) {
         // auto &p = reg.get<hf::position>(e);
         reg.destroy(e);
@@ -92,17 +123,17 @@ void Editor::drawEntityEditor(std::shared_ptr<entt::registry> registry) {
       }
     }
   });
-
 }
 
 Editor::Editor(std::shared_ptr<GameManager> _gm, fs::path _path)
     : gm(_gm), PATH(_path) {
 
   auto n = 0;
+  char *DEFAULT_TILESET = entt::monostate<"tileset"_hs>{};
   for (auto entity : fs::directory_iterator(PATH / "tilesets")) {
     if (fs::is_directory(entity)) {
       auto tileset = entity.path().filename().string();
-      if (tileset == "ascii") { // TODO: add config
+      if (tileset == DEFAULT_TILESET) { // TODO: add config
         ts_idx = n;
       }
       ts.push_back(tileset);
@@ -113,15 +144,70 @@ Editor::Editor(std::shared_ptr<GameManager> _gm, fs::path _path)
 
 void Editor::processRegistry(std::shared_ptr<entt::registry>) {}
 
-void Editor::Pickable(std::shared_ptr<entt::registry> registry, entt::entity e) {
-  auto& p = registry->get<hf::pickable>(e);
+void Editor::Size(std::shared_ptr<entt::registry> registry, entt::entity e) {
+  auto &s = registry->get<hf::size>(e);
+  if (ImGui::InputInt("Width", &s.width)) {
+    auto emitter = entt::service_locator<event_emitter>::get().lock();
+    emitter->publish<redraw_event>();
+  }
+  if (ImGui::InputInt("Height", &s.height)) {
+    auto emitter = entt::service_locator<event_emitter>::get().lock();
+    emitter->publish<redraw_event>();
+  }
+}
+
+void Editor::RoomW(std::shared_ptr<entt::registry> registry, entt::entity e) {
+  auto &r = registry->get<hf::room>(e);
+  ImGui::Text(
+      fmt::format("Type: {}", magic_enum::enum_name(r.room->type)).c_str());
+}
+void Editor::Children(std::shared_ptr<entt::registry> registry,
+                      entt::entity e) {
+  if (ImGui::TreeNode(
+          fmt::format("childs##{}", (int)registry->entity(e)).c_str(),
+          "%s Entities", ICON_FA_CUBE)) {
+    auto ch = registry->get<hf::children>(e);
+    for (auto child : ch.children) {
+      drawEntityInfo(child, registry);
+    }
+    ImGui::TreePop();
+  }
+}
+
+void Editor::CellW(std::shared_ptr<entt::registry> registry, entt::entity e) {
+  auto &p = registry->get<hf::cell>(e);
+  auto cell = p.cell;
+
+  auto cti = 0;
+  auto n = 0;
+  std::vector<std::string> ct_names;
+  for (auto ct : Cell::types) {
+    ct_names.push_back(ct.name);
+    if (ct == cell->type) {
+      cti = n;
+    }
+    n++;
+  }
+  if (ImGui::Combo("Type##cell_type", &cti, ct_names)) {
+    auto emitter = entt::service_locator<event_emitter>::get().lock();
+    auto viewport = entt::service_locator<Viewport>::get().lock();
+    auto engine = entt::service_locator<DrawEngine>::get().lock();
+    mapUtils::updateCell(cell, Cell::types[cti], cell->features);
+    engine->tilesCache.clear();
+    emitter->publish<redraw_event>();
+  }
+}
+void Editor::Pickable(std::shared_ptr<entt::registry> registry,
+                      entt::entity e) {
+  auto &p = registry->get<hf::pickable>(e);
   ImGui::InputText("Category", p.category.name);
   ImGui::InputText("Unidentified name", p.unidName);
   ImGui::InputInt("Count", &p.count);
   ImGui::Checkbox("Identfied", &p.identified);
 }
-void Editor::Wearable(std::shared_ptr<entt::registry> registry, entt::entity e) {
-  auto& w = registry->get<hf::wearable>(e);
+void Editor::Wearable(std::shared_ptr<entt::registry> registry,
+                      entt::entity e) {
+  auto &w = registry->get<hf::wearable>(e);
 
   constexpr auto types = magic_enum::enum_values<WearableType>();
   constexpr auto types_names = magic_enum::enum_names<WearableType>();
@@ -137,13 +223,13 @@ void Editor::Wearable(std::shared_ptr<entt::registry> registry, entt::entity e) 
 }
 
 void Editor::Visible(std::shared_ptr<entt::registry> registry, entt::entity e) {
-  auto& v = registry->get<hf::visible>(e);
+  auto &v = registry->get<hf::visible>(e);
   ImGui::InputText("Type", v.type);
   ImGui::InputText("Sign", v.sign);
 }
 
 void Editor::Glow(std::shared_ptr<entt::registry> registry, entt::entity e) {
-  auto& g = registry->get<hf::glow>(e);
+  auto &g = registry->get<hf::glow>(e);
   ImGui::InputFloat("Distance", &g.distance);
   constexpr auto types = magic_enum::enum_values<LightType>();
   constexpr auto types_names = magic_enum::enum_names<LightType>();
@@ -152,22 +238,33 @@ void Editor::Glow(std::shared_ptr<entt::registry> registry, entt::entity e) {
     names.push_back(std::string(n));
   }
   auto gt = static_cast<int>(g.type);
-  if (ImGui::Combo("Wearable type", &gt, names)) {
+  if (ImGui::Combo("Light type", &gt, names)) {
     g.type = types[gt];
   }
-  ImGui::Checkbox("Stable", &g.stable);
+  ImGui::InputInt("Brightness", &g.bright);
+  ImGui::InputInt("Flick", &g.flick);
+  ImGui::InputInt("Pulse", &g.pulse);
+  ImGui::Checkbox("Passive", &g.passive);
 }
 
-void Editor::InEditor(std::shared_ptr<entt::registry> registry, entt::entity e) {
-  auto ie = hf::ineditor{};
+void Editor::InEditor(std::shared_ptr<entt::registry> registry,
+                      entt::entity e) {
+  auto &ie = registry->get<hf::ineditor>(e);
   if (registry->has<hf::ineditor>(e)) {
     ie = registry->get<hf::ineditor>(e);
   } else {
-    registry->assign_or_replace<hf::ineditor>(e, ie);
+    registry->assign_or_replace<hf::ineditor>(e, hf::ineditor{});
     ie = registry->get<hf::ineditor>(e);
   }
 
+  ImGui::BeginDisabled();
   ImGui::InputText("Name", ie.name);
+  ImGui::EndDisabled();
+  if (ImGui::Button(ICON_FA_FLOPPY_DISK)) {
+    ie.name = new_editor_name;
+  }
+  ImGui::SameLine();
+  ImGui::InputText("New Name", new_editor_name);
   if (ImGui::Checkbox("Selected", &ie.selected)) {
     registry->assign_or_replace<hf::ineditor>(e, ie);
   }
@@ -185,16 +282,17 @@ void Editor::InEditor(std::shared_ptr<entt::registry> registry, entt::entity e) 
 }
 
 void Editor::Meta(std::shared_ptr<entt::registry> registry, entt::entity e) {
-  auto& m = registry->get<hf::meta>(e);
+  auto &m = registry->get<hf::meta>(e);
   ImGui::InputText("Name", m.name);
   ImGui::InputText("Description", m.description);
   ImGui::InputText("ID", m.id);
 }
-void Editor::Position(std::shared_ptr<entt::registry> registry, entt::entity e) {
+void Editor::Position(std::shared_ptr<entt::registry> registry,
+                      entt::entity e) {
   float GUI_SCALE = entt::monostate<"gui_scale"_hs>{};
   auto emitter = entt::service_locator<event_emitter>::get().lock();
   auto &p = registry->get<hf::position>(e);
-  if (ImGui::Button(ICON_MDI_TARGET)) {
+  if (ImGui::Button(ICON_FA_ARROWS_TO_DOT)) {
     emitter->publish<center_event>(p.x, p.y);
   }
   ImGui::SameLine();
@@ -213,7 +311,8 @@ void Editor::Position(std::shared_ptr<entt::registry> registry, entt::entity e) 
     registry->assign_or_replace<hf::position>(e, p);
   }
 }
-void Editor::Renderable(std::shared_ptr<entt::registry> registry, entt::entity e) {
+void Editor::Renderable(std::shared_ptr<entt::registry> registry,
+                        entt::entity e) {
   float GUI_SCALE = entt::monostate<"gui_scale"_hs>{};
   auto viewport = entt::service_locator<Viewport>::get().lock();
   auto r = hf::renderable{};
@@ -343,7 +442,7 @@ void Editor::Renderable(std::shared_ptr<entt::registry> registry, entt::entity e
 }
 
 void Editor::drawSpecWindow() {
-  if(!ImGui::Begin("Specification")) {
+  if (!ImGui::Begin("Specification")) {
     ImGui::End();
     return;
   }
@@ -367,11 +466,54 @@ void Editor::drawSpecWindow() {
   }
   ImGui::Separator();
 
+  if (ImGui::CollapsingHeader("Location Features")) {
+    for (auto &[k, _] : data->mapFeatures) {
+      if (ImGui::CollapsingHeader(k.c_str())) {
+        ImGui::Indent();
+        for (auto &[f, _] : data->mapFeatures[k]) {
+          ImGui::SetNextItemWidth(80);
+          ImGui::InputFloat(f.c_str(), &data->mapFeatures[k][f]);
+        }
+
+        ImGui::SetNextItemWidth(80);
+        ImGui::InputFloat(fmt::format("##New prob lf {}", k).c_str(),
+                          &new_prob);
+        ImGui::SameLine();
+        ImGui::SetNextItemWidth(160);
+        ImGui::InputText(fmt::format("##New name lf {}", k).c_str(),
+                         new_key_lf);
+        ImGui::SameLine();
+        if (ImGui::Button(fmt::format("Add##{}", k).c_str())) {
+          data->mapFeatures[k][new_key_lf] = new_prob;
+        }
+        ImGui::Unindent();
+      }
+    }
+    ImGui::SetNextItemWidth(160);
+    ImGui::InputText("##New name lt", new_key_lt);
+    ImGui::SameLine();
+    if (ImGui::Button("Add")) {
+      data->mapFeatures[new_key_lt] = {};
+    }
+  }
   if (ImGui::CollapsingHeader("Probabilities")) {
     for (auto &[k, _] : data->probability) {
+      ImGui::Indent();
       ImGui::SetNextItemWidth(80);
       ImGui::InputFloat(k.c_str(), &data->probability[k]);
+      ImGui::Unindent();
     }
+    ImGui::Indent();
+    ImGui::SetNextItemWidth(80);
+    ImGui::InputFloat("##New prob", &new_prob);
+    ImGui::SameLine();
+    ImGui::SetNextItemWidth(160);
+    ImGui::InputText("##New name", new_key_prob);
+    ImGui::SameLine();
+    if (ImGui::Button("Add")) {
+      data->probability[new_key_prob] = new_prob;
+    }
+    ImGui::Unindent();
   }
   if (ImGui::CollapsingHeader("Item specs")) {
     for (auto &[k, spec] : data->itemSpecs) {
@@ -449,7 +591,7 @@ void Editor::drawSpecWindow() {
 }
 
 void Editor::drawSelectedInfo() {
-  if(!ImGui::Begin("Selected objects")) {
+  if (!ImGui::Begin("Selected objects")) {
     ImGui::End();
     return;
   }
@@ -500,7 +642,7 @@ void Editor::drawEntityTree(std::shared_ptr<entt::registry> registry) {
     }
   }
 
-  if (ImGui::TreeNode("ents", "%s Entities", ICON_MDI_CUBE_OUTLINE)) {
+  if (ImGui::TreeNode("ents", "%s Entities", ICON_FA_CUBE)) {
     ImGui::AlignTextToFramePadding();
     ImGui::Text("Count: %lu", ents.size());
     ImGui::SameLine();
@@ -515,8 +657,7 @@ void Editor::drawEntityTree(std::shared_ptr<entt::registry> registry) {
         drawEntityInfo(e, registry);
       }
       for (auto [fn, f] : v->children) {
-        if (ImGui::TreeNode(
-                fmt::format("{} {}", ICON_MDI_FOLDER, fn).c_str())) {
+        if (ImGui::TreeNode(fmt::format("{} {}", ICON_FA_FOLDER, fn).c_str())) {
           it(f);
           ImGui::TreePop();
         }
@@ -531,7 +672,7 @@ void Editor::drawEntityTree(std::shared_ptr<entt::registry> registry) {
 
 void Editor::drawObjectsWindow() {
   auto viewport = entt::service_locator<Viewport>::get().lock();
-  if(!ImGui::Begin("Objects")) {
+  if (!ImGui::Begin("Objects")) {
     ImGui::End();
     return;
   }
@@ -544,24 +685,22 @@ void Editor::drawObjects(std::vector<std::shared_ptr<Object>> objects) {
   float GUI_SCALE = entt::monostate<"gui_scale"_hs>{};
   auto viewport = entt::service_locator<Viewport>::get().lock();
   auto emitter = entt::service_locator<event_emitter>::get().lock();
-  ImGui::Text("%s Objects: %lu\n", ICON_MDI_CUBE_OUTLINE, objects.size());
+  ImGui::Text("%s Objects: %lu\n", ICON_FA_CUBE, objects.size());
   auto n = 0;
   auto doors = utils::castObjects<Door>(objects);
   if (doors.size() > 0) {
-    if (ImGui::TreeNode("d", "%s Doors", ICON_MDI_PLUS)) {
+    if (ImGui::TreeNode("d", "%s Doors", ICON_FA_PLUS)) {
       for (auto d : doors) {
-        if (ImGui::TreeNode((void *)(intptr_t)n, "%s %s", ICON_MDI_PLUS,
+        if (ImGui::TreeNode((void *)(intptr_t)n, "%s %s", ICON_FA_PLUS,
                             "door")) {
           ImGui::BulletText("Hidden: %s",
-                            d->hidden ? ICON_MDI_CHECKBOX_MARKED_OUTLINE
-                                      : ICON_MDI_CHECKBOX_BLANK_OUTLINE);
+                            d->hidden ? ICON_FA_SQUARE_CHECK : ICON_FA_SQUARE);
           ImGui::BulletText("Locked: %s",
-                            d->locked ? ICON_MDI_CHECKBOX_MARKED_OUTLINE
-                                      : ICON_MDI_CHECKBOX_BLANK_OUTLINE);
+                            d->locked ? ICON_FA_SQUARE_CHECK : ICON_FA_SQUARE);
           ImGui::BulletText("Position: %d.%d", d->currentCell->x,
                             d->currentCell->y);
           ImGui::SameLine();
-          if (ImGui::SmallButton(ICON_MDI_TARGET)) {
+          if (ImGui::SmallButton(ICON_FA_ARROWS_TO_DOT)) {
             int x = d->currentCell->x - viewport->width / 2 / GUI_SCALE;
             int y = d->currentCell->y - viewport->height / 2 / GUI_SCALE;
             emitter->publish<center_event>(x, y);
@@ -586,7 +725,7 @@ void Editor::drawEntityInfo(entt::entity e,
   auto icon = (registry->has<hf::ineditor>(e) &&
                registry->get<hf::ineditor>(e).icon != "")
                   ? registry->get<hf::ineditor>(e).icon.c_str()
-                  : ICON_MDI_CUBE_OUTLINE;
+                  : ICON_FA_CUBE;
   auto selected = (registry->has<hf::ineditor>(e) &&
                    registry->get<hf::ineditor>(e).selected);
   auto col = selected ? (ImVec4)ImColor::HSV(1.f / 6.f, 0.86f, 1.0f)
@@ -604,15 +743,15 @@ void Editor::drawEntityInfo(entt::entity e,
 }
 
 void Editor::drawCellInfo(std::optional<std::shared_ptr<Cell>> cc) {
-  if(!ImGui::Begin("Current cell info")) {
+  selectedCell = cc;
+  if (!ImGui::Begin("Current cell info")) {
     ImGui::End();
     return;
   }
-  if(!cc) {
+  if (!cc) {
     ImGui::Text("No cell here");
     ImGui::End();
     return;
-
   }
   auto cell = *cc;
 
@@ -620,8 +759,10 @@ void Editor::drawCellInfo(std::optional<std::shared_ptr<Cell>> cc) {
   auto viewport = entt::service_locator<Viewport>::get().lock();
   auto [region, _] = viewport->getRegion(cell->x, cell->y, cell->z);
 
-  ImGui::Text("%s Position: %d.%d.%d\n", ICON_MDI_ARROW_ALL, cell->x, cell->y,
-              cell->z);
+  ImGui::Text("%s Position: %d.%d.%d\n", ICON_FA_ARROWS_UP_DOWN_LEFT_RIGHT,
+              cell->x, cell->y, cell->z);
+  ImGui::Text("%s Position local: %d.%d.%d\n",
+              ICON_FA_ARROWS_UP_DOWN_LEFT_RIGHT, cell->_x, cell->_y, cell->_z);
   auto cti = 0;
   auto n = 0;
   std::vector<std::string> ct_names;
@@ -639,12 +780,12 @@ void Editor::drawCellInfo(std::optional<std::shared_ptr<Cell>> cc) {
     engine->tilesCache.clear();
     emitter->publish<redraw_event>();
   }
-  ImGui::Text("PassThrough: %s\n", cell->passThrough
-                                       ? ICON_MDI_CHECKBOX_MARKED_OUTLINE
-                                       : ICON_MDI_CHECKBOX_BLANK_OUTLINE);
-  ImGui::Text("SeeThrough: %s\n", cell->seeThrough
-                                      ? ICON_MDI_CHECKBOX_MARKED_OUTLINE
-                                      : ICON_MDI_CHECKBOX_BLANK_OUTLINE);
+  ImGui::Text("Illuminated: %s\n",
+              cell->illuminated ? ICON_FA_SQUARE_CHECK : ICON_FA_SQUARE);
+  ImGui::Text("PassThrough: %s\n",
+              cell->passThrough ? ICON_FA_SQUARE_CHECK : ICON_FA_SQUARE);
+  ImGui::Text("SeeThrough: %s\n",
+              cell->seeThrough ? ICON_FA_SQUARE_CHECK : ICON_FA_SQUARE);
   ImGui::Text("Features: %lu\n", cell->features.size());
 
   // add feature selector with magic_enum
@@ -666,7 +807,7 @@ void Editor::drawCellInfo(std::optional<std::shared_ptr<Cell>> cc) {
   auto ents = gm->registry->view<hf::position>();
 
   if (ents.size() > 0) {
-    if (ImGui::TreeNode("ents", "%s Entities", ICON_MDI_CUBE_OUTLINE)) {
+    if (ImGui::TreeNode("ents", "%s Entities", ICON_FA_CUBE)) {
       for (auto e : ents) {
         auto p = gm->registry->get<hf::position>(e);
         if (cell->x == p.x && cell->y == p.y) {
@@ -681,7 +822,7 @@ void Editor::drawCellInfo(std::optional<std::shared_ptr<Cell>> cc) {
 }
 
 void Editor::drawTilesetWindow() {
-  if(!ImGui::Begin("Tileset")) {
+  if (!ImGui::Begin("Tileset")) {
     ImGui::End();
     return;
   }
@@ -693,7 +834,7 @@ void Editor::drawTilesetWindow() {
   if (ImGui::Combo("Tileset", &ts_idx, ts)) {
     auto path = PATH / fs::path("tilesets") / ts[ts_idx];
     viewport->loadTileset(path);
-    emitter->publish<resize_event>();
+    emitter->publish<regen_event>();
   }
   ImGui::BulletText("Size: %dx%d; gap: %d\n", viewport->tileSet.size.first,
                     viewport->tileSet.size.second, viewport->tileSet.gap);
@@ -717,6 +858,10 @@ void Editor::drawTilesetWindow() {
   viewport->colors.erase("");
   if (ImGui::TreeNode("Colors")) {
     for (auto &el : viewport->colors.items()) {
+      if (el.key() == "VARIATIONS")
+        continue;
+      if (el.key() == "WANDERING")
+        continue;
       if (ImGui::TreeNode(el.key().c_str())) {
         std::vector<std::string> to_remove;
         for (auto &e : el.value().items()) {
@@ -749,7 +894,7 @@ void Editor::drawTilesetWindow() {
           }
           ImGui::SameLine();
           if (ImGui::Button(
-                  fmt::format("{}##{}", ICON_MDI_DELETE, e.key()).c_str())) {
+                  fmt::format("{}##{}", ICON_FA_TRASH, e.key()).c_str())) {
             to_remove.push_back(e.key());
           }
         }
@@ -759,12 +904,12 @@ void Editor::drawTilesetWindow() {
         if (to_remove.size() > 0) {
           emitter->publish<regen_event>();
         }
-        auto new_key =
-            fmt::format("NEW_COLOR_{}", viewport->colors[el.key()].size());
-        ImGui::InputText("key", new_key);
+        // auto new_key =
+        // fmt::format("NEW_COLOR_{}", viewport->colors[el.key()].size());
+        ImGui::InputText("key", new_key_color);
         ImGui::SameLine();
         if (ImGui::Button(fmt::format("Add##{}", el.key()).c_str())) {
-          viewport->colors[el.key()][new_key] = "#eeeeeeff";
+          viewport->colors[el.key()][new_key_color] = "#eeeeeeff";
         }
         ImGui::TreePop();
       }
@@ -779,6 +924,9 @@ void Editor::drawTilesetWindow() {
       sf::Sprite s;
       s.setTexture(viewport->tilesTextures[v[0]]);
       s.setTextureRect(viewport->getTileRect(v[1], v[2]));
+      // s.setOrigin(viewport->tileSet.size.first / 2,
+      //             viewport->tileSet.size.second / 2);
+      // s.setRotation(90 * v[3]);
       ImGui::Image(s,
                    sf::Vector2f(viewport->tileSet.size.first,
                                 viewport->tileSet.size.second) *
@@ -807,8 +955,16 @@ void Editor::drawTilesetWindow() {
         engine->tilesCache.clear();
         engine->invalidate();
       }
+      // ImGui::SameLine();
+      // ImGui::SetNextItemWidth(80);
+      // if (ImGui::InputInt(fmt::format("##{}{}", k, 3).c_str(),
+      //                     &(viewport->tileSet.sprites[k][3]))) {
+      //   engine->tilesCache.clear();
+      //   engine->invalidate();
+      // }
+
       ImGui::SameLine();
-      if (ImGui::Button(fmt::format("{}##{}", ICON_MDI_DELETE, k).c_str())) {
+      if (ImGui::Button(fmt::format("{}##{}", ICON_FA_TRASH, k).c_str())) {
         to_remove.push_back(k);
       }
     }
@@ -819,12 +975,64 @@ void Editor::drawTilesetWindow() {
       emitter->publish<regen_event>();
     }
 
-    auto new_key =
-        fmt::format("NEW_SPRITE_{}", viewport->tileSet.sprites.size());
-    ImGui::InputText("key", new_key);
+    // auto new_key =
+    //     fmt::format("NEW_SPRITE_{}", viewport->tileSet.sprites.size());
+    ImGui::InputText("key", new_key_sprite);
     ImGui::SameLine();
     if (ImGui::Button("Add")) {
-      viewport->tileSet.sprites[new_key] = {0, 0, 0};
+      viewport->tileSet.sprites[new_key_sprite] = {0, 0, 0};
+    }
+    ImGui::TreePop();
+  }
+  if (ImGui::TreeNode("Sprite Variations")) {
+    for (auto [k, _] : viewport->tileSet.spriteVariations) {
+      if (ImGui::CollapsingHeader(k.c_str())) {
+        for (auto v : viewport->tileSet.spriteVariations[k]) {
+          ImGui::Indent();
+          ImGui::Text(v.c_str());
+          ImGui::Unindent();
+        }
+        // TODO: add/del variation
+      }
+      // TODO: add/del sprite
+    }
+    ImGui::TreePop();
+  }
+
+  if (ImGui::TreeNode("Color Variations")) {
+    for (auto [k, _] : viewport->tileSet.colorVariations) {
+      if (ImGui::CollapsingHeader(k.c_str())) {
+        for (auto v : viewport->tileSet.colorVariations[k]) {
+          ImGui::Indent();
+          ImGui::Text(v.c_str());
+          ImGui::Unindent();
+        }
+        // TODO: add/del variation
+      }
+      // TODO: add/del sprite
+    }
+    ImGui::TreePop();
+  }
+
+  if (ImGui::TreeNode("Color Wandering")) {
+    for (auto [k, _] : viewport->tileSet.colorWandering) {
+      if (ImGui::CollapsingHeader(k.c_str())) {
+        for (auto [v, p] : viewport->tileSet.colorWandering[k]) {
+          ImGui::Indent();
+          ImGui::Text(v.c_str());
+          ImGui::SameLine();
+          ImGui::SetNextItemWidth(90 * GUI_SCALE);
+          ImGui::InputFloat(fmt::format("##{}{}0", k, v).c_str(),
+                            &(viewport->tileSet.colorWandering[k][v][0]));
+          ImGui::SameLine();
+          ImGui::SetNextItemWidth(90 * GUI_SCALE);
+          ImGui::InputFloat(fmt::format("##{}{}1", k, v).c_str(),
+                            &(viewport->tileSet.colorWandering[k][v][1]));
+          ImGui::Unindent();
+        }
+        // TODO: add/del variation
+      }
+      // TODO: add/del sprite
     }
     ImGui::TreePop();
   }
@@ -851,6 +1059,7 @@ void Editor::saveTileset() {
   auto viewport = entt::service_locator<Viewport>::get().lock();
   auto path = PATH / fs::path("tilesets") / ts[ts_idx];
   std::ofstream o(path / "colors.json");
+  viewport->colors["VARIATIONS"] = viewport->tileSet.colorVariations;
   o << std::setw(4) << viewport->colors << std::endl;
 
   json j;
@@ -858,7 +1067,122 @@ void Editor::saveTileset() {
   j["SIZE"] = viewport->tileSet.size;
   j["GAP"] = viewport->tileSet.gap;
   j["SPRITES"] = viewport->tileSet.sprites;
+  j["VARIATIONS"] = viewport->tileSet.spriteVariations;
 
   std::ofstream o2(path / "tiles.json");
   o2 << std::setw(4) << j << std::endl;
 }
+
+void Editor::drawLocationWindow(std::shared_ptr<Location> location) {
+  auto ents = gm->registry->view<hf::position>();
+  auto emitter = entt::service_locator<event_emitter>::get().lock();
+
+  ImGui::Begin("Location info");
+  ImGui::Text(fmt::format("Tags [{}]:", location->tags.tags.size()).c_str());
+  for (auto tag : location->tags.tags) {
+    ImGui::Indent();
+    ImGui::BulletText(tag.c_str());
+    ImGui::Unindent();
+  }
+  if (location->enterCell && location->exitCell) {
+    ImGui::BulletText("Enter: %s", location->enterCell->getSId().c_str());
+    ImGui::SameLine();
+    if (ImGui::Button(
+            fmt::format("{}##enter", ICON_FA_ARROWS_TO_DOT).c_str())) {
+      emitter->publish<center_event>(location->enterCell->x,
+                                     location->enterCell->y);
+    }
+    // ImGui::SameLine();
+    ImGui::BulletText("Exit: %s", location->exitCell->getSId().c_str());
+    ImGui::SameLine();
+    if (ImGui::Button(fmt::format("{}##exit", ICON_FA_ARROWS_TO_DOT).c_str())) {
+      emitter->publish<center_event>(location->exitCell->x,
+                                     location->exitCell->y);
+    }
+    ImGui::BulletText("Path: %d", location->path.size());
+    ImGui::SameLine();
+    if (ImGui::Button(fmt::format("{}##path", ICON_FA_ARROWS_TO_DOT).c_str())) {
+      for (auto e : ents) {
+        if (!gm->registry->has<hf::cell>(e))
+          continue;
+        auto c = gm->registry->get<hf::cell>(e);
+        for (auto cell : location->path) {
+          if (c.cell == cell) {
+
+            auto ie = gm->registry->get<hf::ineditor>(e);
+            ie.selected = true;
+            gm->registry->assign_or_replace<hellfrost::ineditor>(e, ie);
+            emitter->publish<redraw_event>();
+          }
+        }
+      }
+    }
+  }
+
+  // ImGui::Checkbox("Show unknown", &show_unknown);
+
+  // ImGui::Text("Rooms: %d", location->rooms.size());
+  // for (auto room : location->rooms) {
+  //   if (ImGui::CollapsingHeader(room->getInfo().c_str())) {
+  //     ImGui::Indent();
+  //     ImGui::BulletText(
+  //         fmt::format("Type: {}",
+  //         magic_enum::enum_name(room->type)).c_str());
+  //     ImGui::BulletText("Features: %d", room->features.size());
+  //     ImGui::BulletText("Entities: %d", room->entities.size());
+  //     if (ImGui::CollapsingHeader(
+  //             fmt::format("Cells##{}", room->getInfo()).c_str())) {
+  //       ImGui::Indent();
+  //       for (auto cell : room->cells) {
+  //         if (!show_unknown && cell->type == CellType::UNKNOWN)
+  //           continue;
+  //         std::vector<entt::entity> es;
+  //         for (auto e : ents) {
+  //           auto p = gm->registry->get<hf::position>(e);
+  //           // fmt::print("{}.{} -> {}.{}\n", cell->x, p.x, cell->y, p.y);
+  //           if (cell->x == p.x && cell->y == p.y) {
+  //             es.push_back(e);
+  //           }
+  //         }
+
+  //         if (ImGui::CollapsingHeader(
+  //                 fmt::format("Place: {}.{}.{} / {}.{}.{} | {} | f:{} |
+  //                 e:{}",
+  //                             cell->x, cell->y, cell->z, cell->_x, cell->_y,
+  //                             cell->_z, cell->type.name,
+  //                             cell->features.size(), es.size())
+  //                     .c_str())) {
+  //           ImGui::Indent();
+  //           ImGui::BulletText(fmt::format("Type: {}",
+  //           cell->type.name).c_str()); ImGui::BulletText(
+  //               fmt::format("Features: {}", cell->features.size()).c_str());
+
+  //           if (es.size() > 0) {
+  //             if (ImGui::TreeNode(
+  //                     fmt::format("ents##{}.{}.{}", cell->x, cell->y,
+  //                     cell->z)
+  //                         .c_str(),
+  //                     fmt::format("{} Entities", ICON_FA_CUBE).c_str())) {
+  //               for (auto e : es) {
+  //                 drawEntityInfo(e, gm->registry);
+  //               }
+  //               ImGui::TreePop();
+  //             }
+  //           }
+  //           ImGui::Unindent();
+  //         }
+  //       }
+
+  //       ImGui::Unindent();
+  //     }
+  //     ImGui::Unindent();
+  //   }
+  // }
+  ImGui::Text("Features: %d", location->features.size());
+  // ImGui::Text(fmt::format("Spec: {}", location->getFeaturesTag()).c_str());
+  ImGui::Text("Cells: %d x %d", location->cells.size(),
+              location->cells.front().size());
+  ImGui::End();
+}
+
+void Editor::drawTemplates(sol::state &lua) {}

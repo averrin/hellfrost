@@ -7,9 +7,9 @@
 #include <cstring>
 #include <fstream>
 #include <map>
-#include <mutex>  // for call_once()
+#include <mutex> // for call_once()
 
-#include <imgui/imgui.h>
+#include <imgui.h>
 
 // #include <common/logging.h>
 // #include <config.h>
@@ -54,8 +54,8 @@ ImFont *MergeIcons(float size) {
   fontConfig.PixelSnapH = true;
   auto font = io.Fonts->AddFontFromMemoryCompressedTTF(
       Fonts::MATERIAL_DESIGN_ICONS_COMPRESSED_DATA,
-      Fonts::MATERIAL_DESIGN_ICONS_COMPRESSED_SIZE, size,
-      &fontConfig, icons_ranges);
+      Fonts::MATERIAL_DESIGN_ICONS_COMPRESSED_SIZE, size, &fontConfig,
+      icons_ranges);
   // use FONT_ICON_FILE_NAME_FAR if you want regular instead of solid
 
   return font;
@@ -74,65 +74,60 @@ ImFont *LoadRobotoFont(std::string const &name, Font::Weight weight,
   fontConfig.Name[sizeof(fontConfig.Name) - 1] = 0;
   ImFont *font = nullptr;
   switch (weight) {
-    case Font::Weight::LIGHT:
-      switch (style) {
-        case Font::Style::ITALIC:
-          io.Fonts->AddFontFromMemoryCompressedTTF(
-              Fonts::ROBOTO_LIGHTITALIC_COMPRESSED_DATA,
-              Fonts::ROBOTO_LIGHTITALIC_COMPRESSED_SIZE,
-              Font::SizeFloat(size), &fontConfig,
-              io.Fonts->GetGlyphRangesDefault());
-          font = MergeIcons(Font::SizeFloat(size));
-          break;
-        case Font::Style::NORMAL:
-          io.Fonts->AddFontFromMemoryCompressedTTF(
-              Fonts::ROBOTO_LIGHT_COMPRESSED_DATA,
-              Fonts::ROBOTO_LIGHT_COMPRESSED_SIZE,
-              Font::SizeFloat(size), &fontConfig,
-              io.Fonts->GetGlyphRangesDefault());
-          font = MergeIcons(Font::SizeFloat(size));
-          break;
-      }
+  case Font::Weight::LIGHT:
+    switch (style) {
+    case Font::Style::ITALIC:
+      io.Fonts->AddFontFromMemoryCompressedTTF(
+          Fonts::ROBOTO_LIGHTITALIC_COMPRESSED_DATA,
+          Fonts::ROBOTO_LIGHTITALIC_COMPRESSED_SIZE, Font::SizeFloat(size),
+          &fontConfig, io.Fonts->GetGlyphRangesDefault());
+      font = MergeIcons(Font::SizeFloat(size));
       break;
-    case Font::Weight::REGULAR:
-      switch (style) {
-        case Font::Style::ITALIC:
-          io.Fonts->AddFontFromMemoryCompressedTTF(
-              Fonts::ROBOTO_ITALIC_COMPRESSED_DATA,
-              Fonts::ROBOTO_ITALIC_COMPRESSED_SIZE,
-              Font::SizeFloat(size), &fontConfig,
-              io.Fonts->GetGlyphRangesDefault());
-          font = MergeIcons(Font::SizeFloat(size));
-          break;
-        case Font::Style::NORMAL:
-          io.Fonts->AddFontFromMemoryCompressedTTF(
-              Fonts::ROBOTO_REGULAR_COMPRESSED_DATA,
-              Fonts::ROBOTO_REGULAR_COMPRESSED_SIZE,
-              Font::SizeFloat(size), &fontConfig,
-              io.Fonts->GetGlyphRangesDefault());
-          font = MergeIcons(Font::SizeFloat(size));
-          break;
-      }
+    case Font::Style::NORMAL:
+      io.Fonts->AddFontFromMemoryCompressedTTF(
+          Fonts::ROBOTO_LIGHT_COMPRESSED_DATA,
+          Fonts::ROBOTO_LIGHT_COMPRESSED_SIZE, Font::SizeFloat(size),
+          &fontConfig, io.Fonts->GetGlyphRangesDefault());
+      font = MergeIcons(Font::SizeFloat(size));
       break;
-    case Font::Weight::BOLD:
-      switch (style) {
-        case Font::Style::ITALIC:
-          io.Fonts->AddFontFromMemoryCompressedTTF(
-              Fonts::ROBOTO_BOLDITALIC_COMPRESSED_DATA,
-              Fonts::ROBOTO_BOLDITALIC_COMPRESSED_SIZE,
-              Font::SizeFloat(size), &fontConfig,
-              io.Fonts->GetGlyphRangesDefault());
-          font = MergeIcons(Font::SizeFloat(size));
-          break;
-        case Font::Style::NORMAL:
-          io.Fonts->AddFontFromMemoryCompressedTTF(
-              Fonts::ROBOTO_BOLD_COMPRESSED_DATA,
-              Fonts::ROBOTO_BOLD_COMPRESSED_SIZE,
-              Font::SizeFloat(size), &fontConfig);
-          font = MergeIcons(Font::SizeFloat(size));
-          break;
-      }
+    }
+    break;
+  case Font::Weight::REGULAR:
+    switch (style) {
+    case Font::Style::ITALIC:
+      io.Fonts->AddFontFromMemoryCompressedTTF(
+          Fonts::ROBOTO_ITALIC_COMPRESSED_DATA,
+          Fonts::ROBOTO_ITALIC_COMPRESSED_SIZE, Font::SizeFloat(size),
+          &fontConfig, io.Fonts->GetGlyphRangesDefault());
+      font = MergeIcons(Font::SizeFloat(size));
       break;
+    case Font::Style::NORMAL:
+      io.Fonts->AddFontFromMemoryCompressedTTF(
+          Fonts::ROBOTO_REGULAR_COMPRESSED_DATA,
+          Fonts::ROBOTO_REGULAR_COMPRESSED_SIZE, Font::SizeFloat(size),
+          &fontConfig, io.Fonts->GetGlyphRangesDefault());
+      font = MergeIcons(Font::SizeFloat(size));
+      break;
+    }
+    break;
+  case Font::Weight::BOLD:
+    switch (style) {
+    case Font::Style::ITALIC:
+      io.Fonts->AddFontFromMemoryCompressedTTF(
+          Fonts::ROBOTO_BOLDITALIC_COMPRESSED_DATA,
+          Fonts::ROBOTO_BOLDITALIC_COMPRESSED_SIZE, Font::SizeFloat(size),
+          &fontConfig, io.Fonts->GetGlyphRangesDefault());
+      font = MergeIcons(Font::SizeFloat(size));
+      break;
+    case Font::Style::NORMAL:
+      io.Fonts->AddFontFromMemoryCompressedTTF(
+          Fonts::ROBOTO_BOLD_COMPRESSED_DATA,
+          Fonts::ROBOTO_BOLD_COMPRESSED_SIZE, Font::SizeFloat(size),
+          &fontConfig);
+      font = MergeIcons(Font::SizeFloat(size));
+      break;
+    }
+    break;
   }
   return font;
 }
@@ -150,32 +145,32 @@ ImFont *LoadInconsolataFont(std::string const &name, Font::Weight weight,
   fontConfig.Name[sizeof(fontConfig.Name) - 1] = 0;
   ImFont *font = nullptr;
   switch (weight) {
-    case Font::Weight::LIGHT:
+  case Font::Weight::LIGHT:
+    break;
+  case Font::Weight::REGULAR:
+    switch (style) {
+    case Font::Style::ITALIC:
+    case Font::Style::NORMAL:
+      io.Fonts->AddFontFromMemoryCompressedTTF(
+          Fonts::INCONSOLATA_REGULAR_COMPRESSED_DATA,
+          Fonts::INCONSOLATA_REGULAR_COMPRESSED_SIZE, Font::SizeFloat(size),
+          &fontConfig);
+      font = MergeIcons(Font::SizeFloat(size));
       break;
-    case Font::Weight::REGULAR:
-      switch (style) {
-        case Font::Style::ITALIC:
-        case Font::Style::NORMAL:
-          io.Fonts->AddFontFromMemoryCompressedTTF(
-              Fonts::INCONSOLATA_REGULAR_COMPRESSED_DATA,
-              Fonts::INCONSOLATA_REGULAR_COMPRESSED_SIZE,
-              Font::SizeFloat(size), &fontConfig);
-          font = MergeIcons(Font::SizeFloat(size));
-          break;
-      }
+    }
+    break;
+  case Font::Weight::BOLD:
+    switch (style) {
+    case Font::Style::ITALIC:
+    case Font::Style::NORMAL:
+      io.Fonts->AddFontFromMemoryCompressedTTF(
+          Fonts::INCONSOLATA_BOLD_COMPRESSED_DATA,
+          Fonts::INCONSOLATA_BOLD_COMPRESSED_SIZE, Font::SizeFloat(size),
+          &fontConfig);
+      font = MergeIcons(Font::SizeFloat(size));
       break;
-    case Font::Weight::BOLD:
-      switch (style) {
-        case Font::Style::ITALIC:
-        case Font::Style::NORMAL:
-          io.Fonts->AddFontFromMemoryCompressedTTF(
-              Fonts::INCONSOLATA_BOLD_COMPRESSED_DATA,
-              Fonts::INCONSOLATA_BOLD_COMPRESSED_SIZE,
-              Font::SizeFloat(size), &fontConfig);
-          font = MergeIcons(Font::SizeFloat(size));
-          break;
-      }
-      break;
+    }
+    break;
   }
   return font;
 }
@@ -194,12 +189,11 @@ ImFont *LoadIconsFont(float size) {
   ImFont *font = nullptr;
   font = io.Fonts->AddFontFromMemoryCompressedTTF(
       Fonts::MATERIAL_DESIGN_ICONS_COMPRESSED_DATA,
-      Fonts::MATERIAL_DESIGN_ICONS_COMPRESSED_SIZE, size,
-      &fontConfig);
+      Fonts::MATERIAL_DESIGN_ICONS_COMPRESSED_SIZE, size, &fontConfig);
   return font;
 }
 
-}  // namespace
+} // namespace
 
 Font::Font(std::string family) : family_(std::move(family)) { InitFont(); }
 
@@ -210,11 +204,8 @@ void Font::InitFont() {
 }
 
 Font::Font(Font const &other)
-    : font_(other.font_),
-      size_(other.size_),
-      style_(other.style_),
-      weight_(other.weight_),
-      name_(other.name_) {}
+    : font_(other.font_), size_(other.size_), style_(other.style_),
+      weight_(other.weight_), name_(other.name_) {}
 
 Font &Font::operator=(Font const &rhs) {
   font_ = rhs.font_;
@@ -225,11 +216,8 @@ Font &Font::operator=(Font const &rhs) {
   return *this;
 }
 Font::Font(Font &&moved) noexcept
-    : font_(moved.font_),
-      size_(moved.size_),
-      style_(moved.style_),
-      weight_(moved.weight_),
-      name_(std::move(moved.name_)) {
+    : font_(moved.font_), size_(moved.size_), style_(moved.style_),
+      weight_(moved.weight_), name_(std::move(moved.name_)) {
   moved.font_ = nullptr;
 }
 Font &Font::operator=(Font &&moved) noexcept {
@@ -304,14 +292,14 @@ float Font::SizeFloat(Font::Size size) {
 }
 char const *Font::SizeString(Font::Size size) {
   switch (size) {
-    case Size::SMALL:
-      return "11px";
-    case Size::MEDIUM:
-      return "14px";
-    case Size::LARGE:
-      return "16px";
-    case Size::LARGER:
-      return "24px";
+  case Size::SMALL:
+    return "11px";
+  case Size::MEDIUM:
+    return "14px";
+  case Size::LARGE:
+    return "16px";
+  case Size::LARGER:
+    return "24px";
   }
   // Only needed for compilers that complain about not all control paths
   // return a value.
@@ -320,10 +308,10 @@ char const *Font::SizeString(Font::Size size) {
 
 char const *Font::StyleString(Font::Style style) {
   switch (style) {
-    case Style::NORMAL:
-      return "Normal";
-    case Style::ITALIC:
-      return "Italic";
+  case Style::NORMAL:
+    return "Normal";
+  case Style::ITALIC:
+    return "Italic";
   }
   // Only needed for compilers that complain about not all control paths
   // return a value.
@@ -332,12 +320,12 @@ char const *Font::StyleString(Font::Style style) {
 
 char const *Font::WeightString(Font::Weight weight) {
   switch (weight) {
-    case Weight::LIGHT:
-      return "Light";
-    case Weight::REGULAR:
-      return "Regular";
-    case Weight::BOLD:
-      return "Bold";
+  case Weight::LIGHT:
+    return "Light";
+  case Weight::REGULAR:
+    return "Regular";
+  case Weight::BOLD:
+    return "Bold";
   }
   // Only needed for compilers that complain about not all control paths
   // return a value.
@@ -387,7 +375,8 @@ void Theme::LoadDefaultFonts() {
         auto name =
             BuildFontName(Font::FAMILY_PROPORTIONAL, weight, style, size);
         auto font = LoadRobotoFont(name, weight, style, size);
-        if (font) AddFont(name, font);
+        if (font)
+          AddFont(name, font);
       }
     }
 
@@ -482,7 +471,7 @@ void Theme::LoadDefaultStyle() {
   style.Colors[ImGuiCol_PlotHistogramHovered] = ImVec4(0.00f, 0.40f, 1.00f, 1.00f);
   style.Colors[ImGuiCol_TextSelectedBg] = ImVec4(0.75f, 0.42f, 0.02f, 0.35f);
   style.Colors[ImGuiCol_PopupBg] = ImVec4(0.00f, 0.00f, 0.00f, 0.94f);
-  style.Colors[ImGuiCol_ModalWindowDarkening] = ImVec4(0.06f, 0.06f, 0.06f, 0.35f);
+  style.Colors[ImGuiCol_ModalWindowDimBg] = ImVec4(0.06f, 0.06f, 0.06f, 0.35f);
   // clang-format on
 }
 

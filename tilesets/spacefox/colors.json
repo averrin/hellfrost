@@ -33,15 +33,18 @@
     },
     "ENV": {
         "BLOOD": "#771d1f89",
+        "CAVE_BG": "#6b4f2055",
         "CORRUPT": "#550088aa",
         "DOOR": "#8B5F20",
         "FLOOR": "#5f554188",
         "FROST": "#2d2f6089",
         "GROUND": "#6B4F2099",
+        "GROUND_BG": "#1935026c",
         "VOID": "#333333",
         "WALL": "#6d6359",
         "WALL_CAVE": "#6B4F20cc",
-        "WATER": "#4444aa"
+        "WATER": "#4444aa",
+        "WATER_BG": "#48488687"
     },
     "ITEMS": {
         "AMULET": "#9043c7ff",

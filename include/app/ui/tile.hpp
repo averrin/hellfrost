@@ -21,12 +21,14 @@
 
 using Color = LibColor::Color;
 
+typedef std::array<int, 3> TileSpec;
 class Tile {
 public:
   std::vector<std::shared_ptr<sf::Sprite>> sprites{};
   std::shared_ptr<Cell> cell;
   bool damaged = false;
   sf::Color bgColor = sf::Color(33, 33, 23);
+  sf::Color olColor = sf::Color(255, 255, 255, 0);
   bool hasBackground = false;
   sf::Vector3f pos{};
   int id() { return pos.x * 1000 * 100 + pos.y * 100 + pos.z; }

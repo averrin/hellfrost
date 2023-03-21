@@ -6,11 +6,14 @@
 #include "lss/game/events.hpp"
 #include "lss/game/fov.hpp"
 #include "lss/game/object.hpp"
+#include "lss/game/door.hpp"
 #include "micropather/micropather.h"
 #include <cmath>
 #include <iostream>
+#include <magic_enum.hpp>
 #include <map>
 #include <optional>
+#include <sol/sol.hpp>
 
 enum LocationFeature {
   CAVE_PASSAGE,
@@ -28,7 +31,7 @@ enum LocationFeature {
   BONES_FIELD,
 };
 
-enum LocationType { DUNGEON, CAVERN, EXTERIOR, BUILDING };
+enum LocationType { ZERO, DUNGEON, CAVERN, EXTERIOR, BUILDING };
 
 struct LocationSpec {
   std::string name;
@@ -38,22 +41,23 @@ struct LocationSpec {
   std::vector<CellFeature> cellFeatures;
   std::shared_ptr<Cell> enterCell;
   CellSpec floor = CellType::FLOOR;
+  sol::function genFunc;
+  void setGenFunc(sol::function f) { genFunc = f; }
+
+  std::string getType() {
+    std::string s(magic_enum::enum_name(type));
+    return s;
+  }
+  void setType(LocationType t) { type = t; }
+  std::map<std::string, float> templateMap;
 };
 
 class Player;
 class Room;
 class AiManager;
 class Location : public Object,
-                 public micropather::Graph
-// public eb::EventHandler<EnemyDiedEvent>,
-// public eb::EventHandler<ItemTakenEvent>,
-// public eb::EventHandler<DigEvent>,
-// public eb::EventHandler<DropEvent>,
-// public eb::EventHandler<CommitEvent>,
-// public eb::EventHandler<DoorOpenedEvent>,
-// public eb::EventHandler<LeaveCellEvent>,
-// public eb::EventHandler<EnterCellEvent>,
-{
+                 public micropather::Graph,
+                 public std::enable_shared_from_this<Location> {
 public:
   std::shared_ptr<entt::registry> registry = std::make_shared<entt::registry>();
   LibLog::Logger &log = LibLog::Logger::getInstance();
@@ -66,7 +70,22 @@ public:
       std::map<std::shared_ptr<Cell>, Objects>{};
   // std::shared_ptr<Player> player;
   int depth = 0;
+  Tags tags;
   // std::shared_ptr<AiManager> aiManager;
+
+  static constexpr const auto A_LOCATION_TYPES =
+      std::array<LocationType, 4>{LocationType::DUNGEON, LocationType::CAVERN,
+                                  LocationType::EXTERIOR, LocationType::ZERO};
+  static constexpr const std::array<LocationFeature, 11> A_FEATURES = {
+      LocationFeature::CAVE_PASSAGE, LocationFeature::STATUE,
+      LocationFeature::ALTAR,        LocationFeature::TREASURE_SMALL,
+      LocationFeature::HEAL,         LocationFeature::MANA,
+      LocationFeature::RIVER,        LocationFeature::LAKE,
+      LocationFeature::TORCHES,      LocationFeature::CORRUPT,
+      LocationFeature::ICE,
+  };
+
+  std::vector<entt::entity> getEntities(std::shared_ptr<Cell> cell);
 
   template <typename T>
   std::optional<std::shared_ptr<T>> getObject(std::string name) {
@@ -81,6 +100,8 @@ public:
   }
 
   entt::entity addTerrain(std::string typeKey, std::shared_ptr<Cell> cell);
+  entt::entity addEntity(std::string typeKey, std::shared_ptr<Cell> cell);
+  std::shared_ptr<Door> placeDoor(std::shared_ptr<Cell> cell);
 
   template <typename T>
   void addObject(std::shared_ptr<T> o, std::shared_ptr<T> cc) {
@@ -110,7 +131,10 @@ public:
 
   std::shared_ptr<Cell> enterCell;
   std::shared_ptr<Cell> exitCell;
+  std::vector<std::shared_ptr<Cell>> path;
   std::vector<std::shared_ptr<Room>> rooms;
+
+  void addRoom(std::shared_ptr<Room> room, int x, int y);
 
   std::vector<LocationFeature> features;
   bool hasFeature(LocationFeature f) {
@@ -153,30 +177,37 @@ public:
     return getNeighbors(cell.get());
   }
   std::vector<std::shared_ptr<Cell>> getNeighbors(Cell *cell) {
+    auto width = cells.front().size();
+    auto height = cells.size();
     std::vector<std::shared_ptr<Cell>> nbrs;
+    if (cell->x > 0 && cell->y > 0) {
+      nbrs.push_back(cells[(cell->y - 1)][(cell->x - 1)]);
+    }
+    if (cell->y > 0) {
+      nbrs.push_back(cells[(cell->y - 1)][(cell->x)]);
+    }
+    if (cell->y > 0 && cell->x < int(width - 1)) {
+      nbrs.push_back(cells[(cell->y - 1)][(cell->x + 1)]);
+    }
     if (cell->x > 0) {
-      if (cell->y > 0) {
-        nbrs.push_back(cells[cell->y - 1][cell->x - 1]);
-        nbrs.push_back(cells[cell->y - 1][cell->x]);
-        nbrs.push_back(cells[cell->y][cell->x - 1]);
-
-        if (cell->x < int(cells.front().size() - 1)) {
-          nbrs.push_back(cells[cell->y - 1][cell->x + 1]);
-          nbrs.push_back(cells[cell->y][cell->x + 1]);
-        }
-      }
-      if (cell->y < int(cells.size() - 1)) {
-        if (cell->x < int(cells.front().size() - 1)) {
-          nbrs.push_back(cells[cell->y + 1][cell->x + 1]);
-          nbrs.push_back(cells[cell->y + 1][cell->x - 1]);
-        }
-        nbrs.push_back(cells[cell->y + 1][cell->x]);
-      }
+      nbrs.push_back(cells[(cell->y)][(cell->x - 1)]);
+    }
+    if (cell->x < int(width - 1)) {
+      nbrs.push_back(cells[(cell->y)][(cell->x + 1)]);
+    }
+    if (cell->x > 0 && cell->y < int(height - 1)) {
+      nbrs.push_back(cells[(cell->y + 1)][(cell->x - 1)]);
+    }
+    if (cell->y < int(height - 1)) {
+      nbrs.push_back(cells[(cell->y + 1)][(cell->x)]);
+    }
+    if (cell->y < int(height - 1) && cell->x < int(width - 1)) {
+      nbrs.push_back(cells[(cell->y + 1)][(cell->x + 1)]);
     }
     return nbrs;
   }
   std::vector<std::shared_ptr<Cell>> getVisible(std::shared_ptr<Cell> start,
-                                                float distance);
+                                                float distance, bool);
 
   void invalidateVisibilityCache(std::shared_ptr<Cell> cell);
 
