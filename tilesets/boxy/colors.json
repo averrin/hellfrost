@@ -36,11 +36,13 @@
         "CAVE_BG": "#6b4f2055",
         "CORRUPT": "#550088aa",
         "DOOR": "#8B5F20",
+        "DOWNSTAIRS": "#dfdfdf",
         "FLOOR": "#5f554188",
         "FROST": "#3c4092ac",
         "GROUND": "#5f5541aa",
         "GROUND_BG": "#1935026c",
         "OVERLAY": "#aaaaaa88",
+        "UPSTAIRS": "#dfdfdf",
         "WALL": "#6d6359",
         "WALL_CAVE": "#6B4F20cc",
         "WATER": "#393973d9",
@@ -99,6 +101,7 @@
         "ALTAR": "#b7b6b6ff",
         "BUSH": "#2cb10eff",
         "CRATE": "#7d7369",
+        "DOOR": "#8B5F20",
         "STATUE": "#f0f0ff",
         "TORCH_STAND": "#ffa500",
         "TREE": "#348e48ff"
@@ -114,6 +117,17 @@
                 -0.2,
                 0.2
             ]
+        },
+        "FROST": {
+            "saturation": [
+                -0.1,
+                0.1
+            ],
+            "value": [
+                0,
+                0.3
+            ]
+
         },
         "GROUND": {
             "green": [
@@ -143,12 +157,6 @@
             "value": [
                 0,
                 0.3
-            ]
-        },
-        "FROST": {
-            "saturation": [
-                -0.1,
-                0.1
             ]
         }
     }

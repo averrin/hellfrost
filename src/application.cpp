@@ -40,59 +40,6 @@ static ImGuiDockNodeFlags opt_flags = ImGuiDockNodeFlags_PassthruCentralNode;
 std::string DEFAULT_TILESET = "ascii";
 std::string DATA_FILE = "game.bin";
 
-// TODO: remove by generating proper location in gm
-int lts_idx = 0;
-std::vector<std::string> lts = {"dungeon", "cavern", "exterior", "zero"};
-auto locationType = Location::A_LOCATION_TYPES[lts_idx];
-
-LocationSpec Application::randomLocationSpec(int s) {
-
-  Random::seed(s);
-  auto cave_pass = Random::get<bool>();
-  auto statue = Random::get<bool>();
-  auto altar = Random::get<bool>();
-  auto treasure = Random::get<bool>();
-  auto heal = Random::get<bool>();
-  auto mana = Random::get<bool>();
-  auto river = Random::get<bool>();
-  auto lake = Random::get<bool>();
-  auto torches = Random::get<bool>();
-  auto corrupt = Random::get<bool>();
-  auto ice = Random::get<bool>();
-
-  auto spec = LocationSpec{"Random"};
-  spec.type = *Random::get(Location::A_LOCATION_TYPES);
-  spec.threat = 1;
-  if (spec.type == LocationType::CAVERN) {
-    spec.floor = CellType::GROUND;
-    spec.cellFeatures = {CellFeature::CAVE};
-    cave_pass = false;
-  } else if (spec.type == LocationType::EXTERIOR) {
-    spec.floor = CellType::GROUND;
-    cave_pass = false;
-    river = false;
-    lake = false;
-  } else if (spec.type == LocationType::DUNGEON) {
-    spec.floor = CellType::FLOOR;
-    river = false;
-    lake = false;
-  }
-
-  std::vector<bool> flags = {
-      cave_pass, statue, altar,   treasure, heal, mana,
-      river,     lake,   torches, corrupt,  ice,
-  };
-
-  auto n = 0;
-  for (auto flag : flags) {
-    if (flag) {
-      spec.features.push_back(Location::A_FEATURES[n]);
-    }
-    n++;
-  }
-  return spec;
-}
-
 void Application::initConfig() {
   fmt::print("Path: {}\n", PATH.string());
   auto label = "exec config";
@@ -133,15 +80,15 @@ void Application::initConfig() {
   }
   log.info("Seed: {}", seed);
 
-  auto _lt = lua.get<std::string>("location_type");
-  if (_lt != "") {
-    for (auto n = 0; n < lts.size(); n++) {
-      if (lts[n] == _lt) {
-        lts_idx = n;
-      }
-    }
-    locationType = Location::A_LOCATION_TYPES[lts_idx];
-  }
+  // auto _lt = lua.get<std::string>("location_type");
+  // if (_lt != "") {
+  //   for (auto n = 0; n < lts.size(); n++) {
+  //     if (lts[n] == _lt) {
+  //       lts_idx = n;
+  //     }
+  //   }
+  //   locationType = Location::A_LOCATION_TYPES[lts_idx];
+  // }
 
   log.stop(label);
 }
@@ -238,7 +185,11 @@ void Application::setupGui() {
     viewport->view_x = 0;
     viewport->view_y = 0;
     viewport->view_z = 0;
-    genLocation(seed);
+    if (p.specKey != "") {
+      genLocation(seed, *gm->locationSpecs[p.specKey]);
+    } else {
+      genLocation(seed);
+    }
     engine->invalidate();
   });
   emitter->on<center_event>([&](const auto &p, auto &em) {
@@ -375,6 +326,10 @@ void Application::processEvent(sf::Event event) {
       break;
     case sf::Keyboard::F1:
       debug = !debug;
+      break;
+    case sf::Keyboard::R:
+      auto emitter = entt::service_locator<event_emitter>::get().lock();
+      emitter->publish<regen_event>(-1);
       break;
     }
     break;
@@ -711,16 +666,31 @@ void Application::drawLocationWindow() {
     auto emitter = entt::service_locator<event_emitter>::get().lock();
     emitter->publish<regen_event>(-1);
   }
+  if (gm->location == nullptr) {
+    ImGui::End();
+    return;
+  }
   ImGui::SameLine();
   if (ImGui::Button("Redraw")) {
     auto emitter = entt::service_locator<event_emitter>::get().lock();
     emitter->publish<redraw_event>();
   }
   ImGui::Separator();
+  std::vector<std::string> lts;
+  auto n = 0;
+  auto lts_idx = 0;
+  for (auto [key, _] : gm->locationSpecs) {
+    lts.push_back(key);
+    if (gm->location->type.name == key) {
+      lts_idx = n;
+    }
+    n++;
+  }
   if (ImGui::Combo("Location type", &lts_idx, lts)) {
-    locationType = Location::A_LOCATION_TYPES[lts_idx];
+    //   locationType = Location::A_LOCATION_TYPES[lts_idx];
     auto emitter = entt::service_locator<event_emitter>::get().lock();
-    emitter->publish<regen_event>(seed);
+    emitter->publish<regen_event>(seed, lts[lts_idx]);
+    // genLocation(seed, lts[lt_idx]);
   }
 
   ImGui::Text("Feature overrides:");
@@ -728,7 +698,9 @@ void Application::drawLocationWindow() {
     for (auto [k, v] : gm->location->type.templateMap) {
       if (k == "")
         continue;
-      gm->location->type.templateMap[k] = 0;
+      for (auto [key, value] : v) {
+        gm->location->type.templateMap[k][key] = 0;
+      }
     }
     genLocation(seed, gm->location->type);
     engine->invalidate();
@@ -740,56 +712,61 @@ void Application::drawLocationWindow() {
     for (auto [k, v] : gm->location->type.templateMap) {
       if (k == "")
         continue;
-      gm->location->type.templateMap[k] = 1;
+      for (auto [key, value] : v) {
+        gm->location->type.templateMap[k][key] = 1;
+      }
     }
     genLocation(seed, gm->location->type);
     engine->invalidate();
     ImGui::End();
     return;
   }
-  ImGui::Indent();
   for (auto [k, v] : gm->location->type.templateMap) {
     if (k == "")
       continue;
-    if (ImGui::Button(fmt::format("1##{}", k).c_str())) {
-      gm->location->type.templateMap[k] = 1;
-      genLocation(seed, gm->location->type);
-      engine->invalidate();
-      ImGui::End();
-      return;
-    }
-    ImGui::SameLine();
-    if (ImGui::Button(fmt::format("D##{}", k).c_str())) {
-      gm->location->type.templateMap[k] =
-          data->mapFeatures[gm->location->type.getType()][k];
-      genLocation(seed, gm->location->type);
-      engine->invalidate();
-      ImGui::End();
-      return;
-    }
-    ImGui::SameLine();
-    if (ImGui::Button(fmt::format("0##{}", k).c_str())) {
-      gm->location->type.templateMap[k] = 0;
-      genLocation(seed, gm->location->type);
-      engine->invalidate();
-      ImGui::End();
-      return;
-    }
-    ImGui::SameLine();
+    if (ImGui::CollapsingHeader(k.c_str())) {
+      for (auto [key, value] : v) {
+        if (ImGui::Button(fmt::format("1##{}", key).c_str())) {
+          gm->location->type.templateMap[k][key] = 1;
+          genLocation(seed, gm->location->type);
+          engine->invalidate();
+          ImGui::End();
+          return;
+        }
+        ImGui::SameLine();
+        if (ImGui::Button(fmt::format("D##{}", key).c_str())) {
+          gm->location->type.templateMap[k][key] = data->mapFeatures[k][key];
+          genLocation(seed, gm->location->type);
+          engine->invalidate();
+          ImGui::End();
+          return;
+        }
+        ImGui::SameLine();
+        if (ImGui::Button(fmt::format("0##{}", key).c_str())) {
+          gm->location->type.templateMap[k][key] = 0;
+          genLocation(seed, gm->location->type);
+          engine->invalidate();
+          ImGui::End();
+          return;
+        }
+        ImGui::SameLine();
 
-    ImGui::SetNextItemWidth(80);
-    ImGui::InputFloat(fmt::format("##{}", k).c_str(),
-                      &gm->location->type.templateMap[k]);
-    ImGui::SameLine();
-    if (gm->templates.find(k) != gm->templates.end()) {
-      ImGui::Text(fmt::format("{} [{}] t", k, gm->templates[k]->stage).c_str());
-    } else if (gm->features.find(k) != gm->features.end()) {
-      ImGui::Text(fmt::format("{} [{}] f", k, gm->features[k]->stage).c_str());
-    } else {
-      ImGui::Text(fmt::format("{} [broken]", k).c_str());
+        ImGui::SetNextItemWidth(80);
+        ImGui::InputFloat(fmt::format("##{}", key).c_str(),
+                          &gm->location->type.templateMap[k][key]);
+        ImGui::SameLine();
+        if (gm->templates.find(key) != gm->templates.end()) {
+          ImGui::Text(
+              fmt::format("{} [{}] t", key, gm->templates[key]->stage).c_str());
+        } else if (gm->features.find(key) != gm->features.end()) {
+          ImGui::Text(
+              fmt::format("{} [{}] f", key, gm->features[key]->stage).c_str());
+        } else {
+          ImGui::Text(fmt::format("{} [broken]", key).c_str());
+        }
+      }
     }
   }
-  ImGui::Unindent();
 
   ImGui::End();
 }
@@ -801,37 +778,21 @@ void Application::genLocation() {
 
 void Application::genLocation(int s) {
 
-  auto spec = LocationSpec{"Dungeon"};
-  spec.type = locationType;
-  spec.threat = 1;
-  if (locationType == LocationType::CAVERN) {
-    spec.floor = CellType::GROUND;
-    spec.cellFeatures = {CellFeature::CAVE};
-    cave_pass = false;
-  } else if (locationType == LocationType::EXTERIOR) {
-    spec.floor = CellType::GROUND;
-    cave_pass = false;
-    river = false;
-    lake = false;
-  } else if (locationType == LocationType::DUNGEON) {
-    spec.floor = CellType::FLOOR;
-    river = false;
-    lake = false;
-  }
+  //   auto spec = LocationSpec{"Dungeon"};
+  //   spec.type = locationType;
+  //   spec.threat = 1;
+  //   if (locationType == LocationType::CAVERN) {
+  //     spec.floor = CellType::GROUND;
+  //     spec.cellTags.add("CAVE");
+  //   } else if (locationType == LocationType::EXTERIOR) {
+  //     spec.floor = CellType::GROUND;
+  //   } else if (locationType == LocationType::DUNGEON) {
+  //     spec.floor = CellType::FLOOR;
+  //   }
 
-  std::vector<bool> flags = {
-      cave_pass, statue, altar,   treasure, heal, mana,
-      river,     lake,   torches, corrupt,  ice,
-  };
-
-  auto n = 0;
-  for (auto flag : flags) {
-    if (flag) {
-      spec.features.push_back(Location::A_FEATURES[n]);
-    }
-    n++;
-  }
-  genLocation(s, spec);
+  auto lt = lua.get<std::string>("location_type");
+  log.info(lt);
+  genLocation(s, *gm->locationSpecs.at(lt));
 }
 
 void Application::genLocation(int s, LocationSpec spec) {
@@ -861,17 +822,17 @@ void Application::genLocation(int s, LocationSpec spec) {
 
   cache_count = 0;
   engine->tilesCache.clear();
-  cacheThread = std::thread([&]() {
-    if (!gm->location->cells.empty()) {
-      for (auto x = 0; x < gm->location->cells.front().size(); x++) {
-        for (auto y = 0; y < gm->location->cells.size(); y++) {
-          auto t = engine->cacheTile(x, y, viewport->view_z);
-          cache_count++;
-        }
-      }
-    }
-    log.info("cache thread ends");
-  });
+  // cacheThread = std::thread([&]() {
+  //   if (!gm->location->cells.empty()) {
+  //     for (auto x = 0; x < gm->location->cells.front().size(); x++) {
+  //       for (auto y = 0; y < gm->location->cells.size(); y++) {
+  //         auto t = engine->cacheTile(x, y, viewport->view_z);
+  //         cache_count++;
+  //       }
+  //     }
+  //   }
+  //   log.info("cache thread ends");
+  // });
 }
 
 int Application::serve() {

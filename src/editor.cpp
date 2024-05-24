@@ -24,6 +24,9 @@ void Editor::drawEntityEditor(std::shared_ptr<entt::registry> registry) {
   entityEditor.registerTrivial<hf::room>(*registry, "Room");
   entityEditor.registerTrivial<hf::children>(*registry, "Children");
   entityEditor.registerTrivial<hf::size>(*registry, "Size");
+  entityEditor.registerTrivial<hf::wall>(*registry, "Wall");
+  entityEditor.registerTrivial<hf::tags>(*registry, "Tags");
+  entityEditor.registerTrivial<hf::overwrite>(*registry, "Overwrite");
 
   entityEditor.registerComponentWidgetFn(
       registry->type<hf::meta>(),
@@ -62,6 +65,9 @@ void Editor::drawEntityEditor(std::shared_ptr<entt::registry> registry) {
   entityEditor.registerComponentWidgetFn(
       registry->type<hf::children>(),
       [&](entt::registry &reg, auto e) { Children(registry, e); });
+  entityEditor.registerComponentWidgetFn(
+      registry->type<hf::tags>(),
+      [&](entt::registry &reg, auto e) { Tags(registry, e); });
 
   entityEditor.registerToolbarFn([&](entt::registry &reg, auto e) {
     auto emitter = entt::service_locator<event_emitter>::get().lock();
@@ -144,6 +150,13 @@ Editor::Editor(std::shared_ptr<GameManager> _gm, fs::path _path)
 
 void Editor::processRegistry(std::shared_ptr<entt::registry>) {}
 
+void Editor::Tags(std::shared_ptr<entt::registry> registry, entt::entity e) {
+  auto &t = registry->get<hf::tags>(e);
+  if (ImGui::ListEdit("Tags", t.tags)) {
+    registry->assign_or_replace<hf::tags>(e, t);
+  }
+}
+
 void Editor::Size(std::shared_ptr<entt::registry> registry, entt::entity e) {
   auto &s = registry->get<hf::size>(e);
   if (ImGui::InputInt("Width", &s.width)) {
@@ -183,18 +196,20 @@ void Editor::CellW(std::shared_ptr<entt::registry> registry, entt::entity e) {
   std::vector<std::string> ct_names;
   for (auto ct : Cell::types) {
     ct_names.push_back(ct.name);
-    if (ct == cell->type) {
+    if (cell != nullptr && ct == cell->type) {
       cti = n;
     }
     n++;
   }
   if (ImGui::Combo("Type##cell_type", &cti, ct_names)) {
-    auto emitter = entt::service_locator<event_emitter>::get().lock();
-    auto viewport = entt::service_locator<Viewport>::get().lock();
-    auto engine = entt::service_locator<DrawEngine>::get().lock();
-    mapUtils::updateCell(cell, Cell::types[cti], cell->features);
-    engine->tilesCache.clear();
-    emitter->publish<redraw_event>();
+    if (cell != nullptr) {
+      auto emitter = entt::service_locator<event_emitter>::get().lock();
+      auto viewport = entt::service_locator<Viewport>::get().lock();
+      auto engine = entt::service_locator<DrawEngine>::get().lock();
+      mapUtils::updateCell(cell, Cell::types[cti], cell->tags.tags);
+      engine->tilesCache.clear();
+      emitter->publish<redraw_event>();
+    }
   }
 }
 void Editor::Pickable(std::shared_ptr<entt::registry> registry,
@@ -275,7 +290,9 @@ void Editor::InEditor(std::shared_ptr<entt::registry> registry,
     }
     ImGui::BulletText("Folders: %s", path.c_str());
   }
-  ImGui::ListEdit("Folders", ie.folders);
+  if (ImGui::ListEdit("Folders", ie.folders)) {
+    registry->assign_or_replace<hf::ineditor>(e, ie);
+  }
   if (ie.icon != "") {
     ImGui::BulletText(fmt::format("Icon: {}", ie.icon).c_str());
   }
@@ -361,25 +378,27 @@ void Editor::Renderable(std::shared_ptr<entt::registry> registry,
   }
 
   ImGui::SetNextItemWidth(150);
-  if (ImGui::InputText("Color", r.fgColor, 10)) {
+  if (ImGui::InputText("Color", r.fgColor)) {
     registry->assign_or_replace<hf::renderable>(e, r);
   }
-  ImGui::SameLine();
-  auto color = Color::fromHexString(r.fgColor);
-  float col[4] = {
-      color.r / 255.f,
-      color.g / 255.f,
-      color.b / 255.f,
-      color.a / 255.f,
-  };
-  if (ImGui::ColorEdit4(r.fgColor.c_str(), col,
-                        ImGuiColorEditFlags_NoInputs |
-                            ImGuiColorEditFlags_NoLabel |
-                            ImGuiColorEditFlags_AlphaPreview |
-                            ImGuiColorEditFlags_AlphaBar)) {
-    auto c = Color(col[0] * 255, col[1] * 255, col[2] * 255, col[3] * 255);
-    r.fgColor = c.hexA();
-    registry->assign_or_replace<hf::renderable>(e, r);
+  if (r.fgColor.length() > 1 && r.fgColor[0] == '#') {
+    ImGui::SameLine();
+    auto color = Color::fromHexString(r.fgColor);
+    float col[4] = {
+        color.r / 255.f,
+        color.g / 255.f,
+        color.b / 255.f,
+        color.a / 255.f,
+    };
+    if (ImGui::ColorEdit4(r.fgColor.c_str(), col,
+                          ImGuiColorEditFlags_NoInputs |
+                              ImGuiColorEditFlags_NoLabel |
+                              ImGuiColorEditFlags_AlphaPreview |
+                              ImGuiColorEditFlags_AlphaBar)) {
+      auto c = Color(col[0] * 255, col[1] * 255, col[2] * 255, col[3] * 255);
+      r.fgColor = c.hexA();
+      registry->assign_or_replace<hf::renderable>(e, r);
+    }
   }
 
   if (ImGui::Checkbox("Has BG", &r.hasBg)) {
@@ -388,26 +407,28 @@ void Editor::Renderable(std::shared_ptr<entt::registry> registry,
   if (r.hasBg) {
     ImGui::SameLine();
     ImGui::SetNextItemWidth(150);
-    if (ImGui::InputText("BG Color", r.bgColor, 10)) {
+    if (ImGui::InputText("BG Color", r.bgColor)) {
       registry->assign_or_replace<hf::renderable>(e, r);
     }
-    ImGui::SameLine();
-    color = Color::fromHexString(r.bgColor);
-    float bcol[4] = {
-        color.r / 255.f,
-        color.g / 255.f,
-        color.b / 255.f,
-        color.a / 255.f,
-    };
-    if (ImGui::ColorEdit4(r.bgColor.c_str(), bcol,
-                          ImGuiColorEditFlags_NoInputs |
-                              ImGuiColorEditFlags_NoLabel |
-                              ImGuiColorEditFlags_AlphaPreview |
-                              ImGuiColorEditFlags_AlphaBar)) {
-      auto c =
-          Color(bcol[0] * 255, bcol[1] * 255, bcol[2] * 255, bcol[3] * 255);
-      r.bgColor = c.hexA();
-      registry->assign_or_replace<hf::renderable>(e, r);
+    if (r.bgColor.length() > 1 && r.bgColor[0] == '#') {
+      ImGui::SameLine();
+      auto color = Color::fromHexString(r.bgColor);
+      float bcol[4] = {
+          color.r / 255.f,
+          color.g / 255.f,
+          color.b / 255.f,
+          color.a / 255.f,
+      };
+      if (ImGui::ColorEdit4(r.bgColor.c_str(), bcol,
+                            ImGuiColorEditFlags_NoInputs |
+                                ImGuiColorEditFlags_NoLabel |
+                                ImGuiColorEditFlags_AlphaPreview |
+                                ImGuiColorEditFlags_AlphaBar)) {
+        auto c =
+            Color(bcol[0] * 255, bcol[1] * 255, bcol[2] * 255, bcol[3] * 255);
+        r.bgColor = c.hexA();
+        registry->assign_or_replace<hf::renderable>(e, r);
+      }
     }
   }
 
@@ -417,27 +438,51 @@ void Editor::Renderable(std::shared_ptr<entt::registry> registry,
   if (r.hasBorder) {
     ImGui::SameLine();
     ImGui::SetNextItemWidth(150);
-    if (ImGui::InputText("Border Color", r.borderColor, 10)) {
+    if (ImGui::InputText("Border Color", r.borderColor)) {
       registry->assign_or_replace<hf::renderable>(e, r);
     }
-    ImGui::SameLine();
-    color = Color::fromHexString(r.borderColor);
-    float bcol[4] = {
-        color.r / 255.f,
-        color.g / 255.f,
-        color.b / 255.f,
-        color.a / 255.f,
-    };
-    if (ImGui::ColorEdit4(r.borderColor.c_str(), bcol,
-                          ImGuiColorEditFlags_NoInputs |
-                              ImGuiColorEditFlags_NoLabel |
-                              ImGuiColorEditFlags_AlphaPreview |
-                              ImGuiColorEditFlags_AlphaBar)) {
-      auto c =
-          Color(bcol[0] * 255, bcol[1] * 255, bcol[2] * 255, bcol[3] * 255);
-      r.borderColor = c.hexA();
-      registry->assign_or_replace<hf::renderable>(e, r);
+    if (r.borderColor.length() > 1 && r.borderColor[0] == '#') {
+      ImGui::SameLine();
+      auto color = Color::fromHexString(r.borderColor);
+      float bcol[4] = {
+          color.r / 255.f,
+          color.g / 255.f,
+          color.b / 255.f,
+          color.a / 255.f,
+      };
+      if (ImGui::ColorEdit4(r.borderColor.c_str(), bcol,
+                            ImGuiColorEditFlags_NoInputs |
+                                ImGuiColorEditFlags_NoLabel |
+                                ImGuiColorEditFlags_AlphaPreview |
+                                ImGuiColorEditFlags_AlphaBar)) {
+        auto c =
+            Color(bcol[0] * 255, bcol[1] * 255, bcol[2] * 255, bcol[3] * 255);
+        r.borderColor = c.hexA();
+        registry->assign_or_replace<hf::renderable>(e, r);
+      }
     }
+  }
+
+  std::vector<const char *> layers = {"cellsBg",     "cells", "cellsBrd",    "entitiesBg",
+                                      "entities", "entitiesBrd", "light",
+                                      "overlay",     "debug"};
+  int fgl_idx = std::distance(
+      layers.begin(), std::find(layers.begin(), layers.end(), r.fgLayer));
+  int bgl_idx = std::distance(
+      layers.begin(), std::find(layers.begin(), layers.end(), r.bgLayer));
+  int brl_idx = std::distance(
+      layers.begin(), std::find(layers.begin(), layers.end(), r.brdLayer));
+  if (ImGui::Combo("Layer", &fgl_idx, layers.data(), layers.size())) {
+    r.fgLayer = std::string(layers[fgl_idx]);
+    registry->assign_or_replace<hf::renderable>(e, r);
+  }
+  if (ImGui::Combo("BG Layer", &bgl_idx, layers.data(), layers.size())) {
+    r.bgLayer = std::string(layers[bgl_idx]);
+    registry->assign_or_replace<hf::renderable>(e, r);
+  }
+  if (ImGui::Combo("Border Layer", &brl_idx, layers.data(), layers.size())) {
+    r.brdLayer = std::string(layers[brl_idx]);
+    registry->assign_or_replace<hf::renderable>(e, r);
   }
 }
 
@@ -681,39 +726,6 @@ void Editor::drawObjectsWindow() {
   ImGui::End();
 }
 
-void Editor::drawObjects(std::vector<std::shared_ptr<Object>> objects) {
-  float GUI_SCALE = entt::monostate<"gui_scale"_hs>{};
-  auto viewport = entt::service_locator<Viewport>::get().lock();
-  auto emitter = entt::service_locator<event_emitter>::get().lock();
-  ImGui::Text("%s Objects: %lu\n", ICON_FA_CUBE, objects.size());
-  auto n = 0;
-  auto doors = utils::castObjects<Door>(objects);
-  if (doors.size() > 0) {
-    if (ImGui::TreeNode("d", "%s Doors", ICON_FA_PLUS)) {
-      for (auto d : doors) {
-        if (ImGui::TreeNode((void *)(intptr_t)n, "%s %s", ICON_FA_PLUS,
-                            "door")) {
-          ImGui::BulletText("Hidden: %s",
-                            d->hidden ? ICON_FA_SQUARE_CHECK : ICON_FA_SQUARE);
-          ImGui::BulletText("Locked: %s",
-                            d->locked ? ICON_FA_SQUARE_CHECK : ICON_FA_SQUARE);
-          ImGui::BulletText("Position: %d.%d", d->currentCell->x,
-                            d->currentCell->y);
-          ImGui::SameLine();
-          if (ImGui::SmallButton(ICON_FA_ARROWS_TO_DOT)) {
-            int x = d->currentCell->x - viewport->width / 2 / GUI_SCALE;
-            int y = d->currentCell->y - viewport->height / 2 / GUI_SCALE;
-            emitter->publish<center_event>(x, y);
-          }
-          ImGui::TreePop();
-        }
-        n++;
-      }
-      ImGui::TreePop();
-    }
-  }
-}
-
 void Editor::drawEntityInfo(entt::entity e,
                             std::shared_ptr<entt::registry> registry) {
   auto t = registry->has<hf::meta>(e) ? registry->get<hf::meta>(e).name.c_str()
@@ -776,7 +788,7 @@ void Editor::drawCellInfo(std::optional<std::shared_ptr<Cell>> cc) {
   if (ImGui::Combo("Type##cell_type", &cti, ct_names)) {
     auto emitter = entt::service_locator<event_emitter>::get().lock();
     auto viewport = entt::service_locator<Viewport>::get().lock();
-    mapUtils::updateCell(cell, Cell::types[cti], cell->features);
+    mapUtils::updateCell(cell, Cell::types[cti], cell->tags.tags);
     engine->tilesCache.clear();
     emitter->publish<redraw_event>();
   }
@@ -786,22 +798,9 @@ void Editor::drawCellInfo(std::optional<std::shared_ptr<Cell>> cc) {
               cell->passThrough ? ICON_FA_SQUARE_CHECK : ICON_FA_SQUARE);
   ImGui::Text("SeeThrough: %s\n",
               cell->seeThrough ? ICON_FA_SQUARE_CHECK : ICON_FA_SQUARE);
-  ImGui::Text("Features: %lu\n", cell->features.size());
 
-  // add feature selector with magic_enum
-  std::map<CellFeature, std::string> features = {
-      {CellFeature::BLOOD, "blood"},
-      {CellFeature::CAVE, "cave"},
-      {CellFeature::FROST, "frost"},
-      {CellFeature::ACID, "acid"},
-      {CellFeature::CORRUPT, "corrupt"}};
-
-  for (auto f : cell->features) {
-    ImGui::BulletText("%s", features[f].c_str());
-  }
-  if (region) {
-    auto objects = (*region)->location->getObjects(cell);
-    drawObjects(objects);
+  for (auto f : cell->tags.tags) {
+    ImGui::BulletText("%s", f.c_str());
   }
 
   auto ents = gm->registry->view<hf::position>();
@@ -1178,10 +1177,10 @@ void Editor::drawLocationWindow(std::shared_ptr<Location> location) {
   //     ImGui::Unindent();
   //   }
   // }
-  ImGui::Text("Features: %d", location->features.size());
-  // ImGui::Text(fmt::format("Spec: {}", location->getFeaturesTag()).c_str());
+  if (location->cells.size() > 0) {
   ImGui::Text("Cells: %d x %d", location->cells.size(),
               location->cells.front().size());
+}
   ImGui::End();
 }
 

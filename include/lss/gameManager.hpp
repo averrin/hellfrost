@@ -81,17 +81,18 @@ public:
 };
 
 class GameManager {
-  std::unique_ptr<Generator> generator;
   ll::Logger &log = ll::Logger::getInstance();
 
 public:
   GameManager(fs::path);
+  std::unique_ptr<Generator> generator;
   int seed;
   std::shared_ptr<entt::registry> registry = std::make_shared<entt::registry>();
   std::shared_ptr<Location> location;
   fs::path path;
   std::map<std::string, std::shared_ptr<RoomTemplate>> templates;
   std::map<std::string, std::shared_ptr<Feature>> features;
+  std::map<std::string, std::shared_ptr<LocationSpec>> locationSpecs;
 
   std::shared_ptr<Location> getLocation() {
     return location;

@@ -462,32 +462,6 @@ void Location::AdjacentCost(void *state,
 }
 void Location::PrintStateInfo(void *state){};
 
-Objects Location::getObjects(std::shared_ptr<Cell> cell) {
-  if (cell == nullptr) {
-    throw std::runtime_error("who the fuck call like this?");
-  }
-  if (cell->type == CellType::UNKNOWN) {
-    return {};
-  }
-  Objects cellObjects(objects.size());
-  auto it = std::copy_if(objects.begin(), objects.end(), cellObjects.begin(),
-                         [cell](std::shared_ptr<Object> o) {
-                           // return o->currentCell == cell;
-                           try {
-                             return o->currentCell->x == cell->x &&
-                                    o->currentCell->y == cell->y;
-                           } catch (std::exception &e) {
-                             fmt::print("BUG: ghost cell!!!\n");
-                             return false;
-                           }
-                         });
-  if (it == objects.end()) {
-    return {};
-  }
-  cellObjects.resize(std::distance(cellObjects.begin(), it));
-  return cellObjects;
-}
-
 std::vector<std::shared_ptr<Cell>>
 Location::getVisible(std::shared_ptr<Cell> start, float distance,
                      bool useIllumination = true) {
@@ -578,7 +552,7 @@ entt::entity Location::addEntity(std::string typeKey,
 
   auto ne = registry->create();
   // for (auto e : data->prototypes->group(entt::get<entt::tag<"proto"_hs>)) {
-  for (auto e : data->prototypes->view<entt::tag<"proto"_hs>>()) {
+  for (auto e : data->prototypes->view<hf::meta>()) {
     if (data->prototypes->get<hf::meta>(e).id == typeKey) {
       registry->stomp(ne, e, *data->prototypes,
                       entt::exclude<entt::tag<"proto"_hs>>);
@@ -590,6 +564,9 @@ entt::entity Location::addEntity(std::string typeKey,
       // log.debug("Add entity: {} @ {}.{}", meta.id, cell->x, cell->y);
       break;
     }
+  }
+  if (!registry->valid(ne)) {
+    log.error("Cannot create: {} @ {}", typeKey, cell->getSId());
   }
   return ne;
 }
@@ -612,14 +589,8 @@ entt::entity Location::addTerrain(std::string typeKey,
       break;
     }
   }
+  if (!registry->valid(ne)) {
+    log.error("Cannot create: {} @ {}", typeKey, cell->getSId());
+  }
   return ne;
-}
-
-std::shared_ptr<Door> Location::placeDoor(std::shared_ptr<Cell> c) {
-
-  auto door = std::make_shared<Door>();
-  door->setCurrentCell(c);
-  c->seeThrough = false;
-  addObject<Door>(door);
-  return door;
 }

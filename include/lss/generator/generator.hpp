@@ -36,8 +36,13 @@ public:
   std::map<std::string, std::shared_ptr<RoomTemplate>> templates;
   std::map<std::string, std::shared_ptr<Feature>> features;
 
+  std::vector<std::shared_ptr<Cell>> getPath(std::shared_ptr<Location> location,
+                                             std::shared_ptr<Cell> start,
+                                             std::shared_ptr<Cell> end);
   void makeCavePassage(std::shared_ptr<Location> location);
-  void placeCaves(std::shared_ptr<Location> location);
+  static std::vector<std::shared_ptr<Room>>
+  placeCaves(std::shared_ptr<Location> location, int min = 7, int max = 25,
+             int w = 100, int h = 100, int x = 0, int y = 0);
   void makeExterior(std::shared_ptr<Location> location);
   static void placeDoors(std::shared_ptr<Location> location);
   static void placeWalls(std::shared_ptr<Location> location);
@@ -53,27 +58,21 @@ public:
   // std::shared_ptr<Location>
   //   getRandomLocation(std::shared_ptr<Player>, int depth = -1,
   //                     std::shared_ptr<Cell> enter = nullptr);
-
-static void placeEnemies(std::shared_ptr<Location> location, int threat);
-static void placeLoot(std::shared_ptr<Location> location, int threat);
-  void execTemplates(std::shared_ptr<Location> location, int level) {
-    for (auto [k, v] : location->type.templateMap) {
-      if (templates.find(k) != templates.end()) {
-        auto tpl = templates[k];
-        if (tpl->stage == level && Random::get<bool>(v)) {
-          location->log.debug("Executing template: {}", k);
-          Generator::placeTemplateInRoom(location, tpl);
-          location->tags.add(k);
-        }
-      } else if (features.find(k) != features.end()) {
-        auto tpl = features[k];
-        if (tpl->stage == level && Random::get<bool>(v)) {
-          tpl->generate(location);
-          location->tags.add(k);
-        }
-      }
-    }
-  }
+  static void makePassageBetweenCells(std::shared_ptr<Location> location,
+                                      std::shared_ptr<Cell> sc,
+                                      std::shared_ptr<Cell> ec);
+  static void makePassageBetweenRooms(std::shared_ptr<Location> location,
+                                      std::shared_ptr<Room> room1,
+                                      std::shared_ptr<Room> room2);
+  static bool placeStairs(std::shared_ptr<Location> location);
+  static void makePassages(std::shared_ptr<Location> location,
+                           std::vector<std::shared_ptr<Room>> d_rooms);
+  static std::vector<std::shared_ptr<Room>>
+  placeRooms(std::shared_ptr<Location> location, int min = 7, int max = 25,
+             int w = 100, int h = 100, int x = 0, int y = 0);
+  static void cleanWalls(std::shared_ptr<Location> location);
+  static void placeEnemies(std::shared_ptr<Location> location, int threat);
+  static void placeLoot(std::shared_ptr<Location> location, int threat);
+  void execTemplates(std::shared_ptr<Location>, std::string, int, int);
 };
-
 #endif // __GENERATOR_H_

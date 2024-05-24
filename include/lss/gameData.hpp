@@ -18,7 +18,7 @@ class GameData {
     prototypes->loader().entities(ar);
     prototypes->loader()
         .component<hf::meta, hf::visible, hf::ineditor, hf::pickable,
-                   hf::wearable, hf::glow, entt::tag<"item"_hs>,
+                   hf::wearable, hf::glow, hf::renderable, hf::wall, hf::tags, entt::tag<"item"_hs>,
                    entt::tag<"enemy"_hs>, entt::tag<"terrain"_hs>,
                    entt::tag<"proto"_hs>>(ar);
   };
@@ -27,7 +27,7 @@ class GameData {
     prototypes->snapshot().entities(ar);
     prototypes->snapshot()
         .component<hf::meta, hf::visible, hf::ineditor, hf::pickable,
-                   hf::wearable, hf::glow, entt::tag<"item"_hs>,
+                   hf::wearable, hf::glow, hf::renderable, hf::wall, hf::tags, entt::tag<"item"_hs>,
                    entt::tag<"enemy"_hs>, entt::tag<"terrain"_hs>,
                    entt::tag<"proto"_hs>>(ar);
   };

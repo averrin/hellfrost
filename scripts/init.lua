@@ -15,7 +15,11 @@
 --   end
 -- )
 --genLocation(seed, spec)
+
+-- CellType.GROUND = CellSpec.new("CELL_GROUND", true, true);
+
 genLocation()
+
 
 
 

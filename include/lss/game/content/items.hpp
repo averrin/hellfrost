@@ -270,7 +270,7 @@ const std::vector<std::shared_ptr<Item>> POTIONS = {
 const std::vector<std::vector<std::shared_ptr<Item>>> ALL = {
     DEBUG,   ARTIFACTS_0, ARTIFACTS_1,   ARTIFACTS_2, POTIONS,
     SCROLLS, IRON_ARMOR,  STEEL_ARMOR,   WEAPONS_1,   WEAPONS_2,
-    MISC,    LIGHT,       LEATHER_ARMOR, BASIC_ITEMS,
+    MISC,    LIGHT,       LEATHER_ARMOR, BASIC_ITEMS, CLUTTER,
 };
 
 } // namespace Prototype

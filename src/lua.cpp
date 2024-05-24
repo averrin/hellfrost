@@ -11,61 +11,74 @@ using Random = effolkronium::random_static;
 void Application::initLuaBindings() {
   lua.set("HEIGHT", 100);
   lua.set("WIDTH", 100);
-  lua.new_enum("CellType", "EMPTY", CellType::EMPTY, "UNKNOWN",
-               CellType::UNKNOWN, "FLOOR", CellType::FLOOR, "GROUND",
-               CellType::GROUND, "WALL", CellType::WALL, "ROOF", CellType::ROOF,
-               "DOWNSTAIRS", CellType::DOWNSTAIRS, "UPSTAIRS",
-               CellType::UPSTAIRS, "WATER", CellType::WATER, "VOID",
-               CellType::VOID);
-  lua.new_enum("CellFeature", "BLOOD", CellFeature::BLOOD, "FROST",
-               CellFeature::FROST, "CORRUPT", CellFeature::CORRUPT,
-               "DUNGEON", CellFeature::DUNGEON,
-               "POI", CellFeature::POI,
-               "WIPE", CellFeature::WIPE
-               );
-  lua.new_enum("LocationType", "ZERO", LocationType::ZERO, "DUNGEON",
-               LocationType::DUNGEON, "CAVERN", LocationType::CAVERN,
-               "EXTERIOR", LocationType::EXTERIOR, "BUILDING",
-               LocationType::BUILDING);
-  // lua.new_enum<LocationFeature>("LocationFeature");
+  lua.new_usertype<CellSpec>("CellSpec", sol::meta_function::construct,
+                             sol::factories(
+                                 // MyClass.new(...) -- dot syntax, no "self"
+                                 // value passed in
+                                 [](std::string n, bool a, bool b) {
+                                   return CellSpec{n, a, b};
+                                 }));
+  auto ct = lua.new_enum("CellType", "EMPTY", CellType::EMPTY, "UNKNOWN",
+                         CellType::UNKNOWN, "FLOOR", CellType::FLOOR, "WALL",
+                         CellType::WALL, "ROOF", CellType::ROOF, "DOWNSTAIRS",
+                         CellType::DOWNSTAIRS, "UPSTAIRS", CellType::UPSTAIRS,
+                         "WATER", CellType::WATER, "VOID", CellType::VOID,
+                         "GROUND", CellType::GROUND);
+  // lua.new_table("CellType");
+  // lua.new_enum("LocationType", "ZERO", LocationType::ZERO, "DUNGEON",
+  //              LocationType::DUNGEON, "CAVERN", LocationType::CAVERN,
+  //              "EXTERIOR", LocationType::EXTERIOR, "BUILDING",
+  //              LocationType::BUILDING);
 
-  lua.new_usertype<LocationSpec>("LocationSpec", "type", &LocationSpec::getType,
-                                 "setType", &LocationSpec::setType,
-                                 "setGenFunc", &LocationSpec::setGenFunc);
-  lua.set_function("randomLocationSpec",
-                   [&](int s) { return randomLocationSpec(s); });
+  // lua.new_usertype<LocationSpec>("LocationSpec", "type",
+  // &LocationSpec::getType,
+  //                                "setType", &LocationSpec::setType,
+  //                                "setGenFunc", &LocationSpec::setGenFunc);
   lua.set_function(
       "genLocation",
       sol::overload([&](int s, LocationSpec spec) { genLocation(s, spec); },
                     [&](int s) { genLocation(s); }, [&]() { genLocation(); }));
 
-  lua.new_usertype<Cell>("Cell", "x", &Cell::x, "y", &Cell::y, "addFeature",
-                         &Cell::addFeature, "type", &Cell::type, "passThrough", &Cell::passThrough,
-                         "seeThrough", &Cell::seeThrough, "features", &Cell::features);
-  lua.new_usertype<Location>(
-      "Location", "cells", &Location::cells, "rooms", &Location::rooms,
-      "addRoom", &Location::addRoom, "tags", &Location::tags, "addEntity",
-      &Location::addEntity, "placeDoor", &Location::placeDoor);
-  lua.new_usertype<Room>("Room", "cells", &Room::cells, "x", &Room::x, "y",
-                         &Room::y, "rotate", &Room::rotate, "rotateEntities",
-                         &Room::rotateEntities, "addEntity", &Room::addEntity,
-                         "getRandomCell", &Room::getRandomCell);
+  lua.new_usertype<Cell>("Cell", "x", &Cell::x, "y", &Cell::y, "type",
+                         &Cell::type, "passThrough", &Cell::passThrough,
+                         "seeThrough", &Cell::seeThrough, "tags", &Cell::tags);
+  lua.new_usertype<Location>("Location", "cells", &Location::cells, "rooms",
+                             &Location::rooms, "addRoom", &Location::addRoom,
+                             "tags", &Location::tags, "addEntity",
+                             &Location::addEntity);
+  lua.new_usertype<Tags>("Tags", "add", &Tags::add, "has", &Tags::has, "remove",
+                         &Tags::remove);
+  lua.new_usertype<Room>(
+      "Room", "cells", &Room::cells, "x", &Room::x, "y", &Room::y, "rotate",
+      &Room::rotate, "rotateEntities", &Room::rotateEntities, "addEntity",
+      &Room::addEntity, "getRandomCell", &Room::getRandomCell, "tags",
+      &Room::tags, "width", &Room::width, "height", &Room::height);
 
   auto utils = lua["utils"].get_or_create<sol::table>();
   utils.set_function("fill", &mapUtils::fill);
   utils.set_function("fixOverlapped", &Generator::fixOverlapped);
+  utils.set_function("execTemplates",
+                     [&](std::shared_ptr<Location> location, std::string key, int min, int max) {
+                       gm->generator->execTemplates(location, key, min, max);
+                     }
+                     );
   utils.set_function("makeRiver", &Generator::makeRiver);
   utils.set_function("placeTorches", &Generator::placeTorches);
   utils.set_function("placeEnemies", &Generator::placeEnemies);
   utils.set_function("placeLoot", &Generator::placeLoot);
   utils.set_function("scatter", &Generator::scatter);
+  utils.set_function("placeRooms", &Generator::placeRooms);
+  utils.set_function("placeCaves", &Generator::placeCaves);
+  utils.set_function("cleanWalls", &Generator::cleanWalls);
+  utils.set_function("makePassages", &Generator::makePassages);
+  utils.set_function("getPath", &Generator::getPath);
   utils.set_function(
       "updatCell",
       sol::overload(
           sol::resolve<void(std::shared_ptr<Cell>, CellSpec)>(
               &mapUtils::updateCell),
           sol::resolve<void(std::shared_ptr<Cell>, CellSpec,
-                            std::vector<CellFeature>)>(&mapUtils::updateCell)));
+                            std::vector<std::string>)>(&mapUtils::updateCell)));
   utils.set_function(
       "paste",
       sol::overload(
@@ -81,7 +94,12 @@ void Application::initLuaBindings() {
   utils.set_function("printRoom", &Room::printRoom);
   utils.set_function("placeWalls", &Generator::placeWalls);
   utils.set_function("placeDoors", &Generator::placeDoors);
+  utils.set_function("placeStairs", &Generator::placeStairs);
   utils.set_function("placeTemplateInRoom", &Generator::placeTemplateInRoom);
+  utils.set_function("makePassageBetweenRooms",
+                     &Generator::makePassageBetweenRooms);
+  utils.set_function("makePassageBetweenCells",
+                     &Generator::makePassageBetweenCells);
 
   lua.new_usertype<RoomTemplate>("RoomTemplate");
   utils.set_function(
@@ -92,10 +110,18 @@ void Application::initLuaBindings() {
                 [f](std::shared_ptr<Location> location) { return f(location); },
                 s);
           },
-          [](sol::function f) {
+          [](sol::protected_function f) {
             return std::make_shared<RoomTemplate>(
                 [f](std::shared_ptr<Location> location) {
-                  return f(location);
+                  auto result = f(location);
+                  if (result.valid()) {
+                    std::shared_ptr<Room> room = result;
+                    return result;
+                  } else {
+                    sol::error err = result;
+                    std::string what = err.what();
+                    location->log.error(what);
+                  }
                 });
           }));
   lua.new_usertype<Feature>("Feature");
@@ -111,12 +137,28 @@ void Application::initLuaBindings() {
                 [f](std::shared_ptr<Location> location) { f(location); });
           }));
 
+  utils.set_function("makeLocation", [](std::string n, CellSpec f, CellSpec b,
+                                        std::vector<std::string> t, int w,
+                                        int h, sol::function gen) {
+    auto spec = std::make_shared<LocationSpec>();
+    spec->name = n;
+    spec->floor = f;
+    spec->border = b;
+    spec->width = w;
+    spec->height = h;
+    spec->cellTags.tags = t;
+    spec->setGenFunc(gen);
+    return spec;
+  });
+
   lua.set("templates", &gm->templates);
   lua.set("features", &gm->features);
+  lua.set("locations", &gm->locationSpecs);
 
   lua.new_usertype<GameManager>("GameManage", "size", &GameManager::size,
                                 "create", &GameManager::createInLua, "getData",
-                                &GameManager::getData, "getLocation", &GameManager::getLocation);
+                                &GameManager::getData, "getLocation",
+                                &GameManager::getLocation);
   lua.new_usertype<EntityWrapper>("Entity", "getId", &EntityWrapper::getId,
                                   "entity", &EntityWrapper::entity);
   lua.new_usertype<GameData>("GameData", "probability", &GameData::probability);
@@ -124,8 +166,9 @@ void Application::initLuaBindings() {
 
   auto rand = lua["Random"].get_or_create<sol::table>();
   rand.set_function("seed", [&](int s) { Random::seed(s); });
-  rand.set_function("int",
-                    [&](int min, int max) { Random::get<int>(min, max); });
+  rand.set_function("int", [&](int min, int max) -> int {
+    return Random::get<int>(min, max);
+  });
   rand.set_function(
       "bool", sol::overload([&]() { return Random::get<bool>(); },
                             [&](float p) { return Random::get<bool>(p); }));
@@ -173,11 +216,16 @@ void Application::initLuaBindings() {
         });
   });
 
-  auto folders = {"rooms", "features"};
+  auto folders = {"features", "rooms", "locations"};
   for (auto f : folders) {
     for (const fs::path &file : fs::directory_iterator(PATH / "scripts" / f)) {
       if (file.extension() == ".lua") {
         lua.script_file(file);
+        // try {
+        //   lua.safe_script_file(file);
+        // } catch (const sol::error &e) {
+        //   log.error(e.what());
+        // }
       }
     }
   }

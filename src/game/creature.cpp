@@ -159,12 +159,12 @@ std::shared_ptr<Damage> Creature::updateDamage(std::shared_ptr<Damage> damage,
     damage->damage += spec.criticalHit();
     damage->isCritical = true;
     return damage;
-  } else if (currentCell->hasFeature(CellFeature::BLOOD) &&
-             hasTrait(Traits::BLOOD_THIRST)) {
-    damage->traits.push_back(Traits::BLOOD_THIRST);
-    damage->damage += spec.criticalHit();
-    damage->isCritical = true;
-    return damage;
+  // } else if (currentCell->hasFeature(CellFeature::BLOOD) &&
+  //            hasTrait(Traits::BLOOD_THIRST)) {
+  //   damage->traits.push_back(Traits::BLOOD_THIRST);
+  //   damage->damage += spec.criticalHit();
+  //   damage->isCritical = true;
+  //   return damage;
   } else if (r < CRIT(this)) {
     damage->damage += spec.criticalHit();
     damage->isCritical = true;
@@ -178,46 +178,46 @@ std::shared_ptr<Damage> Creature::getDamage(std::shared_ptr<Object>) {
   // TODO: get damageType from creature
   auto damage =
       std::make_shared<Damage>(DamageSpec(0, 0, 0, DamageType::WEAPON));
-  auto primaryDmg = getPrimaryDmg();
-  if (primaryDmg != std::nullopt) {
-    auto [primarySlot, spec] = *primaryDmg;
-    damage = updateDamage(damage, spec);
-  }
-  auto haveLeft =
-      std::count_if(
-          equipment->slots.begin(), equipment->slots.end(),
-          [](std::shared_ptr<Slot> s) {
-            return s->item != nullptr &&
-                   s->item->type.wearableType !=
-                       WearableType::WEAPON_TWOHANDED &&
-                   std::find(s->acceptTypes.begin(), s->acceptTypes.end(),
-                             WearableType::WEAPON_LIGHT) != s->acceptTypes.end() &&
-                   std::find(s->acceptTypes.begin(), s->acceptTypes.end(),
-                             WearableType::WEAPON) == s->acceptTypes.end();
-          }) > 0;
-  auto secondaryDmg = getSecondaryDmg(nullptr);
-  if (secondaryDmg != std::nullopt && haveLeft) {
-    auto [secondarySlot, spec] = *secondaryDmg;
-    if (hasTrait(Traits::DUAL_WIELD)) {
-      damage = updateDamage(damage, spec);
-    } else {
-      damage->damage += spec.modifier;
-    }
-  }
-  if (damage->damage == 0) {
-    damage = updateDamage(damage, dmgSpec);
-  }
-  if (hasTrait(Traits::MOB)) {
-    auto nbrs = currentLocation->getNeighbors(currentCell);
-    if (std::find_if(nbrs.begin(), nbrs.end(), [&](std::shared_ptr<Cell> c) {
-          auto enemies =
-              utils::castObjects<Enemy>(currentLocation->getObjects(c));
-          return enemies.size() > 0 && enemies.front()->hasTrait(Traits::MOB);
-        }) != nbrs.end()) {
-      damage->traits.push_back(Traits::MOB);
-    }
-  }
-  damage->damage *= STRENGTH(this);
+  // auto primaryDmg = getPrimaryDmg();
+  // if (primaryDmg != std::nullopt) {
+  //   auto [primarySlot, spec] = *primaryDmg;
+  //   damage = updateDamage(damage, spec);
+  // }
+  // auto haveLeft =
+  //     std::count_if(
+  //         equipment->slots.begin(), equipment->slots.end(),
+  //         [](std::shared_ptr<Slot> s) {
+  //           return s->item != nullptr &&
+  //                  s->item->type.wearableType !=
+  //                      WearableType::WEAPON_TWOHANDED &&
+  //                  std::find(s->acceptTypes.begin(), s->acceptTypes.end(),
+  //                            WearableType::WEAPON_LIGHT) != s->acceptTypes.end() &&
+  //                  std::find(s->acceptTypes.begin(), s->acceptTypes.end(),
+  //                            WearableType::WEAPON) == s->acceptTypes.end();
+  //         }) > 0;
+  // auto secondaryDmg = getSecondaryDmg(nullptr);
+  // if (secondaryDmg != std::nullopt && haveLeft) {
+  //   auto [secondarySlot, spec] = *secondaryDmg;
+  //   if (hasTrait(Traits::DUAL_WIELD)) {
+  //     damage = updateDamage(damage, spec);
+  //   } else {
+  //     damage->damage += spec.modifier;
+  //   }
+  // }
+  // if (damage->damage == 0) {
+  //   damage = updateDamage(damage, dmgSpec);
+  // }
+  // if (hasTrait(Traits::MOB)) {
+  //   auto nbrs = currentLocation->getNeighbors(currentCell);
+  //   if (std::find_if(nbrs.begin(), nbrs.end(), [&](std::shared_ptr<Cell> c) {
+  //         auto enemies =
+  //             utils::castObjects<Enemy>(currentLocation->getObjects(c));
+  //         return enemies.size() > 0 && enemies.front()->hasTrait(Traits::MOB);
+  //       }) != nbrs.end()) {
+  //     damage->traits.push_back(Traits::MOB);
+  //   }
+  // }
+  // damage->damage *= STRENGTH(this);
   return damage;
 }
 

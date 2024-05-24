@@ -36,7 +36,7 @@ public:
         if (cell->type != CellType::EMPTY) {
           location->cells.at(r).at(c) = cell;
         } else {
-          location->cells.at(r).at(c)->features = cell->features;
+          location->cells.at(r).at(c)->tags = cell->tags;
           cell = location->cells.at(r).at(c);
         }
       }
@@ -55,7 +55,7 @@ public:
       if (cell->type != CellType::EMPTY) {
         location->cells.at(r).at(c) = cell;
       } else {
-        location->cells.at(r).at(c)->features = cell->features;
+        location->cells.at(r).at(c)->tags = cell->tags;
         cell = location->cells.at(r).at(c);
       }
       cell->x = c;
@@ -98,8 +98,8 @@ public:
   }
 
   static void makeFloor(std::shared_ptr<Cell> cell,
-                        std::vector<CellFeature> features) {
-    cell->features = features;
+                        std::vector<std::string> tags) {
+    cell->tags.tags = tags;
     makeFloor(cell);
   }
 
@@ -109,11 +109,11 @@ public:
     cell->passThrough = type.passThrough;
   }
   static void updateCell(std::shared_ptr<Cell> cell, CellSpec type,
-                         std::vector<CellFeature> features) {
+                        std::vector<std::string> tags) {
     cell->type = type;
     cell->seeThrough = type.seeThrough;
     cell->passThrough = type.passThrough;
-    cell->features = features;
+    cell->tags.tags = tags;
   }
 };
 #endif // __MAPUTILS_H_

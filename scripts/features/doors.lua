@@ -1,5 +1,5 @@
 -- FIXME!!!!
 f = utils.makeFeature(function(location)
   utils.placeDoors(location)
-end, 3)
+end, 6)
 features.DOORS = f

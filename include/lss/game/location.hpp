@@ -15,41 +15,24 @@
 #include <optional>
 #include <sol/sol.hpp>
 
-enum LocationFeature {
-  CAVE_PASSAGE,
-  RIVER,
-  TORCHES,
-  STATUE,
-  ALTAR,
-  LAKE,
-  VOID,
-  ICE,
-  HEAL,
-  MANA,
-  TREASURE_SMALL,
-  CORRUPT,
-  BONES_FIELD,
-};
-
-enum LocationType { ZERO, DUNGEON, CAVERN, EXTERIOR, BUILDING };
-
 struct LocationSpec {
   std::string name;
-  int threat = 0;
-  LocationType type = LocationType::DUNGEON;
-  std::vector<LocationFeature> features;
-  std::vector<CellFeature> cellFeatures;
-  std::shared_ptr<Cell> enterCell;
   CellSpec floor = CellType::FLOOR;
+  CellSpec border = CellType::WALL;
+  Tags cellTags;
+  int width = 100;
+  int height = 100;
   sol::function genFunc;
+  int threat = 0;
+  std::shared_ptr<Cell> enterCell;
+  std::shared_ptr<Cell> exitCell;
   void setGenFunc(sol::function f) { genFunc = f; }
 
   std::string getType() {
-    std::string s(magic_enum::enum_name(type));
-    return s;
+    // std::string s(magic_enum::enum_name(type));
+    return name;
   }
-  void setType(LocationType t) { type = t; }
-  std::map<std::string, float> templateMap;
+  std::map<std::string, std::map<std::string, float>> templateMap;
 };
 
 class Player;
@@ -61,73 +44,20 @@ class Location : public Object,
 public:
   std::shared_ptr<entt::registry> registry = std::make_shared<entt::registry>();
   LibLog::Logger &log = LibLog::Logger::getInstance();
-  Location(LocationSpec t) : Object(), type(t), features(t.features) {}
+  Location(LocationSpec t) : Object(), type(t) {}
   ~Location();
   LocationSpec type;
   Cells cells;
-  Objects objects{};
-  std::map<std::shared_ptr<Cell>, Objects> cellObjects =
-      std::map<std::shared_ptr<Cell>, Objects>{};
   // std::shared_ptr<Player> player;
   int depth = 0;
   Tags tags;
   // std::shared_ptr<AiManager> aiManager;
 
-  static constexpr const auto A_LOCATION_TYPES =
-      std::array<LocationType, 4>{LocationType::DUNGEON, LocationType::CAVERN,
-                                  LocationType::EXTERIOR, LocationType::ZERO};
-  static constexpr const std::array<LocationFeature, 11> A_FEATURES = {
-      LocationFeature::CAVE_PASSAGE, LocationFeature::STATUE,
-      LocationFeature::ALTAR,        LocationFeature::TREASURE_SMALL,
-      LocationFeature::HEAL,         LocationFeature::MANA,
-      LocationFeature::RIVER,        LocationFeature::LAKE,
-      LocationFeature::TORCHES,      LocationFeature::CORRUPT,
-      LocationFeature::ICE,
-  };
-
   std::vector<entt::entity> getEntities(std::shared_ptr<Cell> cell);
 
-  template <typename T>
-  std::optional<std::shared_ptr<T>> getObject(std::string name) {
-    for (auto o : objects) {
-      if (auto casted_object = std::dynamic_pointer_cast<T>(o)) {
-        if (casted_object->name == name) {
-          return casted_object;
-        }
-      }
-    }
-    return std::nullopt;
-  }
 
   entt::entity addTerrain(std::string typeKey, std::shared_ptr<Cell> cell);
   entt::entity addEntity(std::string typeKey, std::shared_ptr<Cell> cell);
-  std::shared_ptr<Door> placeDoor(std::shared_ptr<Cell> cell);
-
-  template <typename T>
-  void addObject(std::shared_ptr<T> o, std::shared_ptr<T> cc) {
-    o->setCurrentCell(cc);
-    addObject<T>(o);
-  }
-
-  template <typename T> void addObject(std::shared_ptr<T> o) {
-    if (o->currentCell == nullptr) {
-      throw std::runtime_error("you cannot add object without currentCell");
-      return;
-    }
-    // o->currentLocation = shared_from_this();
-    objects.push_back(o);
-    // if (cellObjects.find(o->currentCell) == cellObjects.end()) {
-    //   cellObjects[o->currentCell] = {};
-    // }
-    // cellObjects[o->currentCell].push_back(o);
-  }
-
-  void removeObject(std::shared_ptr<Object> o) {
-    objects.erase(std::remove(objects.begin(), objects.end(), o));
-    // auto co = cellObjects[o->currentCell];
-    // co.erase(std::remove(co.begin(), co.end(), o));
-    o->removeCell();
-  }
 
   std::shared_ptr<Cell> enterCell;
   std::shared_ptr<Cell> exitCell;
@@ -136,42 +66,11 @@ public:
 
   void addRoom(std::shared_ptr<Room> room, int x, int y);
 
-  std::vector<LocationFeature> features;
-  bool hasFeature(LocationFeature f) {
-    return std::find(features.begin(), features.end(), f) != features.end();
-  }
-
   void updateView(std::shared_ptr<Player>);
   void updateLight(std::shared_ptr<Player>);
   void reveal();
   void enter(std::shared_ptr<Player>, std::shared_ptr<Cell>);
   void leave(std::shared_ptr<Player>);
-  Objects getObjects(std::shared_ptr<Cell>);
-  std::string getFeaturesTag() {
-    std::map<LocationFeature, std::string> featureMap = {
-        {LocationFeature::TORCHES, "T"},
-        {LocationFeature::CAVE_PASSAGE, "C"},
-        {LocationFeature::RIVER, "R"},
-        {LocationFeature::STATUE, "S"},
-        {LocationFeature::ALTAR, "A"},
-        {LocationFeature::VOID, "V"},
-        {LocationFeature::LAKE, "L"},
-        {LocationFeature::ICE, "I"},
-        {LocationFeature::HEAL, "H"},
-        {LocationFeature::MANA, "M"},
-        {LocationFeature::TREASURE_SMALL, "t"},
-        {LocationFeature::CORRUPT, "c"},
-        {LocationFeature::BONES_FIELD, "B"},
-    };
-    std::string locationFeatures = "";
-    for (auto [f, l] : featureMap) {
-      if (hasFeature(f)) {
-        locationFeatures += l;
-      }
-    }
-
-    return locationFeatures;
-  }
 
   std::vector<std::shared_ptr<Cell>> getNeighbors(std::shared_ptr<Cell> cell) {
     return getNeighbors(cell.get());

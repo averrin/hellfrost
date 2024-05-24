@@ -2,7 +2,7 @@
 #define __LIGHT_H_
 #include <lss/deps.hpp>
 
-enum class LightType { NONE, CLEAR, FIRE, MAGIC, ACID, FROST };
+enum class LightType { NONE, CLEAR, FIRE, MAGIC, ACID, FROST, INHERIT };
 
 struct LightSpec {
   friend class cereal::access;

@@ -1,9 +1,10 @@
+#include "lss/game/cell.hpp"
 #include <app/ui/viewport.hpp>
 
 std::string Viewport::getColorString(std::string cat, std::string key) {
   auto color = getColor(cat, key);
   auto _c = LibColor::Color(color.r, color.g, color.b, color.a);
-  return _c.hex();
+  return _c.hexA();
 }
 sf::Color Viewport::getColor(std::string cat, std::string key) {
   if (cat == "") {
@@ -63,7 +64,8 @@ TileSpec Viewport::getWallSpec(std::shared_ptr<Cell> cell) {
   // auto [_bl, _z30] = getCell(coords.first - 1, coords.second + 1, view_z);
   // auto [_br, _z40] = getCell(coords.first + 1, coords.second + 1, view_z);
 
-  auto spec = tileSet.sprites["WALL_H"];
+  // auto spec = tileSet.sprites["WALL_H"];
+  auto spec = tileSet.sprites["WALL"];
   if (_r && _l &&
       ((*_r)->type == CellType::WALL && (*_l)->type != CellType::WALL)) {
     spec = tileSet.sprites["WALL_HRS"];
@@ -91,7 +93,7 @@ TileSpec Viewport::getWallSpec(std::shared_ptr<Cell> cell) {
   if (_t && _b && (*_t)->type != CellType::WALL &&
       (*_b)->type != CellType::WALL && _l && _r &&
       (*_l)->type != CellType::WALL && (*_r)->type != CellType::WALL) {
-    spec = tileSet.sprites["WALL_C"];
+    spec = tileSet.sprites["WALL"];
     return spec;
   }
 
@@ -146,132 +148,4 @@ TileSpec Viewport::getWallSpec(std::shared_ptr<Cell> cell) {
     spec = tileSet.sprites["WALL_LT"];
   }
   return spec;
-}
-
-std::optional<std::shared_ptr<Tile>> Viewport::getTile(int x, int y, int z) {
-
-  auto [c, rz] = getCell(x, y, z);
-  if (!c /*|| (*c)->type == CellType::UNKNOWN*/) {
-    return std::nullopt;
-  }
-  auto cell = *c;
-
-  auto [region, _z] = getRegion(x, y, rz);
-  if (cell->type == CellType::UNKNOWN && region &&
-      (*region)->location->type.type != LocationType::EXTERIOR) {
-    return std::nullopt;
-  }
-
-  // mutex.lock();
-  auto fgColor = sf::Color(220, 220, 220);
-  auto sprite = std::make_shared<sf::Sprite>();
-  auto tile = std::make_shared<Tile>();
-  tile->sprites.push_back(sprite);
-  std::string key = "UNKNOWN";
-  TileSpec sprite_spec;
-  if (cell->type == CellType::UPSTAIRS) {
-    key = "UPSTAIRS";
-  } else if (cell->type == CellType::DOWNSTAIRS) {
-    key = "DOWNSTAIRS";
-  } else if (cell->type == CellType::WATER ||
-             (cell->type == CellType::UNKNOWN && region &&
-              (*region)->location->type.type == LocationType::EXTERIOR)) {
-    key = "WATER";
-    fgColor = getColor("ENV", "WATER");
-    tile->bgColor = getColor("ENV", "WATER_BG");
-    tile->hasBackground = true;
-  } else if (cell->type == CellType::VOID) {
-    key = "VOID";
-    fgColor = getColor("ENV", "VOID");
-    tile->bgColor = getColor("ENV", "VOID");
-    tile->hasBackground = true;
-  } else if (cell->passThrough) {
-
-    if (cell->type == CellType::GROUND) {
-      key = "GROUND";
-      fgColor = getColor("ENV", "GROUND");
-      tile->bgColor = getColor("ENV", "GROUND_BG");
-      tile->hasBackground = true;
-      if (cell->hasFeature(CellFeature::CAVE)) {
-        tile->bgColor = getColor("ENV", "CAVE_BG");
-        tile->hasBackground = true;
-      }
-    } else if (cell->type == CellType::FLOOR) {
-      key = "FLOOR";
-      fgColor = getColor("ENV", "FLOOR");
-    }
-
-    if (region) {
-      auto doors =
-          utils::castObjects<Door>((*region)->location->getObjects(cell));
-      if (doors.size() != 0) {
-        if (doors.front()->hidden) {
-          key = "";
-          sprite_spec = getWallSpec(cell);
-          fgColor = getColor("ENV", "WALL");
-          if (cell->hasFeature(CellFeature::CAVE)) {
-            fgColor = getColor("ENV", "WALL_CAVE");
-            tile->bgColor = getColor("ENV", "CAVE_BG");
-            tile->hasBackground = true;
-          }
-        } else {
-          key = "DOOR";
-          fgColor = getColor("ENV", "DOOR");
-        }
-      }
-    }
-  } else if (cell->type == CellType::WALL) {
-    key = "";
-    sprite_spec = getWallSpec(cell);
-    fgColor = getColor("ENV", "WALL");
-    if (cell->hasFeature(CellFeature::CAVE) && !cell->hasFeature(CellFeature::DUNGEON)) {
-      fgColor = getColor("ENV", "WALL_CAVE");
-      tile->bgColor = getColor("ENV", "CAVE_BG");
-      tile->hasBackground = true;
-    }
-  } else if (cell->type == CellType::ROOF) {
-    sprite_spec = {0, 1, 17};
-    key = "";
-  }
-
-  if (key != "") {
-    if (tileSet.spriteVariations.find(key) != tileSet.spriteVariations.end()) {
-      key = *Random::get(tileSet.spriteVariations[key]);
-    }
-    sprite_spec = tileSet.sprites[key];
-  }
-
-  sprite->setTexture(tilesTextures[sprite_spec[0]]);
-
-  auto src = getTileRect(sprite_spec[1], sprite_spec[2]);
-  sprite->setTextureRect(src);
-  sprite->setColor(fgColor);
-
-  // tile->bgColor = sf::Color(255, 255, 255, rand()%256);
-
-  // if (cell->type != CellType::UNKNOWN) {
-  for (auto f : cell->features) {
-    if (f == CellFeature::BLOOD) {
-      tile->bgColor = getColor("ENV", "BLOOD");
-      tile->hasBackground = true;
-    }
-    if (f == CellFeature::FROST) {
-      tile->bgColor = getColor("ENV", "FROST");
-      tile->hasBackground = true;
-    }
-    if (f == CellFeature::CORRUPT) {
-      tile->bgColor = getColor("ENV", "CORRUPT");
-      tile->hasBackground = true;
-    }
-  }
-  // }
-
-  tile->pos = sf::Vector3f((cell->anchor.first + cell->x),
-                           (cell->anchor.second + cell->y), rz);
-  for (auto s : tile->sprites) {
-    s->setPosition(sf::Vector2f(tile->pos.x, tile->pos.y));
-  }
-  tile->cell = cell;
-
-  return tile;
 }

@@ -18,8 +18,6 @@ enum class RoomType {
   CAVE,
 };
 
-enum class RoomFeature { CAVE, DUNGEON, STATUE, ALTAR };
-
 class Room {
 public:
   Room(RoomType t, Cells c) : type(t) {
@@ -36,7 +34,7 @@ public:
   std::vector<std::shared_ptr<Cell>> cells;
   RoomType type = RoomType::UNKNOWN;
   int threat = 0;
-  std::vector<RoomFeature> features;
+  Tags tags;
   std::vector<entt::entity> entities;
 
   void addEntity(entt::entity e) { entities.push_back(e); }
@@ -133,7 +131,7 @@ public:
         if (cell->type != CellType::EMPTY) {
           outer->cells.at(r * outer->width + c) = cell;
         } else {
-          outer->cells.at(r * outer->width + c)->features = cell->features;
+          outer->cells.at(r * outer->width + c)->tags = cell->tags;
           cell = outer->cells.at(r * outer->width + c);
         }
       }
@@ -187,14 +185,6 @@ public:
     return nbrs;
   }
 
-  template <typename T>
-  void addObject(std::shared_ptr<Location> location, std::shared_ptr<T> o,
-                 int x, int y) {
-    entities.push_back(o);
-    auto cell = getCell(x, y);
-    location->addObject(o, cell);
-  }
-
   static std::shared_ptr<Room> _makeBlob(std::shared_ptr<Room> room,
                                          CellSpec type, CellSpec outerType);
   static std::shared_ptr<Room> makeBlob(std::shared_ptr<Location> location,
@@ -228,12 +218,6 @@ public:
       if (n % room->width == 0 && n > 0) {
         fmt::print("\n");
       }
-      auto o = location->getObjects(c);
-      if (o.size() > 0) {
-        fmt::print("o");
-        n++;
-        continue;
-      }
       auto e = location->getEntities(c);
       if (e.size() > 0) {
         fmt::print("e");
@@ -263,7 +247,7 @@ typedef std::function<std::shared_ptr<Room>(std::shared_ptr<Location>)>
     RoomGenerator;
 class RoomTemplate {
   RoomGenerator generator;
-  sol::function luaGenerator;
+  sol::protected_function luaGenerator;
   bool isLua = false;
 
 public:
@@ -278,38 +262,38 @@ public:
   }
 };
 
-namespace RoomTemplates {
+// namespace RoomTemplates {
 
-const auto TREASURE_ROOM = std::make_shared<RoomTemplate>(
-    /*
-            ###
-            #(#
-            ###
-    */
-    [](std::shared_ptr<Location> location) {
-      auto innerRoom = Room::makeRoom(3, 1, 3, 1, CellType::FLOOR);
-      auto room = Room::makeRoom(innerRoom->height + 2, innerRoom->height + 2,
-                                 innerRoom->width + 2, innerRoom->width + 2,
-                                 CellType::WALL);
+// const auto TREASURE_ROOM = std::make_shared<RoomTemplate>(
+//     /*
+//             ###
+//             #(#
+//             ###
+//     */
+//     [](std::shared_ptr<Location> location) {
+//       auto innerRoom = Room::makeRoom(3, 1, 3, 1, CellType::FLOOR);
+//       auto room = Room::makeRoom(innerRoom->height + 2, innerRoom->height + 2,
+//                                  innerRoom->width + 2, innerRoom->width + 2,
+//                                  CellType::WALL);
 
-      Room::paste(innerRoom, room, 1, 1);
-      // room->print();
+//       Room::paste(innerRoom, room, 1, 1);
+//       // room->print();
 
-      auto cell = room->getRandomCell(CellType::FLOOR);
+//       auto cell = room->getRandomCell(CellType::FLOOR);
 
-      auto box = LootBoxes::DUNGEON_3;
-      for (auto item : box.open(true)) {
-        item->setCurrentCell(*cell);
-        location->addObject<Item>(item);
-      }
+//       auto box = LootBoxes::DUNGEON_3;
+//       for (auto item : box.open(true)) {
+//         item->setCurrentCell(*cell);
+//         location->addObject<Item>(item);
+//       }
 
-      // for (auto c: innerRoom->cells) {
-      //   mapUtils::updateCell(c, CellType::FLOOR, {CellFeature::BLOOD});
-      // }
+//       // for (auto c: innerRoom->cells) {
+//       //   mapUtils::updateCell(c, CellType::FLOOR, {CellFeature::BLOOD});
+//       // }
 
-      return room;
-    });
+//       return room;
+//     });
 
-}; // namespace RoomTemplates
+// }; // namespace RoomTemplates
 
 #endif // __ROOM_H_

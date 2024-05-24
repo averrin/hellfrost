@@ -17,6 +17,7 @@
 #include <fstream>
 #include <mutex>
 #include <random.hpp>
+#include <strutil.h>
 using Random = effolkronium::random_static;
 using namespace std::chrono;
 
@@ -39,7 +40,7 @@ using json = nlohmann::json;
 
 struct event_emitter: entt::emitter<event_emitter> {};
 struct redraw_event {};
-struct regen_event {int seed = -2;};
+struct regen_event {int seed = -2; std::string specKey;};
 struct resize_event {};
 struct center_event {int x; int y;};
 struct mouse_center_event {int x; int y;};
@@ -49,14 +50,16 @@ struct log_event {std::string msg;};
 
 class Tags {
 public:
-  std::vector<std::string> tags;
+  std::vector<std::string> tags = {};
   void add(std::string tag) {
+    if (has(tag)) return;
     tags.push_back(tag);
   }
   bool has(std::string tag) {
     return std::find(tags.begin(), tags.end(), tag) != tags.end();
   }
   void remove(std::string tag) {
+    if (!has(tag)) return;
     tags.erase(std::remove(tags.begin(), tags.end(), tag), tags.end());
   }
 };

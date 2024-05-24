@@ -5,7 +5,7 @@ blood_field = utils.makeTemplate(function(location)
   for _, cell in ipairs(r.cells) do
     if (cell.type == CellType.EMPTY) then
       if (Random.bool(data.probability.BLOOD_FIELD_CELL)) then
-        cell:addFeature(CellFeature.BLOOD)
+        cell.tags:add("BLOOD")
         if (Random.bool(data.probability.BLOOD_FIELD_FEATURE)) then
           if (Random.bool(data.probability.BLOOD_FIELD_BONES)) then
             o = gm:create(location, "BONES", cell.x, cell.y, 0)

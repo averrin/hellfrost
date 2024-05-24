@@ -17,7 +17,7 @@ spec = {
     ["_"] = function(location, room, cell)
       o = gm:create(location, "ALTAR", cell.x, cell.y, 0)
       if (Random.bool()) then
-        cell:addFeature(CellFeature.BLOOD)
+        cell.tags:add("BLOOD")
       end
       room:addEntity(o.entity)
     end;

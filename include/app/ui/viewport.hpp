@@ -104,8 +104,13 @@ public:
   }
 
   sf::Color getColor(std::string color) {
+    if (color[0] == '#') {
     auto c = Color::fromHexString(color);
     return sf::Color(c.r, c.g, c.b, c.a);
+    } else {
+      auto p = strutil::split(color, "/");
+      return getColor(p[0], p[1]);
+    }
   }
 
   sf::Color getColor(std::string cat, std::string key);
@@ -121,6 +126,9 @@ public:
     } else {
       fmt::print("Missed sprite spec: {}: {}\n", cat, key);
     }
+    return makeSprite(spec);
+  }
+  std::shared_ptr<sf::Sprite> makeSprite(TileSpec spec) {
     auto s = std::make_shared<sf::Sprite>();
     s->setTexture(tilesTextures[spec[0]]);
     s->setTextureRect(getTileRect(spec[1], spec[2]));
@@ -130,9 +138,9 @@ public:
     // std::shared_ptr<sf::Sprite> s =
     // std::make_shared<sf::Sprite>(*s->getTexture()); s->setOrigin(0, 0);
     // }
-    if (cat != "") {
-      s->setColor(getColor(cat, key));
-    }
+    // if (cat != "") {
+    //   s->setColor(getColor(cat, key));
+    // }
     return s;
   }
 

@@ -74,6 +74,7 @@ add_executable(${EXE_NAME}
   # ${PROJECT_PATH}/include/imgui_freetype.cpp
 
   ${PROJECT_PATH}/src/deps.cpp
+  ${PROJECT_PATH}/src/game/gameData.cpp
   ${PROJECT_PATH}/src/game/randomTools.cpp
   ${PROJECT_PATH}/src/game/fov.cpp
   ${PROJECT_PATH}/src/game/cell.cpp
@@ -91,7 +92,6 @@ add_executable(${EXE_NAME}
   ${PROJECT_PATH}/src/game/equipment.cpp
   ${PROJECT_PATH}/src/game/slot.cpp
   ${PROJECT_PATH}/src/generator/generator.cpp
-  ${PROJECT_PATH}/src/game/gameData.cpp
   ${PROJECT_PATH}/src/game/gameManager.cpp
 
   ${PROJECT_PATH}/include/app/style/theme.cpp

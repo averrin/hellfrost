@@ -112,33 +112,32 @@ bool BufferingBar(const char *label, float value, const ImVec2 &size_arg,
 
 std::string newItem;
 bool ListEdit(const char *label, std::vector<std::string> &values) {
-  if (values.empty()) {
-    return false;
-  }
   auto n = 0;
-  std::vector<int> to_remove;
-  Text("%s count: %lu", label, values.size());
-  for (auto v : values) {
-    char label[11];
-    std::sprintf(label, "##%d-input", n);
-    InputText(label, v);
-    SameLine();
-    char blabel[13];
-    std::sprintf(blabel, "X##%d-button", n);
-    if (Button(blabel)) {
-      to_remove.push_back(n);
+  if (!values.empty()) {
+    std::vector<int> to_remove;
+    Text("%s count: %lu", label, values.size());
+    for (auto v : values) {
+      char label[11];
+      std::sprintf(label, "##%d-input", n);
+      InputText(label, v);
+      SameLine();
+      char blabel[13];
+      std::sprintf(blabel, "X##%d-button", n);
+      if (Button(blabel)) {
+        to_remove.push_back(n);
+      }
+      n++;
     }
-    n++;
-  }
-  for (auto rk : to_remove) {
-    values.erase(values.begin() + rk);
-    return true;
+    for (auto rk : to_remove) {
+      values.erase(values.begin() + rk);
+      return true;
+    }
   }
   char nlabel[11];
   std::sprintf(nlabel, "##%d-input", n);
   InputText(nlabel, newItem);
   SameLine();
-  if (Button("+")) {
+  if (Button("+##list-edit-add")) {
     values.push_back(newItem);
     newItem = "";
     return true;

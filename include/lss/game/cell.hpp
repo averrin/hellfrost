@@ -41,22 +41,22 @@ struct CellSpec {
 };
 
 namespace CellType {
-const CellSpec EMPTY = CellSpec{"empty", true, true};
-const CellSpec UNKNOWN = CellSpec{"unknown", false, false};
-const CellSpec FLOOR = CellSpec{"floor", true, true};
-const CellSpec GROUND = CellSpec{"ground", true, true};
-const CellSpec ROAD = CellSpec{"ground", true, true};
-const CellSpec WALL = CellSpec{"wall", false, false};
-const CellSpec ROOF = CellSpec{"roof", true, false};
-const CellSpec DOWNSTAIRS = CellSpec{"downstairs", true, true};
-const CellSpec UPSTAIRS = CellSpec{"upstairs", true, false};
+const CellSpec EMPTY = CellSpec{"CELL_EMPTY", true, true};
+const CellSpec UNKNOWN = CellSpec{"CELL_UNKNOWN", false, false};
+const CellSpec FLOOR = CellSpec{"CELL_FLOOR", true, true};
+const CellSpec GROUND = CellSpec{"CELL_GROUND", true, true};
+const CellSpec ROAD = CellSpec{"CELL_ROAD", true, true};
+const CellSpec WALL = CellSpec{"CELL_WALL", false, false};
+const CellSpec ROOF = CellSpec{"CELL_ROOF", true, false};
+const CellSpec DOWNSTAIRS = CellSpec{"CELL_DOWNSTAIRS", true, true};
+const CellSpec UPSTAIRS = CellSpec{"CELL_UPSTAIRS", true, false};
 const CellSpec WATER =
-    CellSpec{"water", false, true, {Traits::FLY, Traits::CAN_SWIM}};
-const CellSpec VOID = CellSpec{"void", false, true, {Traits::FLY}};
+    CellSpec{"CELL_WATER", false, true, {Traits::FLY, Traits::CAN_SWIM}};
+const CellSpec VOID = CellSpec{"CELL_VOID", false, true, {Traits::FLY}};
 }; // namespace CellType
 
 enum class VisibilityState { UNKNOWN, SEEN, VISIBLE };
-enum class CellFeature { BLOOD, CAVE, FROST, MARK1, MARK2, ACID, CORRUPT, DUNGEON, POI, WIPE };
+// enum class CellFeature { BLOOD, CAVE, FROST, MARK1, MARK2, ACID, CORRUPT, DUNGEON, POI, WIPE };
 
 class Cell {
   ll::Logger &log = ll::Logger::getInstance();
@@ -67,9 +67,11 @@ public:
   Cell(int __x, int __y, CellSpec t)
       : x(__x), y(__y), type(t), passThrough(type.passThrough),
         seeThrough(type.seeThrough), _x(__x), _y(__y), z(0), _z(0) {}
-  Cell(int __x, int __y, CellSpec t, std::vector<CellFeature> f)
-      : x(__x), y(__y), type(t), features(f), passThrough(type.passThrough),
-        seeThrough(type.seeThrough), _x(__x), _y(__y), z(0), _z(0) {}
+  Cell(int __x, int __y, CellSpec t, std::vector<std::string> tg)
+      : x(__x), y(__y), type(t), passThrough(type.passThrough),
+        seeThrough(type.seeThrough), _x(__x), _y(__y), z(0), _z(0) {
+    tags.tags = tg;
+  }
   CellSpec type;
   VisibilityState visibilityState = VisibilityState::UNKNOWN;
   bool illuminated = false;
@@ -79,7 +81,7 @@ public:
       invalidate();
     }
   }
-  std::vector<CellFeature> features;
+  Tags tags = Tags{};
 
   std::vector<std::shared_ptr<Trigger>> triggers =
       std::vector<std::shared_ptr<Trigger>>{};
@@ -127,15 +129,6 @@ public:
     return v_intersection.size() != 0;
   }
 
-  bool hasFeature(CellFeature f) {
-    return std::find(features.begin(), features.end(), f) != features.end();
-  }
-  void addFeature(CellFeature f) { features.push_back(f); }
-  void removeFeature(CellFeature f) {
-    if (std::find(features.begin(), features.end(), f) != features.end()) {
-      features.erase(std::remove(features.begin(), features.end(), f));
-    }
-  }
   static const int DEFAULT_LIGHT = 60;
   static const int MINIMUM_LIGHT = 5;
   int illumination = DEFAULT_LIGHT;

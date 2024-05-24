@@ -12,19 +12,19 @@ if (spec == "FROSTBALL") {
     // auto fb = std::make_shared<Terrain>(data->terrainSpecs[spec], 8);
     // fb->setCurrentCell(c);
     // location->addObject(fb);
-    c->addFeature(CellFeature::FROST);
-    for (auto n : location->getNeighbors(c)) {
-        n->addFeature(CellFeature::FROST);
-    }
+    // c->addFeature(CellFeature::FROST);
+    // for (auto n : location->getNeighbors(c)) {
+    //     n->addFeature(CellFeature::FROST);
+    // }
 } else if (spec == "FIREBALL") {
     location->addTerrain(spec, c);
     // auto fb = std::make_shared<Terrain>(data->terrainSpecs[spec], 8);
     // fb->setCurrentCell(c);
     // location->addObject(fb);
-    c->removeFeature(CellFeature::FROST);
-    for (auto n : location->getNeighbors(c)) {
-        n->removeFeature(CellFeature::FROST);
-    }
+    // c->removeFeature(CellFeature::FROST);
+    // for (auto n : location->getNeighbors(c)) {
+    //     n->removeFeature(CellFeature::FROST);
+    // }
 } else if (spec == "ACIDPOOL") {
     location->addTerrain(spec, c);
     // auto fb = std::make_shared<Terrain>(data->terrainSpecs[spec], -5);
@@ -33,7 +33,7 @@ if (spec == "FROSTBALL") {
     //     return Triggers::ACID_POOL_TRIGGER(actor, location);
     // }));
     // location->addObject(fb);
-    c->addFeature(CellFeature::ACID);
+    // c->addFeature(CellFeature::ACID);
 }
 
 location->invalidate("apply spell effect");

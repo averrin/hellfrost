@@ -19,6 +19,9 @@
 #include <app/ui/viewport.hpp>
 #include <mutex>
 
+// #define SOL_ALL_SAFETIES_ON 1
+// #define SOL_CHECK_ARGUMENTS
+// #define SOL_EXCEPTIONS_SAFE_PROPAGATION 1
 #include <sol/sol.hpp>
 
 class Object;
@@ -68,7 +71,6 @@ public:
 
   void drawEntityInfo(entt::entity);
 
-  LocationSpec randomLocationSpec(int);
   void genLocation();
   void genLocation(int);
   void genLocation(int, LocationSpec);

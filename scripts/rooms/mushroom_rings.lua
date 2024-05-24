@@ -20,7 +20,7 @@ spec = {
       cell.type = CellType.EMPTY;
     end;
     ["."] = function(location, room, cell)
-      cell.features = {CellFeature.WIPE}
+      cell.tags:add("WIPE")
     end;
     ["m"] = function(location, room, cell)
         o = gm:create(location, "MUSHROOM", cell.x, cell.y, 0)

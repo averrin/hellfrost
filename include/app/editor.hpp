@@ -31,6 +31,7 @@ public:
   std::vector<std::string> ts;
 
   void Meta(std::shared_ptr<entt::registry>, entt::entity);
+  void Tags(std::shared_ptr<entt::registry>, entt::entity);
   void Visible(std::shared_ptr<entt::registry>, entt::entity);
   void Position(std::shared_ptr<entt::registry>, entt::entity);
   void Renderable(std::shared_ptr<entt::registry>, entt::entity);
@@ -58,7 +59,6 @@ public:
 
   template <typename... T> void drawEntityTree(std::shared_ptr<entt::registry>);
 
-  void drawObjects(std::vector<std::shared_ptr<Object>> objects);
   void drawEntityInfo(entt::entity e, std::shared_ptr<entt::registry>);
   void drawEntityEditor(std::shared_ptr<entt::registry>);
 

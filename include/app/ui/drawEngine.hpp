@@ -9,16 +9,6 @@
 #include <string>
 
 namespace hellfrost {
-struct renderable {
-  std::string spriteKey = "UNKNOWN";
-  std::string fgColor = "#fff";
-  bool hasBg = false;
-  std::string bgColor = "#ffffff00";
-  bool hasBorder = false;
-  std::string borderColor = "#ffffff00";
-  bool hidden = false;
-  int zIndex = 0;
-};
 }; // namespace hellfrost
 
 class DrawEngine {
@@ -30,6 +20,7 @@ class DrawEngine {
   sf::Color bgColor;
 
   std::shared_ptr<entt::observer> visible;
+  std::shared_ptr<entt::observer> new_visible;
   std::shared_ptr<entt::observer> position;
   std::shared_ptr<entt::observer> renderable;
   std::shared_ptr<entt::observer> new_renderable;
@@ -58,9 +49,7 @@ public:
   bool roomDebug = false;
 
   std::optional<std::shared_ptr<Tile>> cacheTile(int x, int y, int z);
-  void scheduleFastRedraw() {
-    fastRedraw = true;
-  }
+  void scheduleFastRedraw() { fastRedraw = true; }
   void updateExistingLight();
   void updateVisible();
 
