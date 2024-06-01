@@ -1,6 +1,6 @@
 #include "lss/game/cell.hpp"
 #include "lss/generator/room.hpp"
-#include <IconFontCppHeaders/IconsFontAwesome6.h>
+#include <IconsFontAwesome6.h>
 #include <SFML/Graphics.hpp>
 #include <app/editor.hpp>
 #include <app/ui/viewport.hpp>
@@ -16,6 +16,10 @@ void Editor::drawEntityEditor(std::shared_ptr<entt::registry> registry) {
   entityEditor.registerTrivial<hf::position>(*registry, "Position");
   entityEditor.registerTrivial<hf::visible>(*registry, "Visible");
   entityEditor.registerTrivial<hf::renderable>(*registry, "Renderable");
+  entityEditor.registerTrivial<hf::player>(*registry, "Player");
+  entityEditor.registerTrivial<hf::creature>(*registry, "Creature");
+  entityEditor.registerTrivial<hf::obstacle>(*registry, "Obstacle");
+  entityEditor.registerTrivial<hf::vision>(*registry, "Vision");
   entityEditor.registerTrivial<hf::ineditor>(*registry, "Editor");
   entityEditor.registerTrivial<hf::pickable>(*registry, "Pickable");
   entityEditor.registerTrivial<hf::wearable>(*registry, "Wearable");
@@ -46,6 +50,18 @@ void Editor::drawEntityEditor(std::shared_ptr<entt::registry> registry) {
   entityEditor.registerComponentWidgetFn(
       registry->type<hf::size>(),
       [&](entt::registry &reg, auto e) { Size(registry, e); });
+  entityEditor.registerComponentWidgetFn(
+      registry->type<hf::player>(),
+      [&](entt::registry &reg, auto e) { PlayerComponent(registry, e); });
+  entityEditor.registerComponentWidgetFn(
+      registry->type<hf::creature>(),
+      [&](entt::registry &reg, auto e) { CreatureComponent(registry, e); });
+  entityEditor.registerComponentWidgetFn(
+      registry->type<hf::obstacle>(),
+      [&](entt::registry &reg, auto e) { Obstacle(registry, e); });
+  entityEditor.registerComponentWidgetFn(
+      registry->type<hf::vision>(),
+      [&](entt::registry &reg, auto e) { Vision(registry, e); });
 
   entityEditor.registerComponentWidgetFn(
       registry->type<hf::pickable>(),
@@ -328,6 +344,34 @@ void Editor::Position(std::shared_ptr<entt::registry> registry,
     registry->assign_or_replace<hf::position>(e, p);
   }
 }
+
+void Editor::PlayerComponent(std::shared_ptr<entt::registry> registry,
+                             entt::entity e) {}
+
+void Editor::CreatureComponent(std::shared_ptr<entt::registry> registry,
+                               entt::entity e) {}
+void Editor::Obstacle(std::shared_ptr<entt::registry> registry,
+                      entt::entity e) {
+  auto &c = registry->get<hf::obstacle>(e);
+  auto emitter = entt::service_locator<event_emitter>::get().lock();
+  if (ImGui::Checkbox("passThrough", &c.passThrough)) {
+    registry->assign_or_replace<hf::obstacle>(e, c);
+    emitter->publish<redraw_event>();
+  }
+  if (ImGui::Checkbox("seeThrough", &c.seeThrough)) {
+    registry->assign_or_replace<hf::obstacle>(e, c);
+    emitter->publish<redraw_event>();
+  }
+}
+void Editor::Vision(std::shared_ptr<entt::registry> registry, entt::entity e) {
+
+  auto &s = registry->get<hf::vision>(e);
+  if (ImGui::InputFloat("Distance", &s.distance)) {
+    auto emitter = entt::service_locator<event_emitter>::get().lock();
+    emitter->publish<redraw_event>();
+  }
+}
+
 void Editor::Renderable(std::shared_ptr<entt::registry> registry,
                         entt::entity e) {
   float GUI_SCALE = entt::monostate<"gui_scale"_hs>{};
@@ -463,9 +507,10 @@ void Editor::Renderable(std::shared_ptr<entt::registry> registry,
     }
   }
 
-  std::vector<const char *> layers = {"cellsBg",     "cells", "cellsBrd",    "entitiesBg",
-                                      "entities", "entitiesBrd", "light",
-                                      "overlay",     "debug"};
+  std::vector<const char *> layers = {
+      "cellsBg",     "cells",   "cellsBrd", "entitiesBg", "entities",
+      "entitiesBrd", "heroBg",  "hero",     "heroBrd",    "light",
+      "darkness",    "overlay", "debug"};
   int fgl_idx = std::distance(
       layers.begin(), std::find(layers.begin(), layers.end(), r.fgLayer));
   int bgl_idx = std::distance(
@@ -793,11 +838,14 @@ void Editor::drawCellInfo(std::optional<std::shared_ptr<Cell>> cc) {
     emitter->publish<redraw_event>();
   }
   ImGui::Text("Illuminated: %s\n",
-              cell->illuminated ? ICON_FA_SQUARE_CHECK : ICON_FA_SQUARE);
+              // cell->illuminated ? ICON_FA_SQUARE_CHECK : ICON_FA_SQUARE);
+              cell->illuminated ? "Y" : "N");
   ImGui::Text("PassThrough: %s\n",
-              cell->passThrough ? ICON_FA_SQUARE_CHECK : ICON_FA_SQUARE);
+              // cell->passThrough ? ICON_FA_SQUARE_CHECK : ICON_FA_SQUARE);
+              cell->passThrough ? "Y" : "N");
   ImGui::Text("SeeThrough: %s\n",
-              cell->seeThrough ? ICON_FA_SQUARE_CHECK : ICON_FA_SQUARE);
+              // cell->seeThrough ? ICON_FA_SQUARE_CHECK : ICON_FA_SQUARE);
+              cell->seeThrough ? "Y" : "N");
 
   for (auto f : cell->tags.tags) {
     ImGui::BulletText("%s", f.c_str());
@@ -1098,7 +1146,7 @@ void Editor::drawLocationWindow(std::shared_ptr<Location> location) {
       emitter->publish<center_event>(location->exitCell->x,
                                      location->exitCell->y);
     }
-    ImGui::BulletText("Path: %d", location->path.size());
+    ImGui::BulletText("Path: %zu", location->path.size());
     ImGui::SameLine();
     if (ImGui::Button(fmt::format("{}##path", ICON_FA_ARROWS_TO_DOT).c_str())) {
       for (auto e : ents) {
@@ -1116,6 +1164,8 @@ void Editor::drawLocationWindow(std::shared_ptr<Location> location) {
         }
       }
     }
+  } else {
+    ImGui::Text("No enter/exit cells");
   }
 
   // ImGui::Checkbox("Show unknown", &show_unknown);
@@ -1178,9 +1228,9 @@ void Editor::drawLocationWindow(std::shared_ptr<Location> location) {
   //   }
   // }
   if (location->cells.size() > 0) {
-  ImGui::Text("Cells: %d x %d", location->cells.size(),
-              location->cells.front().size());
-}
+    ImGui::Text("Cells: %zu x %zu", location->cells.size(),
+                location->cells.front().size());
+  }
   ImGui::End();
 }
 

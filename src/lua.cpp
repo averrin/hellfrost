@@ -9,6 +9,8 @@
 using Random = effolkronium::random_static;
 
 void Application::initLuaBindings() {
+  mapping = lua["mapping"].get_or_create<std::map<std::string, sol::function>>();
+
   lua.set("HEIGHT", 100);
   lua.set("WIDTH", 100);
   lua.new_usertype<CellSpec>("CellSpec", sol::meta_function::construct,
@@ -18,6 +20,9 @@ void Application::initLuaBindings() {
                                  [](std::string n, bool a, bool b) {
                                    return CellSpec{n, a, b};
                                  }));
+  lua.new_enum("Direction", "N", Direction::N, "S", Direction::S,
+               "E", Direction::E, "W", Direction::W, "NE", Direction::NE,
+               "NW", Direction::NW, "SE", Direction::SE, "SW", Direction::SW);
   auto ct = lua.new_enum("CellType", "EMPTY", CellType::EMPTY, "UNKNOWN",
                          CellType::UNKNOWN, "FLOOR", CellType::FLOOR, "WALL",
                          CellType::WALL, "ROOF", CellType::ROOF, "DOWNSTAIRS",
@@ -34,6 +39,9 @@ void Application::initLuaBindings() {
   // &LocationSpec::getType,
   //                                "setType", &LocationSpec::setType,
   //                                "setGenFunc", &LocationSpec::setGenFunc);
+  lua.set_function("movePlayer", [&](Direction d) {
+    fmt::print("movePlayer\n");
+    movePlayer(d); });
   lua.set_function(
       "genLocation",
       sol::overload([&](int s, LocationSpec spec) { genLocation(s, spec); },
@@ -57,11 +65,10 @@ void Application::initLuaBindings() {
   auto utils = lua["utils"].get_or_create<sol::table>();
   utils.set_function("fill", &mapUtils::fill);
   utils.set_function("fixOverlapped", &Generator::fixOverlapped);
-  utils.set_function("execTemplates",
-                     [&](std::shared_ptr<Location> location, std::string key, int min, int max) {
-                       gm->generator->execTemplates(location, key, min, max);
-                     }
-                     );
+  utils.set_function("execTemplates", [&](std::shared_ptr<Location> location,
+                                          std::string key, int min, int max) {
+    gm->generator->execTemplates(location, key, min, max);
+  });
   utils.set_function("makeRiver", &Generator::makeRiver);
   utils.set_function("placeTorches", &Generator::placeTorches);
   utils.set_function("placeEnemies", &Generator::placeEnemies);
@@ -95,6 +102,7 @@ void Application::initLuaBindings() {
   utils.set_function("placeWalls", &Generator::placeWalls);
   utils.set_function("placeDoors", &Generator::placeDoors);
   utils.set_function("placeStairs", &Generator::placeStairs);
+  utils.set_function("placeHero", &Generator::placeHero);
   utils.set_function("placeTemplateInRoom", &Generator::placeTemplateInRoom);
   utils.set_function("makePassageBetweenRooms",
                      &Generator::makePassageBetweenRooms);
@@ -121,6 +129,7 @@ void Application::initLuaBindings() {
                     sol::error err = result;
                     std::string what = err.what();
                     location->log.error(what);
+                    return result;
                   }
                 });
           }));
@@ -215,6 +224,14 @@ void Application::initLuaBindings() {
           return room;
         });
   });
+
+  utils.set_function("overrideFeatureProb",
+                     [](std::shared_ptr<Location> location, std::string key,
+                        std::string name, float prob) {
+                       auto p = location->type.templateMap[key][name];
+                       location->type.templateMap[key][name] = prob;
+                       return p;
+                     });
 
   auto folders = {"features", "rooms", "locations"};
   for (auto f : folders) {

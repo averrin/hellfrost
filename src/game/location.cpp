@@ -2,7 +2,7 @@
 #include <chrono>
 #include <memory>
 
-#include "EventBus/EventBus.hpp"
+// #include "EventBus/EventBus.hpp"
 // #include "lss/game/enemy.hpp"
 // #include "lss/game/item.hpp"
 #include "lss/game/cell.hpp"
@@ -39,6 +39,9 @@ void Location::addRoom(std::shared_ptr<Room> room, int x, int y) {
 }
 
 std::vector<entt::entity> Location::getEntities(std::shared_ptr<Cell> cell) {
+  if (cellEntities.find(cell) != cellEntities.end()) {
+    return cellEntities[cell];
+  }
   std::vector<entt::entity> result;
   auto ents = registry->group(entt::get<hf::position, hf::meta>);
   for (auto e : ents) {
@@ -47,26 +50,28 @@ std::vector<entt::entity> Location::getEntities(std::shared_ptr<Cell> cell) {
       result.push_back(e);
     }
   }
+  cellEntities[cell] = result;
   return result;
 }
 
-// void Location::invalidateVisibilityCache(std::shared_ptr<Cell> cell) {
-//   std::vector<std::pair<std::shared_ptr<Cell>, float>> hits;
-//   for (auto ls : cell->lightSources) {
-//     for (auto [lsk, _] : visibilityCache) {
-//       if (lsk.first != nullptr && lsk.first != ls->currentCell &&
-//           lsk.first != player->currentCell)
-//         continue;
-//       hits.push_back(lsk);
-//     }
-//   }
-//   for (auto lsk : hits) {
-//     auto lsi = visibilityCache.find(lsk);
-//     if (lsi != visibilityCache.end()) {
-//       visibilityCache.erase(lsi);
-//     }
-//   }
-// }
+void Location::invalidateVisibilityCache(std::shared_ptr<Cell> cell) {
+  // std::vector<std::pair<std::shared_ptr<Cell>, float>> hits;
+  // for (auto ls : cell->lightSources) {
+  //   for (auto [lsk, _] : visibilityCache) {
+  //     if (lsk.first != nullptr && lsk.first != ls->currentCell &&
+  //         lsk.first != player->currentCell)
+  //       continue;
+  //     hits.push_back(lsk);
+  //   }
+  // }
+  // for (auto lsk : hits) {
+  //   auto lsi = visibilityCache.find(lsk);
+  //   if (lsi != visibilityCache.end()) {
+  //     visibilityCache.erase(lsi);
+  //   }
+  // }
+  visibilityCache.clear();
+}
 
 // void Location::onEvent(DoorOpenedEvent &e) {
 //   invalidateVisibilityCache(player->currentCell);

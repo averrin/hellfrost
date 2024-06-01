@@ -74,5 +74,7 @@ public:
   static void placeEnemies(std::shared_ptr<Location> location, int threat);
   static void placeLoot(std::shared_ptr<Location> location, int threat);
   void execTemplates(std::shared_ptr<Location>, std::string, int, int);
+
+  static void placeHero(std::shared_ptr<Location> location);
 };
 #endif // __GENERATOR_H_

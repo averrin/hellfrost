@@ -8,8 +8,8 @@
 #if defined(__cplusplus) && __cplusplus >= 201703L && defined(__has_include)
 #if __has_include(<filesystem>)
 #define GHC_USE_STD_FS
-#include <experimental/filesystem>
-namespace fs = std::experimental::filesystem;
+#include <filesystem>
+namespace fs = std::filesystem;
 #endif
 #endif
 #ifndef GHC_USE_STD_FS
@@ -23,7 +23,7 @@ fs::path get_selfpath() {
   GetModuleFileName(NULL, buff, sizeof(buff));
 #elif __APPLE__
   char buff[PROC_PIDPATHINFO_MAXSIZE];
-  fmt::print("PID: {}\n", getpid());
+  // fmt::print("PID: {}\n", getpid());
   proc_pidpath(getpid(), buff, sizeof(buff));
 #else
 #include <linux/limits.h>

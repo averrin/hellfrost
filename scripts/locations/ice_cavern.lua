@@ -8,6 +8,7 @@ locations.ICE_CAVERN = utils.makeLocation(
     utils.cleanWalls(location)
     -- utils.makePassages(location)
     -- utils.placeStairs(location)
+    -- utils.placeHero(location)
   end
 );
 

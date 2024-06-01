@@ -35,6 +35,10 @@ public:
   void Visible(std::shared_ptr<entt::registry>, entt::entity);
   void Position(std::shared_ptr<entt::registry>, entt::entity);
   void Renderable(std::shared_ptr<entt::registry>, entt::entity);
+  void PlayerComponent(std::shared_ptr<entt::registry>, entt::entity);
+  void CreatureComponent(std::shared_ptr<entt::registry>, entt::entity);
+  void Obstacle(std::shared_ptr<entt::registry>, entt::entity);
+  void Vision(std::shared_ptr<entt::registry>, entt::entity);
   void InEditor(std::shared_ptr<entt::registry>, entt::entity);
 
   void Pickable(std::shared_ptr<entt::registry>, entt::entity);

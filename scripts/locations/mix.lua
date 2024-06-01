@@ -22,6 +22,8 @@ locations.MIX = utils.makeLocation(
         end
       end
     end
+
+    p = utils.overrideFeatureProb(location, "CAVERN", "RIVER", 0)
     utils.execTemplates(location, "CAVERN", 1, 2)
     utils.fixOverlapped(location)
     utils.execTemplates(location, "CAVERN", 2, 6)
@@ -31,6 +33,7 @@ locations.MIX = utils.makeLocation(
     utils.cleanWalls(location)
 
     utils.execTemplates(location, "CAVERN", 0, 1)
+    utils.execTemplates(location, "DUNGEON", 0, 1)
     rooms = utils.placeRooms(location, 10, 20, 60, 100, 70, 0)
     R2 = rooms[Random.int(0, #rooms - 1)]
     for _, r in ipairs(rooms) do
@@ -60,11 +63,14 @@ locations.MIX = utils.makeLocation(
       )
     end
     utils.makePassages(location, rooms)
+    utils.overrideFeatureProb(location, "CAVERN", "RIVER", p)
+    utils.execTemplates(location, "CAVERN", 1, 2)
     utils.execTemplates(location, "DUNGEON", 1, 2)
     utils.fixOverlapped(location)
     utils.execTemplates(location, "DUNGEON", 2, 6)
     utils.placeWalls(location)
     utils.execTemplates(location, "DUNGEON", 6, 10)
-    -- utils.placeStairs(location)
+    utils.placeStairs(location)
+    utils.placeHero(location)
   end
 );

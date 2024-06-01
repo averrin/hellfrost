@@ -1,8 +1,8 @@
 #ifndef __IDE_H_
 #define __IDE_H_
 
-#include <IconFontCppHeaders/IconsFontAwesome6.h>
-#include <experimental/bits/fs_ops.h>
+#include <IconsFontAwesome6.h>
+// #include <bits/fs_ops.h>
 #include <fstream>
 #include <imgui.h>
 #include <imguicolortextedit/TextEditor.h>

@@ -178,6 +178,31 @@ struct overwrite {
   int zIndex = 0;
 };
 
+struct creature {
+};
+struct obstacle {
+  bool passThrough = false;
+  bool seeThrough = false;
+  friend class cereal::access;
+  template <class Archive> void save(Archive &ar) const {
+    ar(passThrough, seeThrough);
+  };
+  template <class Archive> void load(Archive &ar) {
+    ar(passThrough, seeThrough);
+  };
+};
+struct player {};
+struct vision {
+  float distance = 0;
+  friend class cereal::access;
+  template <class Archive> void save(Archive &ar) const {
+    ar(distance);
+  };
+  template <class Archive> void load(Archive &ar) {
+    ar(distance);
+  };
+};
+
 // TODO
 struct usable {};
 struct consumable {};

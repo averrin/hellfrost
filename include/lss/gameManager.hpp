@@ -126,6 +126,9 @@ public:
     auto data = entt::service_locator<GameData>::ref();
     oarchive(data);
   }
+
+  std::shared_ptr<entt::observer> player;
+  void serve();
 };
 
 #endif // __GAMEMANAGER_H_

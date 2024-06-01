@@ -609,6 +609,16 @@ Generator::getPath(std::shared_ptr<Location> location,
   return res;
 }
 
+void Generator::placeHero(std::shared_ptr<Location> location) {
+  dlog("place hero");
+  auto n = location->getNeighbors(location->enterCell);
+  auto c = *Random::get(n);
+  location->player = std::make_shared<Player>();
+  location->player->entity = location->addEntity("HERO", c);
+  location->player->currentCell = c;
+  dlog("hero was placed");
+}
+
 bool Generator::placeStairs(std::shared_ptr<Location> location) {
   dlog("place stairs");
 
@@ -619,9 +629,9 @@ bool Generator::placeStairs(std::shared_ptr<Location> location) {
     entr =
         std::make_optional<std::shared_ptr<Cell>>(location->cells[e->y][e->x]);
   }
-  dlog("entr found 1");
+  dlog("entt found 1");
   auto exir = getRandomCell(location, floor);
-  dlog("exir found 1");
+  dlog("exit found 1");
   while (!entr) {
     entr = getRandomCell(location, floor);
   }
@@ -629,7 +639,7 @@ bool Generator::placeStairs(std::shared_ptr<Location> location) {
   while (!exir) {
     exir = getRandomCell(location, floor);
   }
-  dlog("exir found");
+  dlog("exit found");
   location->enterCell = *entr;
   location->exitCell = *exir;
   // location->dump();
@@ -642,7 +652,7 @@ bool Generator::placeStairs(std::shared_ptr<Location> location) {
                              location->exitCell.get(), &path, &totalCost);
 
   auto i = 0;
-  // location->log.debug("Path: {} / {}", totalCost, i);
+  location->log.debug("Path: {} / {}", totalCost, i);
   while (result != micropather::MicroPather::SOLVED ||
          (totalCost < 30 && i < 10) || path.size() < 20) {
     // entr = mapUtils::getRandomCell(location, CellType::FLOOR);
@@ -1132,30 +1142,34 @@ std::shared_ptr<Location> Generator::getLocation(LocationSpec spec) {
   return location;
 }
 
-void Generator::execTemplates(std::shared_ptr<Location> location, std::string key, int min, int max) {
-    std::vector<bool> p;
-    for (auto [k, v] : location->type.templateMap[key]) {
-      p.push_back(Random::get<bool>(v));
+void Generator::execTemplates(std::shared_ptr<Location> location,
+                              std::string key, int min, int max) {
+  std::vector<bool> p;
+  for (auto [k, v] : location->type.templateMap[key]) {
+    p.push_back(Random::get<bool>(v));
+  }
+  auto n = 0;
+  for (auto [k, v] : location->type.templateMap[key]) {
+    // location->log.debug("Executing template: {} @ {}", key, k);
+    if(key == "DUNGEON" && k == "LOOT") {
+      location->log.debug("Executing template: {} @ {}", key, k);
     }
-    auto n = 0;
-    for (auto [k, v] : location->type.templateMap[key]) {
-      location->log.debug("Executing template: {}", k);
-      if (p[n]) {
-        if (Generator::templates.find(k) != templates.end()) {
-          auto tpl = templates[k];
-          if (tpl->stage >= min && tpl->stage < max) {
-            Generator::placeTemplateInRoom(location, tpl);
-            location->tags.add(k);
-          }
-        } else if (features.find(k) != features.end()) {
-          auto tpl = features[k];
-          if (tpl->stage >= min && tpl->stage < max) {
-            tpl->generate(location);
-            location->tags.add(k);
-          }
+    if (p[n]) {
+      if (Generator::templates.find(k) != templates.end()) {
+        auto tpl = templates[k];
+        if (tpl->stage >= min && tpl->stage < max) {
+          Generator::placeTemplateInRoom(location, tpl);
+          location->tags.add(k);
+        }
+      } else if (features.find(k) != features.end()) {
+        auto tpl = features[k];
+        if (tpl->stage >= min && tpl->stage < max) {
+          tpl->generate(location);
+          location->tags.add(k);
         }
       }
-      n++;
     }
+    n++;
+  }
   // }
 };

@@ -5,7 +5,7 @@
 #include <lss/gameManager.hpp>
 
 // TODO: remove it
-#include <IconFontCppHeaders/IconsFontAwesome6.h>
+#include <IconsFontAwesome6.h>
 #include <app/ui/drawEngine.hpp>
 #include <app/ui/viewport.hpp>
 
@@ -33,6 +33,7 @@ GameManager::GameManager(fs::path p) : path(p) {
 void GameManager::gen(LocationSpec spec) {
   srand(seed);
   Random::seed(seed);
+  log.info("Seed: {}", seed);
 
   registry->reset();
   auto data = entt::service_locator<GameData>::get().lock();
@@ -182,6 +183,7 @@ void GameManager::gen(LocationSpec spec) {
     convertVisibleToRenderable(data->prototypes, p);
   }
 
+  // serve();
   return;
   // EsToProto(EnemyType::CULTIST, data, 99);
   for (auto e : data->prototypes->view<hellfrost::ineditor>()) {
@@ -224,15 +226,16 @@ void GameManager::gen(LocationSpec spec) {
       auto key = fmt::format("{}", item->name);
       std::transform(key.begin(), key.end(), key.begin(), ::toupper);
       std::replace(key.begin(), key.end(), ' ', '_');
-      data->prototypes->assign<hf::meta>(e, item->getFullTitle(true), item->unidName,
-      key); data->prototypes->assign<hf::ineditor>(
+      data->prototypes->assign<hf::meta>(e, item->getFullTitle(true),
+                                         item->unidName, key);
+      data->prototypes->assign<hf::ineditor>(
           e, key, std::vector<std::string>{"Items", item->type.name},
           ICON_FA_CARROT);
       data->prototypes->assign<hf::visible>(e, "ITEMS", item->type.sign);
 
       data->prototypes->assign<hf::pickable>(e, item->type.category,
-                                             item->type.identified,
-                                             item->count, item->unidName);
+                                             item->type.identified, item->count,
+                                             item->unidName);
       data->prototypes->assign<hf::wearable>(e, item->type.wearableType,
                                              item->type.durability);
       // n++;
@@ -254,6 +257,32 @@ void GameManager::gen(LocationSpec spec) {
   //   }
   //   n++;
   // }
+}
+
+//TODO: call it on init
+void GameManager::serve() {
+  log.start("GameManager::serve", true);
+  auto vis = registry->get<hf::vision>(location->player->entity);
+  auto d = vis.distance;
+  // auto fov = location->getVisible(location->player->currentCell, d, false);
+  auto fov = location->player->viewField;
+  for (auto c : fov) {
+    c->seeThrough = c->type.seeThrough;
+    c->passThrough = c->type.passThrough;
+    auto es = location->getEntities(c);
+    for (auto e : es) {
+      if (registry->has<hf::obstacle>(e)) {
+        auto o = registry->get<hf::obstacle>(e);
+        if (!o.seeThrough) {
+          c->seeThrough = false;
+        }
+        if (!o.passThrough) {
+          c->passThrough = false;
+        }
+      }
+    }
+  }
+  log.stop("GameManager::serve");
 }
 
 void GameManager::EsToProto(EnemySpec es, std::shared_ptr<GameData> data,

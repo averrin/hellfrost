@@ -3,10 +3,11 @@
 
 #include "lss/components.hpp"
 #include "lss/game/cell.hpp"
+#include "lss/game/door.hpp"
 #include "lss/game/events.hpp"
 #include "lss/game/fov.hpp"
 #include "lss/game/object.hpp"
-#include "lss/game/door.hpp"
+#include "lss/game/player.hpp"
 #include "micropather/micropather.h"
 #include <cmath>
 #include <iostream>
@@ -35,7 +36,7 @@ struct LocationSpec {
   std::map<std::string, std::map<std::string, float>> templateMap;
 };
 
-class Player;
+// class Player;
 class Room;
 class AiManager;
 class Location : public Object,
@@ -48,13 +49,16 @@ public:
   ~Location();
   LocationSpec type;
   Cells cells;
-  // std::shared_ptr<Player> player;
+  std::shared_ptr<Player> player;
   int depth = 0;
   Tags tags;
   // std::shared_ptr<AiManager> aiManager;
 
+  std::map<std::shared_ptr<Cell>, std::vector<entt::entity>> cellEntities;
   std::vector<entt::entity> getEntities(std::shared_ptr<Cell> cell);
-
+  void invalidateEntityCache(std::shared_ptr<Cell> cell) {
+    cellEntities.erase(cell);
+  }
 
   entt::entity addTerrain(std::string typeKey, std::shared_ptr<Cell> cell);
   entt::entity addEntity(std::string typeKey, std::shared_ptr<Cell> cell);

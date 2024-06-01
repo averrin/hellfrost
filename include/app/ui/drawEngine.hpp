@@ -29,6 +29,8 @@ class DrawEngine {
 
   std::map<int, std::vector<entt::entity>> lightMap;
   bool fastRedraw = false;
+  bool lightUpdating = false;
+  std::map<int, int> lightMapAlpha;
 
 public:
   ~DrawEngine() { tilesCache.clear(); }
@@ -71,11 +73,13 @@ public:
   void renderEntity(entt::entity e);
   void updateEntity(entt::entity e);
   void updateLight();
+  void updateDark();
 
   sf::Color getGlowColorForCell(entt::entity e, std::shared_ptr<Cell> c, int);
 
   sf::Texture draw();
   void resize(sf::Vector2u);
+  void redrawCanvas();
 };
 
 #endif // __DRAWENGINE_H_

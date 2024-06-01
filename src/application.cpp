@@ -22,14 +22,14 @@
 #include <app/editor.hpp>
 #include <app/ui/drawEngine.hpp>
 
-#include <IconFontCppHeaders/IconsFontAwesome6.h>
+#include <IconsFontAwesome6.h>
 #include <lua/logger.hpp>
 #include <random.hpp>
-#include <sol/sol_ImGui.hpp>
+// #include <sol/sol_ImGui.hpp>
 using Random = effolkronium::random_static;
 
 #ifdef __APPLE__
-float GUI_SCALE = 2.0f;
+float GUI_SCALE = 1.0f;
 #else
 float GUI_SCALE = 1.f;
 #endif
@@ -59,10 +59,16 @@ void Application::initConfig() {
 
   auto cp = fs::path(PATH / "scripts" / "config.lua");
   if (!fs::exists(cp)) {
-    log.error("config.lua soesn't exist!");
+    log.error("config.lua doesn't exist!");
     exit(111);
   }
   lua.script_file(cp);
+
+  winPrefix = lua.get<std::string>("win_prefix");
+  altPrefix = lua.get<std::string>("alt_prefix");
+  ctrlPrefix = lua.get<std::string>("ctrl_prefix");
+  shiftPrefix = lua.get<std::string>("shift_prefix");
+  keyDelim = lua.get<std::string>("key_delim");
 
   auto df = lua.get<std::string>("data_file");
   if (df != "") {
@@ -157,7 +163,8 @@ int cache_count = 0;
 void Application::setupGui() {
 
   sf::ContextSettings settings;
-  settings.antialiasingLevel = 8;
+  // settings.antialiasingLevel = 8;
+  settings.antialiasingLevel = 4;
   ImGui::CreateContext();
   // Theme::Init();
 
@@ -168,6 +175,7 @@ void Application::setupGui() {
 
   window = new sf::RenderWindow(sf::VideoMode::getDesktopMode(), APP_NAME,
                                 sf::Style::Default, settings);
+
   window->setVerticalSyncEnabled(true);
 
   log.debug("Sfml init: {}", ImGui::SFML::Init(*window, false));
@@ -258,7 +266,7 @@ void Application::setupGui() {
 
   ide->init();
 
-  sol_ImGui::Init(lua);
+  // sol_ImGui::Init(lua);
 
   // std::function<void()> scale_f = [&]() {
   //   auto _x = int(current_pos.x /
@@ -275,6 +283,90 @@ void Application::setupGui() {
   // db_scale_f = Debounced(scale_f, 500);
 }
 
+void Application::processKeyboardEvent(sf::Event event) {
+
+  ImGuiIO &io = ImGui::GetIO();
+  if (io.WantCaptureKeyboard)
+    return;
+
+  auto event_str = getKeyName(event.key.code, event.key.system, event.key.alt,
+                              event.key.control, event.key.shift);
+  fmt::print("Key pressed: {}\n", event_str);
+
+  if (mapping.find(event_str) != mapping.end()) {
+    fmt::print("Key find: {}\n", event_str);
+    mapping[event_str]();
+  }
+
+  current_pos = window->mapPixelToCoords(sf::Mouse::getPosition(*window));
+  auto _x = int(current_pos.x /
+                (viewport->tileSet.size.first * viewport->scale * GUI_SCALE));
+  auto _y = int(current_pos.y /
+                (viewport->tileSet.size.second * viewport->scale * GUI_SCALE));
+  auto rx = _x + viewport->view_x;
+  auto ry = _y + viewport->view_y;
+  switch (event.key.code) {
+  case sf::Keyboard::Escape: {
+    window->close();
+    break;
+  }
+  case sf::Keyboard::Right: {
+    viewport->view_x += 1;
+    engine->invalidate();
+    break;
+  }
+  case sf::Keyboard::Left: {
+    viewport->view_x -= 1;
+    engine->invalidate();
+    break;
+  }
+  case sf::Keyboard::Up: {
+    if (!event.key.control) {
+      viewport->view_y -= 1;
+    } else {
+      viewport->view_z += 1;
+    }
+    engine->invalidate();
+    break;
+  }
+  case sf::Keyboard::Down: {
+    if (!event.key.control) {
+      viewport->view_y += 1;
+    } else {
+      viewport->view_z -= 1;
+    }
+    engine->invalidate();
+    break;
+  }
+  case sf::Keyboard::F1: {
+    debug = !debug;
+    break;
+  }
+  case sf::Keyboard::F2: {
+    auto emitter = entt::service_locator<event_emitter>::get().lock();
+    emitter->publish<regen_event>(-1);
+    break;
+  }
+  case sf::Keyboard::M: {
+    auto ents = gm->registry->view<hf::ineditor>();
+
+    if (ents.size() > 0) {
+      for (auto e : ents) {
+        auto ie = gm->registry->get<hf::ineditor>(e);
+        if (ie.selected) {
+          auto p = gm->registry->get<hf::position>(e);
+          p.x = rx;
+          p.y = ry;
+          gm->registry->assign_or_replace<hellfrost::position>(e, p);
+        }
+      }
+    }
+
+    break;
+  }
+  }
+}
+
 void Application::processEvent(sf::Event event) {
   ImGuiIO &io = ImGui::GetIO();
   current_pos = window->mapPixelToCoords(sf::Mouse::getPosition(*window));
@@ -287,51 +379,11 @@ void Application::processEvent(sf::Event event) {
 
   ImGui::SFML::ProcessEvent(event);
   switch (event.type) {
+  case sf::Event::KeyReleased:
+    switch (event.key.code) {}
+    break;
   case sf::Event::KeyPressed:
-    switch (event.key.code) {
-    case sf::Keyboard::Escape:
-      window->close();
-      break;
-    case sf::Keyboard::Right:
-      if (io.WantCaptureKeyboard)
-        break;
-      viewport->view_x += 1;
-      engine->invalidate();
-      break;
-    case sf::Keyboard::Left:
-      if (io.WantCaptureKeyboard)
-        break;
-      viewport->view_x -= 1;
-      engine->invalidate();
-      break;
-    case sf::Keyboard::Up:
-      if (io.WantCaptureKeyboard)
-        break;
-      if (!event.key.control) {
-        viewport->view_y -= 1;
-      } else {
-        viewport->view_z += 1;
-      }
-      engine->invalidate();
-      break;
-    case sf::Keyboard::Down:
-      if (io.WantCaptureKeyboard)
-        break;
-      if (!event.key.control) {
-        viewport->view_y += 1;
-      } else {
-        viewport->view_z -= 1;
-      }
-      engine->invalidate();
-      break;
-    case sf::Keyboard::F1:
-      debug = !debug;
-      break;
-    case sf::Keyboard::R:
-      auto emitter = entt::service_locator<event_emitter>::get().lock();
-      emitter->publish<regen_event>(-1);
-      break;
-    }
+    processKeyboardEvent(event);
     break;
   case sf::Event::Resized: {
     auto emitter = entt::service_locator<event_emitter>::get().lock();
@@ -795,7 +847,79 @@ void Application::genLocation(int s) {
   genLocation(s, *gm->locationSpecs.at(lt));
 }
 
+bool Application::movePlayer(Direction d) {
+
+  auto nc = gm->location->getCell(gm->location->player->currentCell, d);
+  if (!(*nc)->passThrough) {
+    return false;
+  }
+
+  auto e = gm->location->player->entity;
+  auto p = gm->registry->get<hf::position>(e);
+  switch (d) {
+  case Direction::S: {
+    p.y += 1;
+    break;
+  }
+  case Direction::N: {
+    p.y -= 1;
+    break;
+  }
+  case Direction::E: {
+    p.x += 1;
+    break;
+  }
+  case Direction::W: {
+    p.x -= 1;
+    break;
+  }
+  case Direction::NE: {
+    p.x += 1;
+    p.y -= 1;
+    break;
+  }
+  case Direction::NW: {
+    p.x -= 1;
+    p.y -= 1;
+    break;
+  }
+  case Direction::SE: {
+    p.x += 1;
+    p.y += 1;
+    break;
+  }
+  case Direction::SW: {
+    p.x -= 1;
+    p.y += 1;
+    break;
+  }
+  }
+  auto margin = lua.get<int>("margin");
+  if (p.x < viewport->view_x + margin) {
+    viewport->view_x--;
+    engine->invalidate();
+  } else if (p.x > viewport->view_x + viewport->width - margin) {
+    viewport->view_x++;
+    engine->invalidate();
+  }
+  if (p.y < viewport->view_y + margin) {
+    viewport->view_y--;
+    engine->invalidate();
+  } else if (p.y > viewport->view_y + viewport->height - margin) {
+    viewport->view_y++;
+    engine->invalidate();
+  }
+  gm->registry->assign_or_replace<hellfrost::position>(e, p);
+  gm->location->invalidateVisibilityCache(nullptr);
+  gm->serve();
+  // invalidate caches after change and refill them in thread
+  return true;
+}
+
 void Application::genLocation(int s, LocationSpec spec) {
+
+  auto mutex = entt::service_locator<std::mutex>::get().lock();
+  mutex->lock();
   if (cacheThread.joinable()) {
     cacheThread.join();
   }
@@ -820,6 +944,11 @@ void Application::genLocation(int s, LocationSpec spec) {
   engine->update();
   emitter->publish<resize_event>();
 
+  if (location->location->enterCell != nullptr) {
+    emitter->publish<center_event>(location->location->enterCell->x,
+                                   location->location->enterCell->y);
+  }
+
   cache_count = 0;
   engine->tilesCache.clear();
   // cacheThread = std::thread([&]() {
@@ -833,6 +962,8 @@ void Application::genLocation(int s, LocationSpec spec) {
   //   }
   //   log.info("cache thread ends");
   // });
+
+  mutex->unlock();
 }
 
 int Application::serve() {
@@ -841,6 +972,9 @@ int Application::serve() {
   log.stop("init");
 
   log.info("serve");
+
+  sf::ContextSettings settings;
+  settings.antialiasingLevel = 4;
   sf::Clock deltaClock;
 
   // genLocation(seed);
@@ -872,26 +1006,36 @@ int Application::serve() {
   ImFontConfig icons_config;
   icons_config.MergeMode = true;
   icons_config.PixelSnapH = true;
-  io.Fonts->Clear();
-  // io.Fonts->AddFontDefault();
+  icons_config.GlyphMinAdvanceX = 16.0f;
+  // io.Fonts->Clear();
+  io.Fonts->AddFontDefault();
   io.Fonts->AddFontFromFileTTF("Hack-Bold.ttf", 16.0f);
-  io.Fonts->AddFontFromFileTTF(FONT_ICON_FILE_NAME_FAS, 16.0f, &icons_config,
-                               icons_ranges);
+  // io.Fonts->AddFontFromFileTTF(FONT_ICON_FILE_NAME_FAS, 16.0f, &icons_config,
+  //                              icons_ranges);
   log.info("fonts: {}", io.Fonts->Fonts.Size);
+  io.Fonts->Build();
   log.debug("Update font tex: {}", ImGui::SFML::UpdateFontTexture());
   log.info("reg size: {}", gm->registry->size());
 
   std::thread t([=]() {
     auto d = lua.get<sol::table>("light")["flick_delay"];
+    auto mutex = entt::service_locator<std::mutex>::get().lock();
     while (true) {
       std::this_thread::sleep_for(std::chrono::milliseconds(d));
-      // engine->updateExistingLight();
-      engine->scheduleFastRedraw();
+      // mutex->lock();
+      // engine->updateLight();
+      // mutex->unlock();
+      engine->updateExistingLight();
+      // engine->scheduleFastRedraw();
       // engine->invalidate();
     }
   });
   t.detach();
 
+  auto de = lua.get<bool>("darkness");
+  engine->layers->layers["darkness"]->enabled = de;
+
+  // gm->serve();
   while (window->isOpen()) {
     sf::Event event;
     while (window->pollEvent(event)) {
@@ -941,8 +1085,8 @@ int Application::serve() {
     ImGuiViewport *vp = ImGui::GetMainViewport();
 
     // lua.script_file(PATH / "scripts" / "draw.lua");
-    drawStatusBar(vp->Size.x, 16.0f * GUI_SCALE, 0.0f,
-                  vp->Size.y - 24 * GUI_SCALE);
+    // drawStatusBar(vp->Size.x, 16.0f * GUI_SCALE, 0.0f,
+    //               vp->Size.y - 24 * GUI_SCALE);
 
     if (debug) {
       ImGui::ShowDemoWindow();

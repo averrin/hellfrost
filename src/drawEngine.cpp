@@ -9,6 +9,8 @@
 #include <stdexcept>
 #include <tuple>
 
+using RandomLocal = effolkronium::random_thread_local;
+
 void DrawEngine::updateVisible() {
   auto registry = entt::service_locator<entt::registry>::get().lock();
   auto viewport = entt::service_locator<Viewport>::get().lock();
@@ -58,8 +60,9 @@ void DrawEngine::update() {
   std::map<std::string_view, int> layerMap = {
       {"bottom", 0},        {"cellsBg", 50},     {"cells", 100},
       {"cellsBrd", 150},    {"entitiesBg", 200}, {"entities", 250},
-      {"entitiesBrd", 300}, {"light", 500},      {"overlay", 1000},
-      {"debug", 2000},
+      {"entitiesBrd", 300}, {"heroBg", 400},     {"hero", 425},
+      {"heroBrd", 450},     {"light", 500},      {"darkness", 900},
+      {"overlay", 1000},    {"debug", 2000},
   };
   for (auto [layer, zIndex] : layerMap) {
     layers->layers[layer] = std::make_shared<Layer>();
@@ -98,31 +101,133 @@ sf::Color DrawEngine::getGlowColorForCell(entt::entity e,
   auto d = sqrt(pow(c->x - n->x, 2) + pow(c->y - n->y, 2));
   l_color.a -= (d - 1) * alpha_per_d;
   // l_color.a += Random::get<float>(-1 * glow.flick, glow.flick);
-  l_color.a = std::clamp((int)l_color.a, 0, 255);
+  l_color.a = std::clamp((int)l_color.a, 0, 200);
   return l_color;
 }
 
 void DrawEngine::updateExistingLight() {
   auto mutex = entt::service_locator<std::mutex>::get().lock();
+  if (lightUpdating) {
+    mutex->unlock();
+    return;
+  }
+  lightUpdating = true;
   mutex->lock();
+  // log.start("update existing light", false);
   auto light = layers->layers["light"];
   auto lights = light->children;
-  // light->clear();
+  light->clear();
+  auto d = 5;
   for (auto [id, t] : lights) {
     auto tile = std::dynamic_pointer_cast<sf::RectangleShape>(t);
     auto c = tile->getFillColor();
-    c.a += Random::get(-5, 5);
+    c.a = lightMapAlpha[id] + RandomLocal::get(-d, d);
+    c.a = std::clamp((int)c.a, 0, 200);
     tile->setFillColor(c);
+    // auto cs = "#005599";
+    // auto color = Color::fromHexString(cs);
+    // tile->setFillColor(sf::Color(color.r, color.g, color.b, c.a));
   }
-  // light->children = lights;
+  light->children = lights;
   light->invalidate();
-  // light->update();
-  // canvas->draw(*light);
+  light->update();
+  redrawCanvas();
+  // log.stop("update existing light");
   mutex->unlock();
+  lightUpdating = false;
+}
+
+void DrawEngine::updateDark() {
+  auto registry = entt::service_locator<entt::registry>::get().lock();
+  auto viewport = entt::service_locator<Viewport>::get().lock();
+  auto dark = layers->layers["darkness"];
+  float GUI_SCALE = entt::monostate<"gui_scale"_hs>{};
+  auto rScale = viewport->scale * GUI_SCALE;
+  dark->clear();
+
+  auto location = viewport->regions.front()->location;
+  if (location->player == nullptr) {
+    log.error("No player exists");
+    return;
+  }
+  log.start("update dark", true);
+
+  auto vis = registry->get<hf::vision>(location->player->entity);
+  auto d = vis.distance;
+  auto fov = location->getVisible(location->player->currentCell, d, false);
+  location->player->viewField = fov;
+
+  // for (auto c : fov) {
+  //   c->visibilityState = VisibilityState::VISIBLE;
+  // }
+
+  for (auto x = 0; x < location->cells.front().size(); x++) {
+    for (auto y = 0; y < location->cells.size(); y++) {
+      auto [_c, rz] = viewport->getCell(x, y, 0);
+      auto c = *_c;
+      if (c->type == CellType::EMPTY || c->type == CellType::UNKNOWN) {
+        continue;
+      }
+
+      if (c->visibilityState == VisibilityState::VISIBLE) {
+        c->visibilityState = VisibilityState::SEEN;
+      }
+
+      if (std::find(fov.begin(), fov.end(), c) != fov.end()) {
+        c->visibilityState = VisibilityState::VISIBLE;
+        continue;
+      }
+
+      auto e_size = sf::Vector2f(viewport->tileSet.size.first,
+                                 viewport->tileSet.size.second) *
+                    rScale;
+      auto e_pos = sf::Vector2f(x * viewport->tileSet.size.first,
+                                y * viewport->tileSet.size.second) *
+                   rScale;
+      e_pos.x += -viewport->tileSet.size.first * viewport->view_x * rScale;
+      e_pos.y += -viewport->tileSet.size.second * viewport->view_y * rScale;
+
+      auto bg = std::make_shared<sf::RectangleShape>();
+      bg->setSize(e_size);
+      bg->setPosition(e_pos);
+      auto cs = viewport->colors["PALETTE"]["BACKGROUND"];
+      if (c->visibilityState == VisibilityState::SEEN) {
+        cs = "#1f1f1f";
+        if (c->type == CellType::WALL) {
+          cs = "#232323cf";
+        }
+        auto color = Color::fromHexString(cs);
+        bg->setFillColor(sf::Color(color.r, color.g, color.b, color.a));
+        dark->draw(bg, 100000 + x * 100 + y);
+        // if (c->type == CellType::WALL) {
+        //   auto sprite = viewport->makeSprite("", "WALL");
+        //   auto color = Color::fromHexString("#666666");
+        //   sprite->setColor(sf::Color(color.r, color.g, color.b, color.a));
+        //   sprite->setPosition(e_pos);
+
+        //   if (registry->has<hf::wall>(e)) {
+        //     sprite = viewport->makeSprite(viewport->getWallSpec(cell));
+        //   }
+
+        //   auto s = *sprite;
+        //   s.setScale(sf::Vector2f(1, 1) * rScale);
+        //   dark->draw(std::make_shared<sf::Sprite>(s), 200000 + x * 100 + y);
+        // }
+      } else {
+
+        auto color = Color::fromHexString(cs);
+        bg->setFillColor(sf::Color(color.r, color.g, color.b, color.a));
+        dark->draw(bg, 100000 + x * 100 + y);
+      }
+    }
+  }
+  log.stop("update dark");
 }
 
 void DrawEngine::updateLight() {
+  // log.start("update light", true);
   lightMap.clear();
+  lightMapAlpha.clear();
   auto registry = entt::service_locator<entt::registry>::get().lock();
   auto viewport = entt::service_locator<Viewport>::get().lock();
   auto light = layers->layers["light"];
@@ -134,6 +239,7 @@ void DrawEngine::updateLight() {
     if (!registry->valid(e)) {
       continue;
     }
+    // TODO: fetch only renderable?
     if (registry->has<hf::renderable>(e)) {
       if (registry->get<hf::renderable>(e).hidden) {
         continue;
@@ -142,10 +248,10 @@ void DrawEngine::updateLight() {
 
     auto pos = registry->get<hf::position>(e);
 
-    if (pos.y - viewport->view_y < 0 || pos.y - viewport->view_y >= vH)
-      continue;
-    if (pos.x - viewport->view_x < 0 || pos.x - viewport->view_x >= vW)
-      continue;
+    // if (pos.y - viewport->view_y < 0 || pos.y - viewport->view_y >= vH)
+    //   continue;
+    // if (pos.x - viewport->view_x < 0 || pos.x - viewport->view_x >= vW)
+    //   continue;
     if (pos.z != viewport->view_z)
       continue;
 
@@ -159,7 +265,7 @@ void DrawEngine::updateLight() {
     e_pos.y += -viewport->tileSet.size.second * viewport->view_y * rScale;
 
     auto glow = registry->get<hf::glow>(e);
-    auto pulse = Random::get(-1 * glow.pulse, glow.pulse);
+    auto pulse = RandomLocal::get(-1 * glow.pulse, glow.pulse);
     if (glow.distance > 0 && glow.bright > 0) {
       std::vector<int> ids;
 
@@ -204,7 +310,7 @@ void DrawEngine::updateLight() {
               continue;
             std::string _t(magic_enum::enum_name(glow.type));
 
-            auto pulse = Random::get(-1 * g.pulse, g.pulse);
+            auto pulse = RandomLocal::get(-1 * g.pulse, g.pulse);
             auto color = getGlowColorForCell(_e, c, pulse);
             colors.push_back(std::make_tuple(_e, color));
             if (_e == e)
@@ -253,9 +359,10 @@ void DrawEngine::updateLight() {
           l_color = sf::Color(_c.r, _c.g, _c.b, _c.a);
         }
 
-        l_color.a += Random::get<float>(-1 * glow.flick, glow.flick);
+        l_color.a += RandomLocal::get<float>(-1 * glow.flick, glow.flick);
         l_color.a = std::clamp((int)l_color.a, 0, max_bright);
         bg->setFillColor(l_color);
+        lightMapAlpha[lid] = l_color.a;
         light->draw(bg, lid);
         i++;
         try {
@@ -266,6 +373,7 @@ void DrawEngine::updateLight() {
       }
     }
   }
+  // log.stop("update light");
 }
 
 void DrawEngine::renderEntity(entt::entity e) {
@@ -429,6 +537,21 @@ void DrawEngine::observe() {
     }
     ineditor->clear();
   }
+  if (position && position->size() > 0) {
+    for (auto e : *position) {
+      log.info("+MOVED");
+      if (registry->has<hf::player>(e)) {
+        auto pos = registry->get<hf::position>(e);
+        auto [_c, rz] = viewport->getCell(pos.x, pos.y, 0);
+        auto c = *_c;
+        auto l = viewport->regions[0]->location;
+        l->player->currentCell = c;
+      }
+      updateLight();
+      updateDark();
+      // position->clear();
+    }
+  }
 
   // if (glow && glow->size() > 0) {
   //   for (auto e : *glow) {
@@ -527,6 +650,7 @@ sf::Texture DrawEngine::draw() {
       }
     }
     updateLight();
+    updateDark();
     needRedraw = false;
     dirty = false;
     canvas->draw(*layers);
@@ -534,6 +658,7 @@ sf::Texture DrawEngine::draw() {
     redraws++;
     log.stop("full redraw", 50);
   } else if (damage.size() > 0 || dirty) {
+    log.debug("prd");
     log.start("partial redraw", true);
     canvas->clear(bgColor);
     // for (auto d : damage) {
@@ -553,7 +678,9 @@ sf::Texture DrawEngine::draw() {
       }
       observer->clear();
     }
-    updateLight();
+    // updateExistingLight();
+    // updateLight();
+    // updateDark();
 
     damage.clear();
     canvas->draw(*layers);
@@ -563,4 +690,10 @@ sf::Texture DrawEngine::draw() {
   mutex->unlock();
   log.stop(label, 50);
   return canvas->getTexture();
+}
+
+void DrawEngine::redrawCanvas() {
+  canvas->clear(bgColor);
+  canvas->draw(*layers);
+  canvas->display();
 }

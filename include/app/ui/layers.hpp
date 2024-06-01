@@ -21,7 +21,7 @@ public:
 
   std::shared_ptr<sf::RenderTexture> cache;
   void resize(sf::Vector2u size) {
-    cache->create(size.x, size.y, sf::ContextSettings(0, 0, 8));
+    cache->create(size.x, size.y, sf::ContextSettings(0, 0, 4));
   }
   void invalidate() { damaged = true; }
 

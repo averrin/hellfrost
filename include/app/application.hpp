@@ -58,6 +58,10 @@ public:
   sf::RenderWindow *window;
   std::shared_ptr<Viewport> viewport;
   void processEvent(sf::Event event);
+  void processKeyboardEvent(sf::Event event);
+    std::string getKeyName(sf::Keyboard::Key key, bool sys, bool alt,
+                            bool control, bool shift);
+
   int serve();
   void drawStatusBar(float width, float height, float pos_x, float pos_y);
   void drawDocking(float);
@@ -66,6 +70,8 @@ public:
   void initConfig();
   void initLuaBindings();
   void updateScale();
+
+  bool movePlayer(Direction);
 
   sol::state lua;
 
@@ -81,6 +87,16 @@ public:
 
   std::optional<std::pair<int, int>> lockedPos = std::nullopt;
   sf::Vector2<float> current_pos;
+
+  std::string winPrefix = "M";
+  std::string altPrefix = "A";
+  std::string ctrlPrefix = "C";
+  std::string shiftPrefix = "S";
+  std::string keyDelim = "-";
+
+  // std::map<std::string, std::function<void()>> mapping;
+  std::map<std::string, sol::function> mapping;
+  // std::map<std::string, std::function<void()>> mapping;
 };
 
 #endif // __APPLICATION_H_

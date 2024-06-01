@@ -17,6 +17,7 @@ int main(int argc, char *argv[]) {
     seed = std::atoi(argv[1]);
   }
   auto path = get_selfpath();
+
   Application app(APP_NAME, path, VERSION, seed);
   app.log.start(APP_NAME);
   app.serve();
