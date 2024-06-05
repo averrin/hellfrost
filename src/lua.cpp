@@ -1,3 +1,4 @@
+#include "lss/action.hpp"
 #include "lss/gameManager.hpp"
 #include <app/application.hpp>
 #include <app/scriptWrappers.hpp>
@@ -9,7 +10,8 @@
 using Random = effolkronium::random_static;
 
 void Application::initLuaBindings() {
-  mapping = lua["mapping"].get_or_create<std::map<std::string, sol::function>>();
+  mapping =
+      lua["mapping"].get_or_create<std::map<std::string, sol::function>>();
 
   lua.set("HEIGHT", 100);
   lua.set("WIDTH", 100);
@@ -20,9 +22,9 @@ void Application::initLuaBindings() {
                                  [](std::string n, bool a, bool b) {
                                    return CellSpec{n, a, b};
                                  }));
-  lua.new_enum("Direction", "N", Direction::N, "S", Direction::S,
-               "E", Direction::E, "W", Direction::W, "NE", Direction::NE,
-               "NW", Direction::NW, "SE", Direction::SE, "SW", Direction::SW);
+  lua.new_enum("Direction", "N", Direction::N, "S", Direction::S, "E",
+               Direction::E, "W", Direction::W, "NE", Direction::NE, "NW",
+               Direction::NW, "SE", Direction::SE, "SW", Direction::SW);
   auto ct = lua.new_enum("CellType", "EMPTY", CellType::EMPTY, "UNKNOWN",
                          CellType::UNKNOWN, "FLOOR", CellType::FLOOR, "WALL",
                          CellType::WALL, "ROOF", CellType::ROOF, "DOWNSTAIRS",
@@ -40,8 +42,14 @@ void Application::initLuaBindings() {
   //                                "setType", &LocationSpec::setType,
   //                                "setGenFunc", &LocationSpec::setGenFunc);
   lua.set_function("movePlayer", [&](Direction d) {
-    fmt::print("movePlayer\n");
-    movePlayer(d); });
+    // movePlayer(d);
+    if (gm->location->player == nullptr)
+      return;
+    auto p = 250;
+    gm->commit(lss::Action(gm->location->player->entity, "playerMove", p,
+                           [&]() { movePlayer(d); }));
+    gm->exec(p);
+  });
   lua.set_function(
       "genLocation",
       sol::overload([&](int s, LocationSpec spec) { genLocation(s, spec); },

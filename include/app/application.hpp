@@ -2,6 +2,7 @@
 #define __APPLICATION_H_
 #include "lss/game/location.hpp"
 #include <string>
+#include <thread>
 
 #include <SFML/Graphics.hpp>
 #include <SFML/Graphics/RenderWindow.hpp>

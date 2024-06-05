@@ -1,23 +1,12 @@
 #ifndef __PLAYER_H_
 #define __PLAYER_H_
-#include <map>
-#include <memory>
 
-#include "lss/components.hpp"
-#include "lss/game/cell.hpp"
-// #include "lss/game/creature.hpp"
+#include "lss/game/creature.hpp"
 // #include "lss/game/report.hpp"
 
 // typedef std::vector<std::shared_ptr<Item>> Items;
 
-class Player /*: public Creature*/ {
-  LibLog::Logger &log = LibLog::Logger::getInstance();
-public:
-  Player();
-  ~Player();
-  entt::entity entity;
-  std::shared_ptr<Cell> currentCell;
-  std::vector<std::shared_ptr<Cell>> viewField;
+class Player : public Creature {
   // bool monsterSense = false;
   // Report report;
 

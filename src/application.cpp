@@ -7,6 +7,7 @@
 #include <thread>
 #include <utility>
 
+#define SEQUENTITY_IMPLEMENTATION
 #include <app/application.hpp>
 
 #include <imgui.h>
@@ -291,10 +292,9 @@ void Application::processKeyboardEvent(sf::Event event) {
 
   auto event_str = getKeyName(event.key.code, event.key.system, event.key.alt,
                               event.key.control, event.key.shift);
-  fmt::print("Key pressed: {}\n", event_str);
+  // fmt::print("Key pressed: {}\n", event_str);
 
   if (mapping.find(event_str) != mapping.end()) {
-    fmt::print("Key find: {}\n", event_str);
     mapping[event_str]();
   }
 
@@ -313,6 +313,16 @@ void Application::processKeyboardEvent(sf::Event event) {
   case sf::Keyboard::Right: {
     viewport->view_x += 1;
     engine->invalidate();
+    auto i = 0;
+    for (auto p : gm->location->creatures) {
+      auto e = p.first;
+      gm->commit(lss::Action(p.first, "creatureMove", 200,
+                             [=]() { gm->moveCreature(gm->location->creatures[e], Direction::E); }));
+      i++;
+      if (i > 5) {
+        break;
+      }
+    }
     break;
   }
   case sf::Keyboard::Left: {
@@ -377,7 +387,7 @@ void Application::processEvent(sf::Event event) {
   auto rx = _x + viewport->view_x;
   auto ry = _y + viewport->view_y;
 
-  ImGui::SFML::ProcessEvent(event);
+  ImGui::SFML::ProcessEvent(*window, event);
   switch (event.type) {
   case sf::Event::KeyReleased:
     switch (event.key.code) {}
@@ -615,6 +625,8 @@ void Application::drawViewportWindow() {
   auto cache_full =
       gm->location->cells.front().size() * gm->location->cells.size();
   ImGui::Text("Cache len: %d/%lu", cache_count, cache_full);
+  ImGui::Text("Vis Cache cell count: %zu",
+              gm->location->visibilityCache.size());
   ImGui::Text("Redraws: %d", engine->redraws);
   ImGui::Text("Tiles updated: %d", engine->tilesUpdated);
   ImGui::Text("Objects in render: %d\n", engine->layers->size());
@@ -848,52 +860,12 @@ void Application::genLocation(int s) {
 }
 
 bool Application::movePlayer(Direction d) {
-
-  auto nc = gm->location->getCell(gm->location->player->currentCell, d);
-  if (!(*nc)->passThrough) {
+  auto s = gm->moveCreature(gm->location->player, d);
+  if (!s) {
     return false;
   }
 
-  auto e = gm->location->player->entity;
-  auto p = gm->registry->get<hf::position>(e);
-  switch (d) {
-  case Direction::S: {
-    p.y += 1;
-    break;
-  }
-  case Direction::N: {
-    p.y -= 1;
-    break;
-  }
-  case Direction::E: {
-    p.x += 1;
-    break;
-  }
-  case Direction::W: {
-    p.x -= 1;
-    break;
-  }
-  case Direction::NE: {
-    p.x += 1;
-    p.y -= 1;
-    break;
-  }
-  case Direction::NW: {
-    p.x -= 1;
-    p.y -= 1;
-    break;
-  }
-  case Direction::SE: {
-    p.x += 1;
-    p.y += 1;
-    break;
-  }
-  case Direction::SW: {
-    p.x -= 1;
-    p.y += 1;
-    break;
-  }
-  }
+  auto p = gm->registry->get<hf::position>(gm->location->player->entity);
   auto margin = lua.get<int>("margin");
   if (p.x < viewport->view_x + margin) {
     viewport->view_x--;
@@ -909,10 +881,9 @@ bool Application::movePlayer(Direction d) {
     viewport->view_y++;
     engine->invalidate();
   }
-  gm->registry->assign_or_replace<hellfrost::position>(e, p);
-  gm->location->invalidateVisibilityCache(nullptr);
-  gm->serve();
-  // invalidate caches after change and refill them in thread
+  // gm->serve();
+  // gm->location->invalidateVisibilityCache(gm->location->player->currentCell,
+  //                                         true);
   return true;
 }
 
@@ -1032,7 +1003,8 @@ int Application::serve() {
   });
   t.detach();
 
-  auto de = lua.get<bool>("darkness");
+  auto de = true;
+  // auto de = lua.get<bool>("darkness");
   engine->layers->layers["darkness"]->enabled = de;
 
   // gm->serve();
@@ -1103,6 +1075,11 @@ int Application::serve() {
       if (gm->location) {
         editor->drawLocationWindow(gm->location);
       }
+
+      ImGui::Begin("Timeline");
+      Sequentity::EventEditor(*gm->registry);
+      ImGui::End();
+
       // console.Draw("Console");
       ide->render(lua);
       ide->renderTodo();

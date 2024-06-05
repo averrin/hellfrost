@@ -516,7 +516,11 @@ void Generator::placeEnemies(std::shared_ptr<Location> location, int threat) {
       std::transform(key.begin(), key.end(), key.begin(), ::toupper);
       std::replace(key.begin(), key.end(), ' ', '_');
       location->log.info(key);
-      location->addEntity(key, c);
+      auto e = location->addEntity(key, c);
+      location->creatures[e] = std::make_shared<Creature>();
+      location->creatures[e]->name = location->registry->get<hf::meta>(e).id;
+      location->creatures[e]->entity = e;
+      location->creatures[e]->currentCell = c;
     }
   }
 }
@@ -615,6 +619,7 @@ void Generator::placeHero(std::shared_ptr<Location> location) {
   auto c = *Random::get(n);
   location->player = std::make_shared<Player>();
   location->player->entity = location->addEntity("HERO", c);
+  location->creatures[location->player->entity] = location->player;
   location->player->currentCell = c;
   dlog("hero was placed");
 }
@@ -1151,7 +1156,7 @@ void Generator::execTemplates(std::shared_ptr<Location> location,
   auto n = 0;
   for (auto [k, v] : location->type.templateMap[key]) {
     // location->log.debug("Executing template: {} @ {}", key, k);
-    if(key == "DUNGEON" && k == "LOOT") {
+    if (key == "DUNGEON" && k == "LOOT") {
       location->log.debug("Executing template: {} @ {}", key, k);
     }
     if (p[n]) {

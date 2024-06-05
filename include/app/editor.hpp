@@ -38,6 +38,7 @@ public:
   void PlayerComponent(std::shared_ptr<entt::registry>, entt::entity);
   void CreatureComponent(std::shared_ptr<entt::registry>, entt::entity);
   void Obstacle(std::shared_ptr<entt::registry>, entt::entity);
+  void Script(std::shared_ptr<entt::registry>, entt::entity);
   void Vision(std::shared_ptr<entt::registry>, entt::entity);
   void InEditor(std::shared_ptr<entt::registry>, entt::entity);
 

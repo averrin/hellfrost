@@ -2,8 +2,6 @@
 #define __ENEMY_H_
 #include <optional>
 
-#include "EventBus/Event.hpp"
-#include "EventBus/EventBus.hpp"
 #include "lss/game/ai.hpp"
 #include "lss/game/creature.hpp"
 #include "lss/game/damageSpec.hpp"
@@ -31,7 +29,7 @@ public:
   }
 };
 
-class Enemy : public Creature, public eb::EventHandler<CommitEvent> {
+class Enemy : public Creature {
   LibLog::Logger &log = LibLog::Logger::getInstance();
 public:
   Enemy(EnemySpec);
@@ -46,9 +44,9 @@ public:
   EnemySpec type;
   int step;
   bool randomPath();
-  void onDamage(std::shared_ptr<Creature>, std::shared_ptr<Damage>) override;
-  void onDie() override;
-  bool interact(std::shared_ptr<Object>) override;
+  // void onDamage(std::shared_ptr<Creature>, std::shared_ptr<Damage>) override;
+  // void onDie() override;
+  // bool interact(std::shared_ptr<Object>) override;
   void commit(int ap);
   void prepareAiState();
 
@@ -58,7 +56,7 @@ public:
   std::optional<AiAction> execAiPassive(int ap);
   std::optional<AiAction> execAiAggressive(int ap);
 
-  virtual void onEvent(CommitEvent &e) override;
+  // virtual void onEvent(CommitEvent &e) override;
 };
 
 class EnemySpecHolder : public Object {

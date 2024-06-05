@@ -8,6 +8,7 @@
 #include <IconsFontAwesome6.h>
 #include <app/ui/drawEngine.hpp>
 #include <app/ui/viewport.hpp>
+#include <thread>
 
 void convertVisibleToRenderable(std::shared_ptr<entt::registry> registry,
                                 entt::entity e) {
@@ -259,12 +260,12 @@ void GameManager::gen(LocationSpec spec) {
   // }
 }
 
-//TODO: call it on init
+// TODO: call it on init
 void GameManager::serve() {
+  // fmt::print("GameManager::serve\n");
   log.start("GameManager::serve", true);
   auto vis = registry->get<hf::vision>(location->player->entity);
   auto d = vis.distance;
-  // auto fov = location->getVisible(location->player->currentCell, d, false);
   auto fov = location->player->viewField;
   for (auto c : fov) {
     c->seeThrough = c->type.seeThrough;
@@ -282,23 +283,44 @@ void GameManager::serve() {
       }
     }
   }
+  // fmt::print("GameManager::before creatures\n");
+  for (auto [e, c] : location->creatures) {
+    if (registry->valid(e) && registry->has<hf::position>(e) &&
+        c->currentCell != nullptr) {
+      auto p = registry->get<hf::position>(e);
+      p.x = c->currentCell->x;
+      p.y = c->currentCell->y;
+      registry->assign_or_replace<hellfrost::position>(e, p);
+    }
+  }
+  auto visCacheThread = std::thread([&]() {
+    auto vis = registry->get<hf::vision>(location->player->entity);
+    auto d = vis.distance;
+    for (auto n : location->getNeighbors(location->player->currentCell)) {
+      if (!n->passThrough)
+        continue;
+      location->getVisible(n, d, true);
+    }
+  });
+  visCacheThread.detach();
+  // fmt::print("GameManager::after creatures\n");
   log.stop("GameManager::serve");
 }
 
-void GameManager::EsToProto(EnemySpec es, std::shared_ptr<GameData> data,
-                            int n) {
-  auto key = es.name;
-  std::transform(key.begin(), key.end(), key.begin(), ::toupper);
-  std::replace(key.begin(), key.end(), ' ', '_');
+// void GameManager::EsToProto(EnemySpec es, std::shared_ptr<GameData> data,
+//                             int n) {
+//   auto key = es.name;
+//   std::transform(key.begin(), key.end(), key.begin(), ::toupper);
+//   std::replace(key.begin(), key.end(), ' ', '_');
 
-  auto e = data->prototypes->create();
-  data->prototypes->assign<entt::tag<"proto"_hs>>(e);
-  // auto id = fmt::format("{}_{}", es.name, n);
-  data->prototypes->assign<hf::meta>(e, es.name, "", key);
-  data->prototypes->assign<hf::ineditor>(
-      e, key, std::vector<std::string>{"Enemies", es.name}, ICON_FA_DRAGON);
-  data->prototypes->assign<hf::visible>(e, "ENEMY", key);
-}
+//   auto e = data->prototypes->create();
+//   data->prototypes->assign<entt::tag<"proto"_hs>>(e);
+//   // auto id = fmt::format("{}_{}", es.name, n);
+//   data->prototypes->assign<hf::meta>(e, es.name, "", key);
+//   data->prototypes->assign<hf::ineditor>(
+//       e, key, std::vector<std::string>{"Enemies", es.name}, ICON_FA_DRAGON);
+//   data->prototypes->assign<hf::visible>(e, "ENEMY", key);
+// }
 
 std::shared_ptr<EntityWrapper>
 GameManager::createInLua(std::shared_ptr<Location> location,
@@ -309,4 +331,125 @@ GameManager::createInLua(std::shared_ptr<Location> location,
   auto ew = std::make_shared<EntityWrapper>(ne);
   ew->registry = registry;
   return ew;
+}
+
+bool GameManager::moveCreature(std::shared_ptr<Creature> creature,
+                               Direction d) {
+  if (creature == nullptr || creature->currentCell == nullptr) {
+    return false;
+  }
+  auto nc = location->getCell(creature->currentCell, d);
+  if (!(*nc)->passThrough) {
+    return false;
+  }
+  fmt::print("Move from {} {} to: {} {}\n", creature->currentCell->x,
+             creature->currentCell->y, (*nc)->x, (*nc)->y);
+  location->invalidateVisibilityCache(creature->currentCell, true);
+  location->invalidateEntityCache(creature->currentCell);
+
+  creature->currentCell = (*nc);
+  location->invalidateEntityCache(creature->currentCell);
+  return true;
+}
+
+void GameManager::commit(lss::Action action) {
+  log.info("Committing action: {}", action.name);
+  enum { MyEventType = 0 };
+  if (action.entity == entt::null || !registry->valid(action.entity) ||
+      !registry->has<hf::meta>(action.entity))
+    return;
+  auto meta = registry->get<hf::meta>(action.entity);
+  if (timeline.find(action.entity) == timeline.end()) {
+    timeline[action.entity] = std::vector<std::shared_ptr<lss::Action>>();
+    auto entity = registry->create();
+
+    auto &track = registry->assign<Sequentity::Track>(
+        action.entity, fmt::format("Entity: {}", meta.name).c_str(),
+        ImColor::HSV(0.0f, 0.5f, 0.75f));
+    track.title = meta.id;
+    Sequentity::PushChannel(track, MyEventType,
+                            {"Actions", ImColor::HSV(0.33f, 0.5f, 0.75f)});
+    action.start = cursor;
+  } else {
+    auto lastAction = timeline[action.entity].back();
+    action.start = lastAction->start + lastAction->cost;
+    if (action.start < cursor) {
+      action.start = cursor;
+    }
+  }
+  timeline[action.entity].push_back(std::make_shared<lss::Action>(action));
+
+  auto &track = registry->get<Sequentity::Track>(action.entity);
+  auto &channel = track.channels[MyEventType];
+  Sequentity::PushEvent(channel, {action.start, action.cost,
+                                  ImColor::HSV(0.66f, 0.5f, 0.75f), MyEventType,
+                                  action.entity});
+}
+
+void GameManager::exec(int points) {
+  log.start("GameManager::exec");
+  std::vector<std::shared_ptr<lss::Action>> to_exec;
+  for (auto [e, actions] : timeline) {
+    auto local_cursor = cursor;
+    auto elapsed = points;
+    for (auto &action : actions) {
+      // log.debug("Action: {} start: {} cost: {} executed: {} done: {}",
+      //           action.name, action.start, action.cost, action.executed,
+      //           action.done);
+      if (!action->done && action->start <= local_cursor + elapsed) {
+        to_exec.push_back(action);
+        log.debug("Hit: {} start: {} cost: {} executed: {} done: {}",
+                  action->name, action->start, action->cost, action->executed,
+                  action->done);
+        if (action->cost > elapsed) {
+          action->payed = elapsed;
+          action->cost -= action->payed;
+          elapsed = 0;
+          break;
+        } else {
+          action->payed = action->cost;
+          elapsed -= action->cost;
+          action->done = true;
+        }
+      }
+      if (action->start > local_cursor + elapsed) {
+        break;
+      }
+    }
+  }
+
+  for (auto action : to_exec) {
+    if (action->executed)
+      continue;
+    auto emitter = entt::service_locator<event_emitter>::get().lock();
+    emitter->publish<pre_action_event>();
+    log.info("Executing action: {} ({})", action->name, action->executed);
+    action->action();
+    emitter->publish<post_action_event>();
+    action->executed = true;
+    auto &track = registry->get<Sequentity::Track>(action->entity);
+    auto &channel = track.channels[0];
+    auto &event =
+        *std::find_if(channel.events.begin(), channel.events.end(),
+                      [&](auto e) { return e.time == action->start; });
+    event.color = ImColor::HSV(0.75f, 0.25f, 0.75f);
+    event.enabled = false;
+  }
+  cursor += points;
+  auto &state = registry->ctx<Sequentity::State>();
+  state.current_time = cursor;
+  state.range[1] = cursor + 250;
+
+  serve();
+
+  // auto emitter = entt::service_locator<event_emitter>::get().lock();
+  // // lastAction = action;
+  // emitter->publish<pre_action_event>();
+  // // emitter->publish<action_event>(action);
+  // action.action();
+  // emitter->publish<post_action_event>();
+  // // recalc light and dark once per turn, not on every action
+  // serve();
+  // // timeline.clear();
+  log.stop("GameManager::exec");
 }

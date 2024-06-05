@@ -4,7 +4,6 @@ tileset = "boxy"
 seed = 873130520
 -- location_type="DUNGEON"
 location_type = "MIX"
-darkness = true
 margin = 8
 
 light = {
@@ -12,7 +11,7 @@ light = {
   alpha_blend_inc = 0.5,
   flick_delay = 200,
   blend_mode = "blend",
-  max_bright = 200,
+  max_bright = 220,
 }
 
 -- hide all following vars into table

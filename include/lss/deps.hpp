@@ -1,3 +1,4 @@
+#pragma once
 #ifndef __DEPS_H_
 #define __DEPS_H_
 
@@ -43,6 +44,9 @@ struct redraw_event {};
 struct regen_event {int seed = -2; std::string specKey;};
 struct resize_event {};
 struct center_event {int x; int y;};
+struct pre_action_event {};
+struct action_event {};
+struct post_action_event {};
 struct mouse_center_event {int x; int y;};
 struct damage_event {int x; int y;};
 struct exec_event {std::string code;};

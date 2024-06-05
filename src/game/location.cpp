@@ -54,23 +54,36 @@ std::vector<entt::entity> Location::getEntities(std::shared_ptr<Cell> cell) {
   return result;
 }
 
-void Location::invalidateVisibilityCache(std::shared_ptr<Cell> cell) {
-  // std::vector<std::pair<std::shared_ptr<Cell>, float>> hits;
-  // for (auto ls : cell->lightSources) {
-  //   for (auto [lsk, _] : visibilityCache) {
-  //     if (lsk.first != nullptr && lsk.first != ls->currentCell &&
-  //         lsk.first != player->currentCell)
-  //       continue;
-  //     hits.push_back(lsk);
+void Location::invalidateVisibilityCache(std::shared_ptr<Cell> cell,
+                                         bool ignore_player = false) {
+  std::lock_guard<std::mutex> lock(visibilityCacheMutex);
+  std::vector<std::pair<std::shared_ptr<Cell>, float>> hits;
+  for (auto [p, _] : visibilityCache) {
+    if (p.first == cell ||
+        std::find(visibilityCache[p].begin(), visibilityCache[p].end(), cell) != visibilityCache[p].end()) {
+      hits.push_back(p);
+    }
+  }
+  for (auto lsk : hits) {
+    auto lsi = visibilityCache.find(lsk);
+    if (lsi != visibilityCache.end()) {
+      visibilityCache.erase(lsi);
+    }
+  }
+  // if (ignore_player) {
+  //   std::map<std::pair<std::shared_ptr<Cell>, float>,
+  //            std::vector<std::shared_ptr<Cell>>>
+  //       _visibilityCache;
+
+  //   for (auto [p, _] : visibilityCache) {
+  //     if (p.first == player->currentCell) {
+  //       _visibilityCache[p] = visibilityCache[p];
+  //     }
   //   }
+  //   visibilityCache = _visibilityCache;
+  // } else {
+  //   // visibilityCache.clear();
   // }
-  // for (auto lsk : hits) {
-  //   auto lsi = visibilityCache.find(lsk);
-  //   if (lsi != visibilityCache.end()) {
-  //     visibilityCache.erase(lsi);
-  //   }
-  // }
-  visibilityCache.clear();
 }
 
 // void Location::onEvent(DoorOpenedEvent &e) {
@@ -470,10 +483,14 @@ void Location::PrintStateInfo(void *state){};
 std::vector<std::shared_ptr<Cell>>
 Location::getVisible(std::shared_ptr<Cell> start, float distance,
                      bool useIllumination = true) {
+  visibilityCacheMutex.lock();
   auto it = visibilityCache.find({start, distance});
   if (it != visibilityCache.end()) {
-    return visibilityCache.at({start, distance});
+    auto res = visibilityCache.at({start, distance});
+    visibilityCacheMutex.unlock();
+    return res;
   }
+  visibilityCacheMutex.unlock();
   std::vector<std::shared_ptr<Cell>> result;
   fov::Vec creaturePoint{start->x, start->y};
   fov::Vec bounds{(int)cells.front().size(), (int)cells.size()};
@@ -492,7 +509,9 @@ Location::getVisible(std::shared_ptr<Cell> start, float distance,
   });
   result.resize(std::distance(result.begin(), ip));
   start->seeThrough = os;
+  visibilityCacheMutex.lock();
   visibilityCache[{start, distance}] = result;
+  visibilityCacheMutex.unlock();
   return result;
 }
 

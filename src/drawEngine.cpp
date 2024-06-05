@@ -6,7 +6,10 @@
 #include <lss/components.hpp>
 #include <lss/generator/room.hpp>
 #include <memory>
+#include <mutex>
 #include <stdexcept>
+#include <taskflow/algorithm/for_each.hpp>
+#include <taskflow/taskflow.hpp>
 #include <tuple>
 
 using RandomLocal = effolkronium::random_thread_local;
@@ -154,7 +157,7 @@ void DrawEngine::updateDark() {
 
   auto vis = registry->get<hf::vision>(location->player->entity);
   auto d = vis.distance;
-  auto fov = location->getVisible(location->player->currentCell, d, false);
+  auto fov = location->getVisible(location->player->currentCell, d, true);
   location->player->viewField = fov;
 
   // for (auto c : fov) {
@@ -169,6 +172,7 @@ void DrawEngine::updateDark() {
         continue;
       }
 
+      c->illuminated = false;
       if (c->visibilityState == VisibilityState::VISIBLE) {
         c->visibilityState = VisibilityState::SEEN;
       }
@@ -225,7 +229,7 @@ void DrawEngine::updateDark() {
 }
 
 void DrawEngine::updateLight() {
-  // log.start("update light", true);
+  log.start("update light", true);
   lightMap.clear();
   lightMapAlpha.clear();
   auto registry = entt::service_locator<entt::registry>::get().lock();
@@ -235,14 +239,23 @@ void DrawEngine::updateLight() {
   auto rScale = viewport->scale * GUI_SCALE;
   light->clear();
   auto ents = registry->group(entt::get<hf::position, hf::glow>);
-  for (auto e : ents) {
+  tf::Executor executor;
+  tf::Taskflow taskflow;
+
+  // auto mutex = entt::service_locator<std::mutex>::get().lock();
+  std::mutex mutex;
+
+  taskflow.for_each(ents.begin(), ents.end(), [&](auto e) {
+    // for (auto e : ents) {
     if (!registry->valid(e)) {
-      continue;
+      // continue;
+      return;
     }
     // TODO: fetch only renderable?
     if (registry->has<hf::renderable>(e)) {
       if (registry->get<hf::renderable>(e).hidden) {
-        continue;
+        // continue;
+        return;
       }
     }
 
@@ -253,7 +266,8 @@ void DrawEngine::updateLight() {
     // if (pos.x - viewport->view_x < 0 || pos.x - viewport->view_x >= vW)
     //   continue;
     if (pos.z != viewport->view_z)
-      continue;
+      return;
+    // continue;
 
     auto e_size = sf::Vector2f(viewport->tileSet.size.first,
                                viewport->tileSet.size.second) *
@@ -274,13 +288,17 @@ void DrawEngine::updateLight() {
       auto location = viewport->regions.front()->location;
       auto i = 1;
 
-      for (auto n : location->getVisible(c, glow.distance, false)) {
+      auto vis = location->getVisible(c, glow.distance, false);
+      for (auto n : vis) {
         n->illuminated = true;
         auto lid = 100000 + n->x * 100 + n->y;
         if (std::find(ids.begin(), ids.end(), lid) != ids.end()) {
           continue;
+          // return;
         }
+        mutex.lock();
         ids.push_back(lid);
+        mutex.unlock();
 
         auto e_pos = sf::Vector2f(n->x * viewport->tileSet.size.first,
                                   n->y * viewport->tileSet.size.second) *
@@ -296,12 +314,19 @@ void DrawEngine::updateLight() {
         auto _l = LibColor::Color(l_color.r, l_color.g, l_color.b, l_color.a);
         std::vector<std::tuple<entt::entity, sf::Color>> colors;
         colors.push_back(std::make_tuple(e, l_color));
-        if (lightMap[lid].size() != 0) {
+        mutex.lock();
+        auto exists = lightMap[lid].size() != 0;
+        mutex.unlock();
+        if (exists) {
           if (glow.passive) {
             continue;
+            // return;
           }
           int alpha = 0;
-          for (auto _e : lightMap[lid]) {
+          mutex.lock();
+          auto es = lightMap[lid];
+          mutex.unlock();
+          for (auto _e : es) {
             if (!registry->valid(_e)) {
               continue;
             }
@@ -326,10 +351,11 @@ void DrawEngine::updateLight() {
               _c.blend(_l);
             }
             // _c.a = std::max(color.a, l_color.a) + alpha_blend_inc;
-            // _c.a = std::clamp(_c.a, 0, 255);
+            _c.a = std::clamp((int)_c.a, 25, 255);
             l_color = sf::Color(_c.r, _c.g, _c.b, l_color.a);
           }
         }
+        // mutex.unlock();
         auto alpha = l_color.a;
         auto v = 0;
         auto ag = e;
@@ -351,7 +377,6 @@ void DrawEngine::updateLight() {
           }
         }
 
-        l_color.a = alpha;
         // l_color.a = 255;
         if (v > 0) {
           auto _c = LibColor::Color(l_color.r, l_color.g, l_color.b, l_color.a);
@@ -362,6 +387,7 @@ void DrawEngine::updateLight() {
         l_color.a += RandomLocal::get<float>(-1 * glow.flick, glow.flick);
         l_color.a = std::clamp((int)l_color.a, 0, max_bright);
         bg->setFillColor(l_color);
+        mutex.lock();
         lightMapAlpha[lid] = l_color.a;
         light->draw(bg, lid);
         i++;
@@ -370,10 +396,16 @@ void DrawEngine::updateLight() {
         } catch (std::out_of_range ex) {
           lightMap[lid] = {e};
         }
+        mutex.unlock();
       }
     }
-  }
-  // log.stop("update light");
+  });
+  log.start("taskflow", true);
+  executor.run(taskflow).get();
+  executor.wait_for_all();
+  log.stop("taskflow");
+  // }
+  log.stop("update light");
 }
 
 void DrawEngine::renderEntity(entt::entity e) {
@@ -501,6 +533,7 @@ void DrawEngine::resize(sf::Vector2u size) {
 }
 
 void DrawEngine::observe() {
+  // log.start("de::observe", true);
   // log.info("OBSERVE");
   auto viewport = entt::service_locator<Viewport>::get().lock();
   auto registry = entt::service_locator<entt::registry>::get().lock();
@@ -539,18 +572,18 @@ void DrawEngine::observe() {
   }
   if (position && position->size() > 0) {
     for (auto e : *position) {
-      log.info("+MOVED");
-      if (registry->has<hf::player>(e)) {
-        auto pos = registry->get<hf::position>(e);
-        auto [_c, rz] = viewport->getCell(pos.x, pos.y, 0);
-        auto c = *_c;
-        auto l = viewport->regions[0]->location;
-        l->player->currentCell = c;
-      }
-      updateLight();
-      updateDark();
+      // log.info("+MOVED");
+      // if (registry->has<hf::player>(e)) {
+      //   auto pos = registry->get<hf::position>(e);
+      //   auto [_c, rz] = viewport->getCell(pos.x, pos.y, 0);
+      //   auto c = *_c;
+      //   auto l = viewport->regions[0]->location;
+      //   l->player->currentCell = c;
+      // }
       // position->clear();
     }
+    updateLight();
+    updateDark();
   }
 
   // if (glow && glow->size() > 0) {
@@ -559,6 +592,7 @@ void DrawEngine::observe() {
   //   glow->clear();
   // }
   mutex->unlock();
+  // log.stop("de::observe");
 }
 
 sf::Texture DrawEngine::draw() {

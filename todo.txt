@@ -1,3 +1,4 @@
+* fix house feature
 * column hall
 * darkness / fog (in correct layer)
 * multilevel locations

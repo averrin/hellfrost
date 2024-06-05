@@ -203,6 +203,17 @@ struct vision {
   };
 };
 
+struct script {
+  std::string path = "";
+  friend class cereal::access;
+  template <class Archive> void save(Archive &ar) const {
+    ar(path);
+  };
+  template <class Archive> void load(Archive &ar) {
+    ar(path);
+  };
+};
+
 // TODO
 struct usable {};
 struct consumable {};

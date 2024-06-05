@@ -19,6 +19,7 @@ void Editor::drawEntityEditor(std::shared_ptr<entt::registry> registry) {
   entityEditor.registerTrivial<hf::player>(*registry, "Player");
   entityEditor.registerTrivial<hf::creature>(*registry, "Creature");
   entityEditor.registerTrivial<hf::obstacle>(*registry, "Obstacle");
+  entityEditor.registerTrivial<hf::script>(*registry, "Script");
   entityEditor.registerTrivial<hf::vision>(*registry, "Vision");
   entityEditor.registerTrivial<hf::ineditor>(*registry, "Editor");
   entityEditor.registerTrivial<hf::pickable>(*registry, "Pickable");
@@ -59,6 +60,9 @@ void Editor::drawEntityEditor(std::shared_ptr<entt::registry> registry) {
   entityEditor.registerComponentWidgetFn(
       registry->type<hf::obstacle>(),
       [&](entt::registry &reg, auto e) { Obstacle(registry, e); });
+  entityEditor.registerComponentWidgetFn(
+      registry->type<hf::script>(),
+      [&](entt::registry &reg, auto e) { Script(registry, e); });
   entityEditor.registerComponentWidgetFn(
       registry->type<hf::vision>(),
       [&](entt::registry &reg, auto e) { Vision(registry, e); });
@@ -350,6 +354,14 @@ void Editor::PlayerComponent(std::shared_ptr<entt::registry> registry,
 
 void Editor::CreatureComponent(std::shared_ptr<entt::registry> registry,
                                entt::entity e) {}
+
+void Editor::Script(std::shared_ptr<entt::registry> registry, entt::entity e) {
+  auto &c = registry->get<hf::script>(e);
+  auto emitter = entt::service_locator<event_emitter>::get().lock();
+  if (ImGui::InputText("path", c.path)) {
+  }
+}
+
 void Editor::Obstacle(std::shared_ptr<entt::registry> registry,
                       entt::entity e) {
   auto &c = registry->get<hf::obstacle>(e);

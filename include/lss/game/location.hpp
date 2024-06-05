@@ -50,6 +50,7 @@ public:
   LocationSpec type;
   Cells cells;
   std::shared_ptr<Player> player;
+  std::map<entt::entity, std::shared_ptr<Creature>> creatures;
   int depth = 0;
   Tags tags;
   // std::shared_ptr<AiManager> aiManager;
@@ -112,11 +113,12 @@ public:
   std::vector<std::shared_ptr<Cell>> getVisible(std::shared_ptr<Cell> start,
                                                 float distance, bool);
 
-  void invalidateVisibilityCache(std::shared_ptr<Cell> cell);
+  void invalidateVisibilityCache(std::shared_ptr<Cell> cell, bool);
 
   std::map<std::pair<std::shared_ptr<Cell>, float>,
            std::vector<std::shared_ptr<Cell>>>
       visibilityCache;
+  std::mutex visibilityCacheMutex;
 
   void dump() {
 

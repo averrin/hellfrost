@@ -13,14 +13,14 @@ spec = {
     {
     "#####*",
     "#...+ ",
-    "#...# ",
+    "#*..# ",
     "##### ",
     },
     {
     "      ",
     "##+## ",
     "#...# ",
-    "#...# ",
+    "#..*# ",
     "##+###",
     "#....#",
     "######",
@@ -34,6 +34,7 @@ spec = {
       cell.tags:add("WIPE")
     end;
     ["*"] = function(location, room, cell)
+      cell.type = CellType.FLOOR;
       if (Random.bool(0.4)) then
         o = gm:create(location, "TORCH_STAND", cell.x, cell.y, 0)
         room:addEntity(o.entity)

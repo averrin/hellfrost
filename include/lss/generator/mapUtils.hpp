@@ -1,7 +1,7 @@
 #ifndef __MAPUTILS_H_
 #define __MAPUTILS_H_
 
-#include "lss/game/enemy.hpp"
+// #include "lss/game/enemy.hpp"
 #include "lss/game/location.hpp"
 
 class mapUtils {
@@ -79,17 +79,17 @@ public:
     }
   }
 
-  static std::shared_ptr<Enemy> makeEnemy(std::shared_ptr<Location> location,
-                                          std::shared_ptr<Cell> c,
-                                          EnemySpec type) {
-    if (c == nullptr) {
-      throw std::runtime_error("nullptr cell for enemy");
-    }
-    auto enemy = std::make_shared<Enemy>(type);
-    enemy->setCurrentCell(c);
-    enemy->currentLocation = location;
-    return enemy;
-  }
+  // static std::shared_ptr<Enemy> makeEnemy(std::shared_ptr<Location> location,
+  //                                         std::shared_ptr<Cell> c,
+  //                                         EnemySpec type) {
+  //   if (c == nullptr) {
+  //     throw std::runtime_error("nullptr cell for enemy");
+  //   }
+  //   auto enemy = std::make_shared<Enemy>(type);
+  //   enemy->setCurrentCell(c);
+  //   enemy->currentLocation = location;
+  //   return enemy;
+  // }
 
   static void makeFloor(std::shared_ptr<Cell> cell) {
     cell->type = CellType::FLOOR;

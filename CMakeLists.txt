@@ -25,6 +25,7 @@ CPMAddPackage("gh:averrin/libcolor#master")
 CPMAddPackage("gh:averrin/libprint#master")
 CPMAddPackage("gh:averrin/liblog#master")
 CPMAddPackage("gh:juliettef/IconFontCppHeaders#main")
+# CPMAddPackage("gh:Green-Sky/imgui_entt_entity_editor#master")
 
 FetchContent_Declare(
   imgui
@@ -37,12 +38,18 @@ FetchContent_Declare(
   SFML
   URL "https://github.com/SFML/SFML/archive/${SFML_VERSION}.zip"
 )
+
+FetchContent_Declare(
+  taskflow
+  URL "https://github.com/taskflow/taskflow/archive/refs/tags/v3.7.0.zip"
+)
 option(SFML_BUILD_AUDIO "Build audio" OFF)
 option(SFML_BUILD_NETWORK "Build network" OFF)
 set(OpenGL_GL_PREFERENCE "GLVND")
 # set(OpenGL_GL_PREFERENCE "LEGACY")
 find_package(OpenGL REQUIRED)
 FetchContent_MakeAvailable(sfml)
+FetchContent_MakeAvailable(taskflow)
 
 FetchContent_Declare(
   lua
@@ -105,7 +112,7 @@ add_executable(${EXE_NAME}
   ${PROJECT_PATH}/src/game/item.cpp
   ${PROJECT_PATH}/src/game/damageSpec.cpp
   ${PROJECT_PATH}/src/game/spell.cpp
-  ${PROJECT_PATH}/src/game/enemy.cpp
+  # ${PROJECT_PATH}/src/game/enemy.cpp
   ${PROJECT_PATH}/src/game/creature.cpp
   ${PROJECT_PATH}/src/game/equipment.cpp
   ${PROJECT_PATH}/src/game/slot.cpp
@@ -139,11 +146,15 @@ endif()
 if(IconFontCppHeaders_ADDED)
   target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC "${IconFontCppHeaders_SOURCE_DIR}")
 endif()
+# if(imgui_entt_entity_editor_ADDED)
+#   target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC "${imgui_entt_entity_editor_SOURCE_DIR}")
+# endif()
 
 target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC ${OPENGL_INCLUDE_DIR})
 target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC "${lua_SOURCE_DIR}/src")
 target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC "${PROJECT_PATH}/include/3rdparty")
 target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC ${OPENGL_INCLUDE_DIR})
+target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC "${taskflow_SOURCE_DIR}")
 
 target_compile_options(${PROJECT_NAME} PRIVATE -Wno-format-security -Wno-switch)
 

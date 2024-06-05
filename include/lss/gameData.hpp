@@ -19,11 +19,9 @@ class GameData {
     prototypes->loader()
         .component<hf::meta, hf::visible, hf::ineditor, hf::pickable,
                    hf::wearable, hf::glow, hf::renderable, hf::wall, hf::tags,
-                   hf::player, hf::vision, hf::obstacle,
-      hf::creature,
-      entt::tag<"item"_hs>,
-                   entt::tag<"enemy"_hs>, entt::tag<"terrain"_hs>,
-                   entt::tag<"proto"_hs>>(ar);
+                   hf::player, hf::vision, hf::obstacle, hf::creature,
+                   hf::script, entt::tag<"item"_hs>, entt::tag<"enemy"_hs>,
+                   entt::tag<"terrain"_hs>, entt::tag<"proto"_hs>>(ar);
   };
   template <class Archive> void save(Archive &ar) const {
     ar(probability, itemSpecs, terrainSpecs, lootBoxes, mapFeatures);
@@ -31,10 +29,9 @@ class GameData {
     prototypes->snapshot()
         .component<hf::meta, hf::visible, hf::ineditor, hf::pickable,
                    hf::wearable, hf::glow, hf::renderable, hf::wall, hf::tags,
-                   hf::player, hf::vision, hf::obstacle,
-      hf::creature, entt::tag<"item"_hs>,
-                   entt::tag<"enemy"_hs>, entt::tag<"terrain"_hs>,
-                   entt::tag<"proto"_hs>>(ar);
+                   hf::player, hf::vision, hf::obstacle, hf::creature,
+                   hf::script, entt::tag<"item"_hs>, entt::tag<"enemy"_hs>,
+                   entt::tag<"terrain"_hs>, entt::tag<"proto"_hs>>(ar);
   };
 
 public:

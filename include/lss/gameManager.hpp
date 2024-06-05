@@ -2,15 +2,17 @@
 #define __GAMEMANAGER_H_
 #include "app/scriptWrappers.hpp"
 #include <entt/entt.hpp>
+#include <lss/action.hpp>
 #include <lss/components.hpp>
-#include <lss/utils.hpp>
 #include <lss/game/itemSpec.hpp>
 #include <lss/game/location.hpp>
 #include <lss/game/terrain.hpp>
 #include <lss/gameData.hpp>
 #include <lss/generator/generator.hpp>
-#include "lss/game/enemy.hpp"
+#include <lss/utils.hpp>
+// #include "lss/game/enemy.hpp"
 #include "lss/generator/room.hpp"
+#include <sequentity.hpp>
 
 namespace hf = hellfrost;
 
@@ -94,23 +96,28 @@ public:
   std::map<std::string, std::shared_ptr<Feature>> features;
   std::map<std::string, std::shared_ptr<LocationSpec>> locationSpecs;
 
-  std::shared_ptr<Location> getLocation() {
-    return location;
-  }
+  std::shared_ptr<Location> getLocation() { return location; }
   std::shared_ptr<GameData> getData() {
     auto data = entt::service_locator<GameData>::get().lock();
     return data;
   }
 
-  void EsToProto(EnemySpec es, std::shared_ptr<GameData> data, int n);
+  lss::Action currentAction;
+  std::map<entt::entity, std::vector<std::shared_ptr<lss::Action>>> timeline;
+  void commit(lss::Action action);
+
+  int cursor = 0;
+  void exec(int points);
+
+  // void EsToProto(EnemySpec es, std::shared_ptr<GameData> data, int n);
   void applyData();
   void reset();
   void gen(LocationSpec);
   void setSeed(int s) { seed = s; }
-  int size() {
-    return registry->size();
-  }
-  std::shared_ptr<EntityWrapper> createInLua(std::shared_ptr<Location> location, const std::string id, const int x, const int y, const int z);
+  int size() { return registry->size(); }
+  std::shared_ptr<EntityWrapper> createInLua(std::shared_ptr<Location> location,
+                                             const std::string id, const int x,
+                                             const int y, const int z);
 
   void loadData() {
     std::ifstream file(path, std::ios::in | std::ios::binary);
@@ -129,6 +136,8 @@ public:
 
   std::shared_ptr<entt::observer> player;
   void serve();
+
+  bool moveCreature(std::shared_ptr<Creature>, Direction);
 };
 
 #endif // __GAMEMANAGER_H_
