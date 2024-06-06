@@ -11,144 +11,144 @@
 #include <lss/generator/mapUtils.hpp>
 #include <magic_enum.hpp>
 
-void Editor::drawEntityEditor(std::shared_ptr<entt::registry> registry) {
-  entityEditor.registerTrivial<hf::meta>(*registry, "Meta");
-  entityEditor.registerTrivial<hf::position>(*registry, "Position");
-  entityEditor.registerTrivial<hf::visible>(*registry, "Visible");
-  entityEditor.registerTrivial<hf::renderable>(*registry, "Renderable");
-  entityEditor.registerTrivial<hf::player>(*registry, "Player");
-  entityEditor.registerTrivial<hf::creature>(*registry, "Creature");
-  entityEditor.registerTrivial<hf::obstacle>(*registry, "Obstacle");
-  entityEditor.registerTrivial<hf::script>(*registry, "Script");
-  entityEditor.registerTrivial<hf::vision>(*registry, "Vision");
-  entityEditor.registerTrivial<hf::ineditor>(*registry, "Editor");
-  entityEditor.registerTrivial<hf::pickable>(*registry, "Pickable");
-  entityEditor.registerTrivial<hf::wearable>(*registry, "Wearable");
-  entityEditor.registerTrivial<hf::glow>(*registry, "Glow");
-  entityEditor.registerTrivial<hf::cell>(*registry, "Cell");
-  entityEditor.registerTrivial<hf::room>(*registry, "Room");
-  entityEditor.registerTrivial<hf::children>(*registry, "Children");
-  entityEditor.registerTrivial<hf::size>(*registry, "Size");
-  entityEditor.registerTrivial<hf::wall>(*registry, "Wall");
-  entityEditor.registerTrivial<hf::tags>(*registry, "Tags");
-  entityEditor.registerTrivial<hf::overwrite>(*registry, "Overwrite");
+void Editor::drawEntityEditor(entt::registry& registry) {
+  entityEditor.registerComponent<hf::meta>("Meta");
+  entityEditor.registerComponent<hf::position>("Position");
+  entityEditor.registerComponent<hf::visible>("Visible");
+  entityEditor.registerComponent<hf::renderable>("Renderable");
+  entityEditor.registerComponent<hf::player>("Player");
+  entityEditor.registerComponent<hf::creature>("Creature");
+  entityEditor.registerComponent<hf::obstacle>("Obstacle");
+  entityEditor.registerComponent<hf::script>("Script");
+  entityEditor.registerComponent<hf::vision>("Vision");
+  entityEditor.registerComponent<hf::ineditor>("Editor");
+  entityEditor.registerComponent<hf::pickable>("Pickable");
+  entityEditor.registerComponent<hf::wearable>("Wearable");
+  entityEditor.registerComponent<hf::glow>("Glow");
+  entityEditor.registerComponent<hf::cell>("Cell");
+  entityEditor.registerComponent<hf::room>("Room");
+  entityEditor.registerComponent<hf::children>("Children");
+  entityEditor.registerComponent<hf::size>("Size");
+  entityEditor.registerComponent<hf::wall>("Wall");
+  entityEditor.registerComponent<hf::tags>("Tags");
+  entityEditor.registerComponent<hf::overwrite>("Overwrite");
 
-  entityEditor.registerComponentWidgetFn(
-      registry->type<hf::meta>(),
-      [&](entt::registry &reg, auto e) { Meta(registry, e); });
-  entityEditor.registerComponentWidgetFn(
-      registry->type<hf::ineditor>(),
-      [&](entt::registry &reg, auto e) { InEditor(registry, e); });
-  entityEditor.registerComponentWidgetFn(
-      registry->type<hf::position>(),
-      [&](entt::registry &reg, auto e) { Position(registry, e); });
-  entityEditor.registerComponentWidgetFn(
-      registry->type<hf::visible>(),
-      [&](entt::registry &reg, auto e) { Visible(registry, e); });
-  entityEditor.registerComponentWidgetFn(
-      registry->type<hf::renderable>(),
-      [&](entt::registry &reg, auto e) { Renderable(registry, e); });
-  entityEditor.registerComponentWidgetFn(
-      registry->type<hf::size>(),
-      [&](entt::registry &reg, auto e) { Size(registry, e); });
-  entityEditor.registerComponentWidgetFn(
-      registry->type<hf::player>(),
-      [&](entt::registry &reg, auto e) { PlayerComponent(registry, e); });
-  entityEditor.registerComponentWidgetFn(
-      registry->type<hf::creature>(),
-      [&](entt::registry &reg, auto e) { CreatureComponent(registry, e); });
-  entityEditor.registerComponentWidgetFn(
-      registry->type<hf::obstacle>(),
-      [&](entt::registry &reg, auto e) { Obstacle(registry, e); });
-  entityEditor.registerComponentWidgetFn(
-      registry->type<hf::script>(),
-      [&](entt::registry &reg, auto e) { Script(registry, e); });
-  entityEditor.registerComponentWidgetFn(
-      registry->type<hf::vision>(),
-      [&](entt::registry &reg, auto e) { Vision(registry, e); });
+  // entityEditor.registerComponentWidgetFn(
+  //     registry.type<hf::meta>(),
+  //     [&](entt::registry &reg, auto e) { Meta(registry, e); });
+  // entityEditor.registerComponentWidgetFn(
+  //     registry.type<hf::ineditor>(),
+  //     [&](entt::registry &reg, auto e) { InEditor(registry, e); });
+  // entityEditor.registerComponentWidgetFn(
+  //     registry.type<hf::position>(),
+  //     [&](entt::registry &reg, auto e) { Position(registry, e); });
+  // entityEditor.registerComponentWidgetFn(
+  //     registry.type<hf::visible>(),
+  //     [&](entt::registry &reg, auto e) { Visible(registry, e); });
+  // entityEditor.registerComponentWidgetFn(
+  //     registry.type<hf::renderable>(),
+  //     [&](entt::registry &reg, auto e) { Renderable(registry, e); });
+  // entityEditor.registerComponentWidgetFn(
+  //     registry.type<hf::size>(),
+  //     [&](entt::registry &reg, auto e) { Size(registry, e); });
+  // entityEditor.registerComponentWidgetFn(
+  //     registry.type<hf::player>(),
+  //     [&](entt::registry &reg, auto e) { PlayerComponent(registry, e); });
+  // entityEditor.registerComponentWidgetFn(
+  //     registry.type<hf::creature>(),
+  //     [&](entt::registry &reg, auto e) { CreatureComponent(registry, e); });
+  // entityEditor.registerComponentWidgetFn(
+  //     registry.type<hf::obstacle>(),
+  //     [&](entt::registry &reg, auto e) { Obstacle(registry, e); });
+  // entityEditor.registerComponentWidgetFn(
+  //     registry.type<hf::script>(),
+  //     [&](entt::registry &reg, auto e) { Script(registry, e); });
+  // entityEditor.registerComponentWidgetFn(
+  //     registry.type<hf::vision>(),
+  //     [&](entt::registry &reg, auto e) { Vision(registry, e); });
 
-  entityEditor.registerComponentWidgetFn(
-      registry->type<hf::pickable>(),
-      [&](entt::registry &reg, auto e) { Pickable(registry, e); });
-  entityEditor.registerComponentWidgetFn(
-      registry->type<hf::wearable>(),
-      [&](entt::registry &reg, auto e) { Wearable(registry, e); });
-  entityEditor.registerComponentWidgetFn(
-      registry->type<hf::glow>(),
-      [&](entt::registry &reg, auto e) { Glow(registry, e); });
-  entityEditor.registerComponentWidgetFn(
-      registry->type<hf::cell>(),
-      [&](entt::registry &reg, auto e) { CellW(registry, e); });
-  entityEditor.registerComponentWidgetFn(
-      registry->type<hf::room>(),
-      [&](entt::registry &reg, auto e) { RoomW(registry, e); });
-  entityEditor.registerComponentWidgetFn(
-      registry->type<hf::children>(),
-      [&](entt::registry &reg, auto e) { Children(registry, e); });
-  entityEditor.registerComponentWidgetFn(
-      registry->type<hf::tags>(),
-      [&](entt::registry &reg, auto e) { Tags(registry, e); });
+  // entityEditor.registerComponentWidgetFn(
+  //     registry.type<hf::pickable>(),
+  //     [&](entt::registry &reg, auto e) { Pickable(registry, e); });
+  // entityEditor.registerComponentWidgetFn(
+  //     registry.type<hf::wearable>(),
+  //     [&](entt::registry &reg, auto e) { Wearable(registry, e); });
+  // entityEditor.registerComponentWidgetFn(
+  //     registry.type<hf::glow>(),
+  //     [&](entt::registry &reg, auto e) { Glow(registry, e); });
+  // entityEditor.registerComponentWidgetFn(
+  //     registry.type<hf::cell>(),
+  //     [&](entt::registry &reg, auto e) { CellW(registry, e); });
+  // entityEditor.registerComponentWidgetFn(
+  //     registry.type<hf::room>(),
+  //     [&](entt::registry &reg, auto e) { RoomW(registry, e); });
+  // entityEditor.registerComponentWidgetFn(
+  //     registry.type<hf::children>(),
+  //     [&](entt::registry &reg, auto e) { Children(registry, e); });
+  // entityEditor.registerComponentWidgetFn(
+  //     registry.type<hf::tags>(),
+  //     [&](entt::registry &reg, auto e) { Tags(registry, e); });
 
-  entityEditor.registerToolbarFn([&](entt::registry &reg, auto e) {
-    auto emitter = entt::service_locator<event_emitter>::get().lock();
-    if (reg.has<entt::tag<"proto"_hs>>(e)) {
-      auto data = entt::service_locator<GameData>::get().lock();
-      if (ImGui::Button(ICON_FA_PLUS)) {
-        auto viewport = entt::service_locator<Viewport>::get().lock();
-        auto location = viewport->regions.front()->location;
-        auto meta = reg.get<hf::meta>(e);
-        if (selectedCell) {
-          auto cell = *selectedCell;
-          location->addEntity(meta.id, cell);
-          emitter->publish<center_event>(cell->x, cell->y);
-        } else {
-          location->addEntity(meta.id, location->cells[0][0]);
-        }
-        emitter->publish<redraw_event>();
-      }
-      ImGui::SameLine();
-      if (ImGui::Button(ICON_FA_CLONE)) {
-        auto data = entt::service_locator<GameData>::get().lock();
-        auto ne = reg.create();
-        reg.stomp(ne, e, *data->prototypes);
-        auto meta = reg.get<hf::meta>(ne);
-        meta.id = meta.id + "_copy";
-        // auto ne = gm->registry->create();
-        // gm->registry->stomp(ne, e, *data->prototypes,
-        //                     entt::exclude<entt::tag<"proto"_hs>>);
-        // gm->registry->assign<hf::ingame>(ne);
-        // gm->registry->assign<hf::position>(ne, 0, 0, 0);
-      }
-      ImGui::SameLine();
-    }
-    if (reg.has<hf::position>(e)) {
-      auto &p = reg.get<hf::position>(e);
+  // entityEditor.registerToolbarFn([&](entt::registry &reg, auto e) {
+  //   event_emitter emitter{};
+  //   if (reg.all_of<entt::tag<"proto"_hs>>(e)) {
+  //     auto data = entt::locator<GameData>::value();
+  //     if (ImGui::Button(ICON_FA_PLUS)) {
+  //       auto viewport = entt::locator<Viewport>::value();
+  //       auto location = viewport.regions.front()->location;
+  //       auto meta = reg.get<hf::meta>(e);
+  //       if (selectedCell) {
+  //         auto cell = *selectedCell;
+  //         location->addEntity(meta.id, cell);
+  //         emitter.publish(center_event{cell->x, cell->y});
+  //       } else {
+  //         location->addEntity(meta.id, location->cells[0][0]);
+  //       }
+  //       emitter.publish(redraw_event{});
+  //     }
+  //     ImGui::SameLine();
+  //     if (ImGui::Button(ICON_FA_CLONE)) {
+  //       auto data = entt::locator<GameData>::value();
+  //       auto ne = reg.create();
+  //       reg.stomp(ne, e, *data.prototypes);
+  //       auto meta = reg.get<hf::meta>(ne);
+  //       meta.id = meta.id + "_copy";
+  //       // auto ne = gm->registry.create();
+  //       // gm->registry.stomp(ne, e, *data.prototypes,
+  //       //                     entt::exclude<entt::tag<"proto"_hs>>);
+  //       // gm->registry.emplace<hf::ingame>(ne);
+  //       // gm->registry.emplace<hf::position>(ne, 0, 0, 0);
+  //     }
+  //     ImGui::SameLine();
+  //   }
+  //   if (reg.all_of<hf::position>(e)) {
+  //     auto &p = reg.get<hf::position>(e);
 
-      if (ImGui::Button(ICON_FA_ARROWS_TO_DOT)) {
-        emitter->publish<center_event>(p.x, p.y);
-      }
-      ImGui::SameLine();
-    }
-    if (reg.has<hf::ineditor>(e)) {
-      auto &ie = reg.get<hf::ineditor>(e);
+  //     if (ImGui::Button(ICON_FA_ARROWS_TO_DOT)) {
+  //       emitter.publish(center_event{p.x, p.y});
+  //     }
+  //     ImGui::SameLine();
+  //   }
+  //   if (reg.all_of<hf::ineditor>(e)) {
+  //     auto &ie = reg.get<hf::ineditor>(e);
 
-      if (ImGui::Button(ICON_FA_OBJECT_GROUP)) {
-        ie.selected = !ie.selected;
-        reg.assign_or_replace<hellfrost::ineditor>(e, ie);
-      }
-      ImGui::SameLine();
-    }
-    if (ImGui::Button(ICON_FA_TRASH)) {
-      if (reg.has<hf::renderable>(e)) {
-        // auto &p = reg.get<hf::position>(e);
-        reg.destroy(e);
-        // FIXME: use damage_event
-        emitter->publish<redraw_event>();
-      } else {
-        reg.destroy(e);
-      }
-    }
-  });
+  //     if (ImGui::Button(ICON_FA_OBJECT_GROUP)) {
+  //       ie.selected = !ie.selected;
+  //       reg.emplace_or_replace<hellfrost::ineditor>(e, ie);
+  //     }
+  //     ImGui::SameLine();
+  //   }
+  //   if (ImGui::Button(ICON_FA_TRASH)) {
+  //     if (reg.all_of<hf::renderable>(e)) {
+  //       // auto &p = reg.get<hf::position>(e);
+  //       reg.destroy(e);
+  //       // FIXME: use damage_event
+  //       emitter.publish(redraw_event{});
+  //     } else {
+  //       reg.destroy(e);
+  //     }
+  //   }
+  // });
 }
 
 Editor::Editor(std::shared_ptr<GameManager> _gm, fs::path _path)
@@ -168,38 +168,38 @@ Editor::Editor(std::shared_ptr<GameManager> _gm, fs::path _path)
   }
 }
 
-void Editor::processRegistry(std::shared_ptr<entt::registry>) {}
+void Editor::processRegistry(entt::registry&) {}
 
-void Editor::Tags(std::shared_ptr<entt::registry> registry, entt::entity e) {
-  auto &t = registry->get<hf::tags>(e);
+void Editor::Tags(entt::registry& registry, entt::entity e) {
+  auto &t = registry.get<hf::tags>(e);
   if (ImGui::ListEdit("Tags", t.tags)) {
-    registry->assign_or_replace<hf::tags>(e, t);
+    registry.emplace_or_replace<hf::tags>(e, t);
   }
 }
 
-void Editor::Size(std::shared_ptr<entt::registry> registry, entt::entity e) {
-  auto &s = registry->get<hf::size>(e);
+void Editor::Size(entt::registry& registry, entt::entity e) {
+  auto &s = registry.get<hf::size>(e);
   if (ImGui::InputInt("Width", &s.width)) {
-    auto emitter = entt::service_locator<event_emitter>::get().lock();
-    emitter->publish<redraw_event>();
+    event_emitter emitter{};
+    emitter.publish(redraw_event{});
   }
   if (ImGui::InputInt("Height", &s.height)) {
-    auto emitter = entt::service_locator<event_emitter>::get().lock();
-    emitter->publish<redraw_event>();
+    event_emitter emitter{};
+    emitter.publish(redraw_event{});
   }
 }
 
-void Editor::RoomW(std::shared_ptr<entt::registry> registry, entt::entity e) {
-  auto &r = registry->get<hf::room>(e);
+void Editor::RoomW(entt::registry& registry, entt::entity e) {
+  auto &r = registry.get<hf::room>(e);
   ImGui::Text(
       fmt::format("Type: {}", magic_enum::enum_name(r.room->type)).c_str());
 }
-void Editor::Children(std::shared_ptr<entt::registry> registry,
+void Editor::Children(entt::registry& registry,
                       entt::entity e) {
   if (ImGui::TreeNode(
-          fmt::format("childs##{}", (int)registry->entity(e)).c_str(),
+          fmt::format("childs##{}", (int)e).c_str(),
           "%s Entities", ICON_FA_CUBE)) {
-    auto ch = registry->get<hf::children>(e);
+    auto ch = registry.get<hf::children>(e);
     for (auto child : ch.children) {
       drawEntityInfo(child, registry);
     }
@@ -207,8 +207,8 @@ void Editor::Children(std::shared_ptr<entt::registry> registry,
   }
 }
 
-void Editor::CellW(std::shared_ptr<entt::registry> registry, entt::entity e) {
-  auto &p = registry->get<hf::cell>(e);
+void Editor::CellW(entt::registry& registry, entt::entity e) {
+  auto &p = registry.get<hf::cell>(e);
   auto cell = p.cell;
 
   auto cti = 0;
@@ -223,26 +223,26 @@ void Editor::CellW(std::shared_ptr<entt::registry> registry, entt::entity e) {
   }
   if (ImGui::Combo("Type##cell_type", &cti, ct_names)) {
     if (cell != nullptr) {
-      auto emitter = entt::service_locator<event_emitter>::get().lock();
-      auto viewport = entt::service_locator<Viewport>::get().lock();
-      auto engine = entt::service_locator<DrawEngine>::get().lock();
+      event_emitter emitter{};
+      auto &viewport = entt::locator<Viewport>::value();
+      auto &engine = entt::locator<DrawEngine>::value();
       mapUtils::updateCell(cell, Cell::types[cti], cell->tags.tags);
-      engine->tilesCache.clear();
-      emitter->publish<redraw_event>();
+      engine.tilesCache.clear();
+      emitter.publish(redraw_event{});
     }
   }
 }
-void Editor::Pickable(std::shared_ptr<entt::registry> registry,
+void Editor::Pickable(entt::registry& registry,
                       entt::entity e) {
-  auto &p = registry->get<hf::pickable>(e);
+  auto &p = registry.get<hf::pickable>(e);
   ImGui::InputText("Category", p.category.name);
   ImGui::InputText("Unidentified name", p.unidName);
   ImGui::InputInt("Count", &p.count);
   ImGui::Checkbox("Identfied", &p.identified);
 }
-void Editor::Wearable(std::shared_ptr<entt::registry> registry,
+void Editor::Wearable(entt::registry& registry,
                       entt::entity e) {
-  auto &w = registry->get<hf::wearable>(e);
+  auto &w = registry.get<hf::wearable>(e);
 
   constexpr auto types = magic_enum::enum_values<WearableType>();
   constexpr auto types_names = magic_enum::enum_names<WearableType>();
@@ -257,14 +257,14 @@ void Editor::Wearable(std::shared_ptr<entt::registry> registry,
   ImGui::InputInt("Durability", &w.durability);
 }
 
-void Editor::Visible(std::shared_ptr<entt::registry> registry, entt::entity e) {
-  auto &v = registry->get<hf::visible>(e);
+void Editor::Visible(entt::registry& registry, entt::entity e) {
+  auto &v = registry.get<hf::visible>(e);
   ImGui::InputText("Type", v.type);
   ImGui::InputText("Sign", v.sign);
 }
 
-void Editor::Glow(std::shared_ptr<entt::registry> registry, entt::entity e) {
-  auto &g = registry->get<hf::glow>(e);
+void Editor::Glow(entt::registry& registry, entt::entity e) {
+  auto &g = registry.get<hf::glow>(e);
   ImGui::InputFloat("Distance", &g.distance);
   constexpr auto types = magic_enum::enum_values<LightType>();
   constexpr auto types_names = magic_enum::enum_names<LightType>();
@@ -282,14 +282,14 @@ void Editor::Glow(std::shared_ptr<entt::registry> registry, entt::entity e) {
   ImGui::Checkbox("Passive", &g.passive);
 }
 
-void Editor::InEditor(std::shared_ptr<entt::registry> registry,
+void Editor::InEditor(entt::registry& registry,
                       entt::entity e) {
-  auto &ie = registry->get<hf::ineditor>(e);
-  if (registry->has<hf::ineditor>(e)) {
-    ie = registry->get<hf::ineditor>(e);
+  auto &ie = registry.get<hf::ineditor>(e);
+  if (registry.all_of<hf::ineditor>(e)) {
+    ie = registry.get<hf::ineditor>(e);
   } else {
-    registry->assign_or_replace<hf::ineditor>(e, hf::ineditor{});
-    ie = registry->get<hf::ineditor>(e);
+    registry.emplace_or_replace<hf::ineditor>(e, hf::ineditor{});
+    ie = registry.get<hf::ineditor>(e);
   }
 
   ImGui::BeginDisabled();
@@ -301,7 +301,7 @@ void Editor::InEditor(std::shared_ptr<entt::registry> registry,
   ImGui::SameLine();
   ImGui::InputText("New Name", new_editor_name);
   if (ImGui::Checkbox("Selected", &ie.selected)) {
-    registry->assign_or_replace<hf::ineditor>(e, ie);
+    registry.emplace_or_replace<hf::ineditor>(e, ie);
   }
   if (ie.folders.size() > 0) {
     std::string path = "";
@@ -311,114 +311,114 @@ void Editor::InEditor(std::shared_ptr<entt::registry> registry,
     ImGui::BulletText("Folders: %s", path.c_str());
   }
   if (ImGui::ListEdit("Folders", ie.folders)) {
-    registry->assign_or_replace<hf::ineditor>(e, ie);
+    registry.emplace_or_replace<hf::ineditor>(e, ie);
   }
   if (ie.icon != "") {
     ImGui::BulletText(fmt::format("Icon: {}", ie.icon).c_str());
   }
 }
 
-void Editor::Meta(std::shared_ptr<entt::registry> registry, entt::entity e) {
-  auto &m = registry->get<hf::meta>(e);
+void Editor::Meta(entt::registry& registry, entt::entity e) {
+  auto &m = registry.get<hf::meta>(e);
   ImGui::InputText("Name", m.name);
   ImGui::InputText("Description", m.description);
   ImGui::InputText("ID", m.id);
 }
-void Editor::Position(std::shared_ptr<entt::registry> registry,
+void Editor::Position(entt::registry& registry,
                       entt::entity e) {
   float GUI_SCALE = entt::monostate<"gui_scale"_hs>{};
-  auto emitter = entt::service_locator<event_emitter>::get().lock();
-  auto &p = registry->get<hf::position>(e);
+  event_emitter emitter{};
+  auto &p = registry.get<hf::position>(e);
   if (ImGui::Button(ICON_FA_ARROWS_TO_DOT)) {
-    emitter->publish<center_event>(p.x, p.y);
+    emitter.publish(center_event{p.x, p.y});
   }
   ImGui::SameLine();
   ImGui::SetNextItemWidth(90 * GUI_SCALE);
   if (ImGui::InputInt("x##Position", &p.x)) {
-    registry->assign_or_replace<hf::position>(e, p);
+    registry.emplace_or_replace<hf::position>(e, p);
   }
   ImGui::SameLine();
   ImGui::SetNextItemWidth(90 * GUI_SCALE);
   if (ImGui::InputInt("y##Position", &p.y)) {
-    registry->assign_or_replace<hf::position>(e, p);
+    registry.emplace_or_replace<hf::position>(e, p);
   }
   ImGui::SameLine();
   ImGui::SetNextItemWidth(90 * GUI_SCALE);
   if (ImGui::InputInt("z##Position", &p.z)) {
-    registry->assign_or_replace<hf::position>(e, p);
+    registry.emplace_or_replace<hf::position>(e, p);
   }
 }
 
-void Editor::PlayerComponent(std::shared_ptr<entt::registry> registry,
+void Editor::PlayerComponent(entt::registry& registry,
                              entt::entity e) {}
 
-void Editor::CreatureComponent(std::shared_ptr<entt::registry> registry,
+void Editor::CreatureComponent(entt::registry& registry,
                                entt::entity e) {}
 
-void Editor::Script(std::shared_ptr<entt::registry> registry, entt::entity e) {
-  auto &c = registry->get<hf::script>(e);
-  auto emitter = entt::service_locator<event_emitter>::get().lock();
+void Editor::Script(entt::registry& registry, entt::entity e) {
+  auto &c = registry.get<hf::script>(e);
+  event_emitter emitter{};
   if (ImGui::InputText("path", c.path)) {
   }
 }
 
-void Editor::Obstacle(std::shared_ptr<entt::registry> registry,
+void Editor::Obstacle(entt::registry& registry,
                       entt::entity e) {
-  auto &c = registry->get<hf::obstacle>(e);
-  auto emitter = entt::service_locator<event_emitter>::get().lock();
+  auto &c = registry.get<hf::obstacle>(e);
+  event_emitter emitter{};
   if (ImGui::Checkbox("passThrough", &c.passThrough)) {
-    registry->assign_or_replace<hf::obstacle>(e, c);
-    emitter->publish<redraw_event>();
+    registry.emplace_or_replace<hf::obstacle>(e, c);
+    emitter.publish(redraw_event{});
   }
   if (ImGui::Checkbox("seeThrough", &c.seeThrough)) {
-    registry->assign_or_replace<hf::obstacle>(e, c);
-    emitter->publish<redraw_event>();
+    registry.emplace_or_replace<hf::obstacle>(e, c);
+    emitter.publish(redraw_event{});
   }
 }
-void Editor::Vision(std::shared_ptr<entt::registry> registry, entt::entity e) {
+void Editor::Vision(entt::registry& registry, entt::entity e) {
 
-  auto &s = registry->get<hf::vision>(e);
+  auto &s = registry.get<hf::vision>(e);
   if (ImGui::InputFloat("Distance", &s.distance)) {
-    auto emitter = entt::service_locator<event_emitter>::get().lock();
-    emitter->publish<redraw_event>();
+    event_emitter emitter{};
+    emitter.publish(redraw_event{});
   }
 }
 
-void Editor::Renderable(std::shared_ptr<entt::registry> registry,
+void Editor::Renderable(entt::registry& registry,
                         entt::entity e) {
   float GUI_SCALE = entt::monostate<"gui_scale"_hs>{};
-  auto viewport = entt::service_locator<Viewport>::get().lock();
+  auto viewport = entt::locator<Viewport>::value();
   auto r = hf::renderable{};
-  if (registry->has<hf::renderable>(e)) {
-    r = registry->get<hf::renderable>(e);
+  if (registry.all_of<hf::renderable>(e)) {
+    r = registry.get<hf::renderable>(e);
   } else {
-    registry->assign_or_replace<hf::renderable>(e, r);
-    r = registry->get<hf::renderable>(e);
+    registry.emplace_or_replace<hf::renderable>(e, r);
+    r = registry.get<hf::renderable>(e);
   }
 
   if (ImGui::Checkbox("Hidden", &r.hidden)) {
-    registry->assign_or_replace<hf::renderable>(e, r);
+    registry.emplace_or_replace<hf::renderable>(e, r);
   }
   ImGui::SameLine();
   ImGui::SetNextItemWidth(90 * GUI_SCALE);
   if (ImGui::InputInt("zIndex", &r.zIndex)) {
-    registry->assign_or_replace<hf::renderable>(e, r);
+    registry.emplace_or_replace<hf::renderable>(e, r);
   }
   auto k = r.spriteKey;
-  auto v = viewport->tileSet.sprites[k];
+  auto v = viewport.tileSet.sprites[k];
   sf::Sprite s;
-  s.setTexture(viewport->tilesTextures[v[0]]);
-  s.setTextureRect(viewport->getTileRect(v[1], v[2]));
+  s.setTexture(viewport.tilesTextures[v[0]]);
+  s.setTextureRect(viewport.getTileRect(v[1], v[2]));
   ImGui::Image(s,
-               sf::Vector2f(viewport->tileSet.size.first * GUI_SCALE,
-                            viewport->tileSet.size.second * GUI_SCALE),
+               sf::Vector2f(viewport.tileSet.size.first * GUI_SCALE,
+                            viewport.tileSet.size.second * GUI_SCALE),
                sf::Color::White, sf::Color::Transparent);
   ImGui::SameLine();
   std::vector<const char *> _ts;
   int s_idx = 0;
   auto n = 0;
-  std::transform(viewport->tileSet.sprites.begin(),
-                 viewport->tileSet.sprites.end(), std::back_inserter(_ts),
+  std::transform(viewport.tileSet.sprites.begin(),
+                 viewport.tileSet.sprites.end(), std::back_inserter(_ts),
                  [&](auto sk) {
                    if (sk.first == r.spriteKey) {
                      s_idx = n;
@@ -430,12 +430,12 @@ void Editor::Renderable(std::shared_ptr<entt::registry> registry,
                  });
   if (ImGui::Combo("Sprite", &s_idx, _ts.data(), _ts.size())) {
     r.spriteKey = std::string(_ts[s_idx]);
-    registry->assign_or_replace<hf::renderable>(e, r);
+    registry.emplace_or_replace<hf::renderable>(e, r);
   }
 
   ImGui::SetNextItemWidth(150);
   if (ImGui::InputText("Color", r.fgColor)) {
-    registry->assign_or_replace<hf::renderable>(e, r);
+    registry.emplace_or_replace<hf::renderable>(e, r);
   }
   if (r.fgColor.length() > 1 && r.fgColor[0] == '#') {
     ImGui::SameLine();
@@ -453,18 +453,18 @@ void Editor::Renderable(std::shared_ptr<entt::registry> registry,
                               ImGuiColorEditFlags_AlphaBar)) {
       auto c = Color(col[0] * 255, col[1] * 255, col[2] * 255, col[3] * 255);
       r.fgColor = c.hexA();
-      registry->assign_or_replace<hf::renderable>(e, r);
+      registry.emplace_or_replace<hf::renderable>(e, r);
     }
   }
 
-  if (ImGui::Checkbox("Has BG", &r.hasBg)) {
-    registry->assign_or_replace<hf::renderable>(e, r);
+  if (ImGui::Checkbox("all_of BG", &r.hasBg)) {
+    registry.emplace_or_replace<hf::renderable>(e, r);
   }
   if (r.hasBg) {
     ImGui::SameLine();
     ImGui::SetNextItemWidth(150);
     if (ImGui::InputText("BG Color", r.bgColor)) {
-      registry->assign_or_replace<hf::renderable>(e, r);
+      registry.emplace_or_replace<hf::renderable>(e, r);
     }
     if (r.bgColor.length() > 1 && r.bgColor[0] == '#') {
       ImGui::SameLine();
@@ -483,19 +483,19 @@ void Editor::Renderable(std::shared_ptr<entt::registry> registry,
         auto c =
             Color(bcol[0] * 255, bcol[1] * 255, bcol[2] * 255, bcol[3] * 255);
         r.bgColor = c.hexA();
-        registry->assign_or_replace<hf::renderable>(e, r);
+        registry.emplace_or_replace<hf::renderable>(e, r);
       }
     }
   }
 
-  if (ImGui::Checkbox("Has border", &r.hasBorder)) {
-    registry->assign_or_replace<hf::renderable>(e, r);
+  if (ImGui::Checkbox("all_of border", &r.hasBorder)) {
+    registry.emplace_or_replace<hf::renderable>(e, r);
   }
   if (r.hasBorder) {
     ImGui::SameLine();
     ImGui::SetNextItemWidth(150);
     if (ImGui::InputText("Border Color", r.borderColor)) {
-      registry->assign_or_replace<hf::renderable>(e, r);
+      registry.emplace_or_replace<hf::renderable>(e, r);
     }
     if (r.borderColor.length() > 1 && r.borderColor[0] == '#') {
       ImGui::SameLine();
@@ -514,7 +514,7 @@ void Editor::Renderable(std::shared_ptr<entt::registry> registry,
         auto c =
             Color(bcol[0] * 255, bcol[1] * 255, bcol[2] * 255, bcol[3] * 255);
         r.borderColor = c.hexA();
-        registry->assign_or_replace<hf::renderable>(e, r);
+        registry.emplace_or_replace<hf::renderable>(e, r);
       }
     }
   }
@@ -531,15 +531,15 @@ void Editor::Renderable(std::shared_ptr<entt::registry> registry,
       layers.begin(), std::find(layers.begin(), layers.end(), r.brdLayer));
   if (ImGui::Combo("Layer", &fgl_idx, layers.data(), layers.size())) {
     r.fgLayer = std::string(layers[fgl_idx]);
-    registry->assign_or_replace<hf::renderable>(e, r);
+    registry.emplace_or_replace<hf::renderable>(e, r);
   }
   if (ImGui::Combo("BG Layer", &bgl_idx, layers.data(), layers.size())) {
     r.bgLayer = std::string(layers[bgl_idx]);
-    registry->assign_or_replace<hf::renderable>(e, r);
+    registry.emplace_or_replace<hf::renderable>(e, r);
   }
   if (ImGui::Combo("Border Layer", &brl_idx, layers.data(), layers.size())) {
     r.brdLayer = std::string(layers[brl_idx]);
-    registry->assign_or_replace<hf::renderable>(e, r);
+    registry.emplace_or_replace<hf::renderable>(e, r);
   }
 }
 
@@ -548,19 +548,19 @@ void Editor::drawSpecWindow() {
     ImGui::End();
     return;
   }
-  auto emitter = entt::service_locator<event_emitter>::get().lock();
-  auto viewport = entt::service_locator<Viewport>::get().lock();
-  auto engine = entt::service_locator<DrawEngine>::get().lock();
-  auto data = entt::service_locator<GameData>::get().lock();
+  event_emitter emitter{};
+  auto viewport = entt::locator<Viewport>::value();
+  auto engine = entt::locator<DrawEngine>::value();
+  auto data = entt::locator<GameData>::value();
 
   if (ImGui::Button("Apply")) {
-    emitter->publish<regen_event>();
+    emitter.publish(regen_event{});
   }
   ImGui::SameLine();
   if (ImGui::Button("Reload")) {
     gm->loadData();
-    emitter->publish<resize_event>();
-    emitter->publish<regen_event>();
+    emitter.publish(resize_event{});
+    emitter.publish(regen_event{});
   }
   ImGui::SameLine();
   if (ImGui::Button("Save")) {
@@ -569,12 +569,12 @@ void Editor::drawSpecWindow() {
   ImGui::Separator();
 
   if (ImGui::CollapsingHeader("Location Features")) {
-    for (auto &[k, _] : data->mapFeatures) {
+    for (auto &[k, _] : data.mapFeatures) {
       if (ImGui::CollapsingHeader(k.c_str())) {
         ImGui::Indent();
-        for (auto &[f, _] : data->mapFeatures[k]) {
+        for (auto &[f, _] : data.mapFeatures[k]) {
           ImGui::SetNextItemWidth(80);
-          ImGui::InputFloat(f.c_str(), &data->mapFeatures[k][f]);
+          ImGui::InputFloat(f.c_str(), &data.mapFeatures[k][f]);
         }
 
         ImGui::SetNextItemWidth(80);
@@ -586,7 +586,7 @@ void Editor::drawSpecWindow() {
                          new_key_lf);
         ImGui::SameLine();
         if (ImGui::Button(fmt::format("Add##{}", k).c_str())) {
-          data->mapFeatures[k][new_key_lf] = new_prob;
+          data.mapFeatures[k][new_key_lf] = new_prob;
         }
         ImGui::Unindent();
       }
@@ -595,14 +595,14 @@ void Editor::drawSpecWindow() {
     ImGui::InputText("##New name lt", new_key_lt);
     ImGui::SameLine();
     if (ImGui::Button("Add")) {
-      data->mapFeatures[new_key_lt] = {};
+      data.mapFeatures[new_key_lt] = {};
     }
   }
   if (ImGui::CollapsingHeader("Probabilities")) {
-    for (auto &[k, _] : data->probability) {
+    for (auto &[k, _] : data.probability) {
       ImGui::Indent();
       ImGui::SetNextItemWidth(80);
-      ImGui::InputFloat(k.c_str(), &data->probability[k]);
+      ImGui::InputFloat(k.c_str(), &data.probability[k]);
       ImGui::Unindent();
     }
     ImGui::Indent();
@@ -613,12 +613,12 @@ void Editor::drawSpecWindow() {
     ImGui::InputText("##New name", new_key_prob);
     ImGui::SameLine();
     if (ImGui::Button("Add")) {
-      data->probability[new_key_prob] = new_prob;
+      data.probability[new_key_prob] = new_prob;
     }
     ImGui::Unindent();
   }
   if (ImGui::CollapsingHeader("Item specs")) {
-    for (auto &[k, spec] : data->itemSpecs) {
+    for (auto &[k, spec] : data.itemSpecs) {
       char *name = new char[spec.name.size() + 1];
       std::strcpy(name, spec.name.c_str());
       if (ImGui::TreeNode(k.c_str())) {
@@ -634,7 +634,7 @@ void Editor::drawSpecWindow() {
     }
   }
   if (ImGui::CollapsingHeader("Terrain specs")) {
-    for (auto &[k, spec] : data->terrainSpecs) {
+    for (auto &[k, spec] : data.terrainSpecs) {
       if (ImGui::TreeNode(k.c_str())) {
         ImGui::Button("Delete");
         ImGui::InputText("Name", spec.name);
@@ -681,13 +681,13 @@ void Editor::drawSpecWindow() {
   };
 
   if (ImGui::CollapsingHeader("Loot boxes")) {
-    for (auto lb : data->lootBoxes) {
+    for (auto lb : data.lootBoxes) {
       it(lb);
     }
   }
 
   if (ImGui::CollapsingHeader("Prototypes")) {
-    drawEntityTree<entt::tag<"proto"_hs>>(data->prototypes);
+    drawEntityTree<entt::tag<"proto"_hs>>(data.prototypes);
   }
   ImGui::End();
 }
@@ -698,12 +698,12 @@ void Editor::drawSelectedInfo() {
     return;
   }
 
-  auto ents = gm->registry->view<hf::ineditor>();
+  auto ents = gm->registry.view<hf::ineditor>();
 
   auto n = 0;
   if (ents.size() > 0) {
     for (auto e : ents) {
-      auto p = gm->registry->get<hf::ineditor>(e);
+      auto p = gm->registry.get<hf::ineditor>(e);
       if (p.selected) {
         drawEntityInfo(e, gm->registry);
         n++;
@@ -718,17 +718,17 @@ void Editor::drawSelectedInfo() {
 }
 
 template <typename... T>
-void Editor::drawEntityTree(std::shared_ptr<entt::registry> registry) {
-  auto ents = registry->view<T...>();
+void Editor::drawEntityTree(entt::registry& registry) {
+  auto ents = registry.view<T...>();
   auto entityTree = std::make_shared<tree_node>();
 
   for (auto e : ents) {
-    if (!registry->has<hf::ineditor>(e) ||
-        registry->get<hf::ineditor>(e).folders.size() == 0 ||
-        registry->get<hf::ineditor>(e).folders.front() == "") {
+    if (!registry.all_of<hf::ineditor>(e) ||
+        registry.get<hf::ineditor>(e).folders.size() == 0 ||
+        registry.get<hf::ineditor>(e).folders.front() == "") {
       entityTree->entities.push_back(e);
     } else {
-      auto ie = registry->get<hf::ineditor>(e);
+      auto ie = registry.get<hf::ineditor>(e);
       if (ie.folders.size() == 0) {
         entityTree->entities.push_back(e);
       } else {
@@ -749,8 +749,8 @@ void Editor::drawEntityTree(std::shared_ptr<entt::registry> registry) {
     ImGui::Text("Count: %lu", ents.size());
     ImGui::SameLine();
     if (ImGui::Button("New Entity")) {
-      auto e = registry->create();
-      registry->assign<T...>(e);
+      auto e = registry.create();
+      registry.emplace<T...>(e);
     }
 
     std::function<void(std::shared_ptr<tree_node> v)> it;
@@ -773,38 +773,38 @@ void Editor::drawEntityTree(std::shared_ptr<entt::registry> registry) {
 }
 
 void Editor::drawObjectsWindow() {
-  auto viewport = entt::service_locator<Viewport>::get().lock();
+  auto viewport = entt::locator<Viewport>::value();
   if (!ImGui::Begin("Objects")) {
     ImGui::End();
     return;
   }
-  // drawObjects(viewport->regions.front()->location->objects);
+  // drawObjects(viewport.regions.front()->location->objects);
   drawEntityTree<hf::ingame>(gm->registry);
   ImGui::End();
 }
 
 void Editor::drawEntityInfo(entt::entity e,
-                            std::shared_ptr<entt::registry> registry) {
-  auto t = registry->has<hf::meta>(e) ? registry->get<hf::meta>(e).name.c_str()
+                            entt::registry &registry) {
+  auto t = registry.all_of<hf::meta>(e) ? registry.get<hf::meta>(e).name.c_str()
                                       : "Entity";
-  t = (registry->has<hf::ineditor>(e) &&
-       registry->get<hf::ineditor>(e).name != "")
-          ? registry->get<hf::ineditor>(e).name.c_str()
+  t = (registry.all_of<hf::ineditor>(e) &&
+       registry.get<hf::ineditor>(e).name != "")
+          ? registry.get<hf::ineditor>(e).name.c_str()
           : t;
-  auto icon = (registry->has<hf::ineditor>(e) &&
-               registry->get<hf::ineditor>(e).icon != "")
-                  ? registry->get<hf::ineditor>(e).icon.c_str()
+  auto icon = (registry.all_of<hf::ineditor>(e) &&
+               registry.get<hf::ineditor>(e).icon != "")
+                  ? registry.get<hf::ineditor>(e).icon.c_str()
                   : ICON_FA_CUBE;
-  auto selected = (registry->has<hf::ineditor>(e) &&
-                   registry->get<hf::ineditor>(e).selected);
+  auto selected = (registry.all_of<hf::ineditor>(e) &&
+                   registry.get<hf::ineditor>(e).selected);
   auto col = selected ? (ImVec4)ImColor::HSV(1.f / 6.f, 0.86f, 1.0f)
                       : (ImVec4)ImColor::HSV(0.0f, 0.0f, 0.99f);
   ImGui::PushStyleColor(ImGuiCol_Text, col);
-  auto title = fmt::format("{} {}: {}", icon, t, (int)registry->entity(e));
+  auto title = fmt::format("{} {}: {}", icon, t, (int)e);
   drawEntityEditor(registry);
   if (ImGui::TreeNode(title.c_str())) {
     ImGui::PopStyleColor(1);
-    entityEditor.renderImGui(*registry, e);
+    // entityEditor.renderEditor(registry, e);
     ImGui::TreePop();
   } else {
     ImGui::PopStyleColor(1);
@@ -824,9 +824,9 @@ void Editor::drawCellInfo(std::optional<std::shared_ptr<Cell>> cc) {
   }
   auto cell = *cc;
 
-  auto engine = entt::service_locator<DrawEngine>::get().lock();
-  auto viewport = entt::service_locator<Viewport>::get().lock();
-  auto [region, _] = viewport->getRegion(cell->x, cell->y, cell->z);
+  auto engine = entt::locator<DrawEngine>::value();
+  auto viewport = entt::locator<Viewport>::value();
+  auto [region, _] = viewport.getRegion(cell->x, cell->y, cell->z);
 
   ImGui::Text("%s Position: %d.%d.%d\n", ICON_FA_ARROWS_UP_DOWN_LEFT_RIGHT,
               cell->x, cell->y, cell->z);
@@ -843,11 +843,11 @@ void Editor::drawCellInfo(std::optional<std::shared_ptr<Cell>> cc) {
     n++;
   }
   if (ImGui::Combo("Type##cell_type", &cti, ct_names)) {
-    auto emitter = entt::service_locator<event_emitter>::get().lock();
-    auto viewport = entt::service_locator<Viewport>::get().lock();
+    event_emitter emitter{};
+    auto viewport = entt::locator<Viewport>::value();
     mapUtils::updateCell(cell, Cell::types[cti], cell->tags.tags);
-    engine->tilesCache.clear();
-    emitter->publish<redraw_event>();
+    engine.tilesCache.clear();
+    emitter.publish(redraw_event{});
   }
   ImGui::Text("Illuminated: %s\n",
               // cell->illuminated ? ICON_FA_SQUARE_CHECK : ICON_FA_SQUARE);
@@ -863,12 +863,12 @@ void Editor::drawCellInfo(std::optional<std::shared_ptr<Cell>> cc) {
     ImGui::BulletText("%s", f.c_str());
   }
 
-  auto ents = gm->registry->view<hf::position>();
+  auto ents = gm->registry.view<hf::position>();
 
   if (ents.size() > 0) {
     if (ImGui::TreeNode("ents", "%s Entities", ICON_FA_CUBE)) {
       for (auto e : ents) {
-        auto p = gm->registry->get<hf::position>(e);
+        auto p = gm->registry.get<hf::position>(e);
         if (cell->x == p.x && cell->y == p.y) {
           drawEntityInfo(e, gm->registry);
         }
@@ -886,27 +886,27 @@ void Editor::drawTilesetWindow() {
     return;
   }
   float GUI_SCALE = entt::monostate<"gui_scale"_hs>{};
-  auto viewport = entt::service_locator<Viewport>::get().lock();
-  auto emitter = entt::service_locator<event_emitter>::get().lock();
-  auto engine = entt::service_locator<DrawEngine>::get().lock();
+  auto viewport = entt::locator<Viewport>::value();
+  event_emitter emitter{};
+  auto engine = entt::locator<DrawEngine>::value();
 
   if (ImGui::Combo("Tileset", &ts_idx, ts)) {
     auto path = PATH / fs::path("tilesets") / ts[ts_idx];
-    viewport->loadTileset(path);
-    emitter->publish<regen_event>();
+    viewport.loadTileset(path);
+    emitter.publish(regen_event{});
   }
-  ImGui::BulletText("Size: %dx%d; gap: %d\n", viewport->tileSet.size.first,
-                    viewport->tileSet.size.second, viewport->tileSet.gap);
-  ImGui::BulletText("Maps: %lu\n", viewport->tileSet.maps.size());
+  ImGui::BulletText("Size: %dx%d; gap: %d\n", viewport.tileSet.size.first,
+                    viewport.tileSet.size.second, viewport.tileSet.gap);
+  ImGui::BulletText("Maps: %lu\n", viewport.tileSet.maps.size());
 
   if (ImGui::Button("Apply")) {
-    emitter->publish<regen_event>();
+    emitter.publish(regen_event{});
   }
   ImGui::SameLine();
   if (ImGui::Button("Reload")) {
     auto path = PATH / fs::path("tilesets") / ts[ts_idx];
-    viewport->loadTileset(path);
-    emitter->publish<regen_event>();
+    viewport.loadTileset(path);
+    emitter.publish(regen_event{});
   }
   ImGui::SameLine();
   if (ImGui::Button("Save")) {
@@ -914,9 +914,9 @@ void Editor::drawTilesetWindow() {
   }
   ImGui::Separator();
 
-  viewport->colors.erase("");
+  viewport.colors.erase("");
   if (ImGui::TreeNode("Colors")) {
-    for (auto &el : viewport->colors.items()) {
+    for (auto &el : viewport.colors.items()) {
       if (el.key() == "VARIATIONS")
         continue;
       if (el.key() == "WANDERING")
@@ -937,8 +937,8 @@ void Editor::drawTilesetWindow() {
           ImGui::SetNextItemWidth(150);
           auto cs = e.value().get<std::string>();
           if (ImGui::InputText(fmt::format("##{}", e.key()).c_str(), cs)) {
-            viewport->colors[el.key()][e.key()] = cs;
-            emitter->publish<regen_event>();
+            viewport.colors[el.key()][e.key()] = cs;
+            emitter.publish(regen_event{});
           }
           ImGui::SameLine();
           if (ImGui::ColorEdit4(e.key().c_str(), col,
@@ -948,8 +948,8 @@ void Editor::drawTilesetWindow() {
                                     ImGuiColorEditFlags_AlphaBar)) {
             auto c =
                 Color(col[0] * 255, col[1] * 255, col[2] * 255, col[3] * 255);
-            viewport->colors[el.key()][e.key()] = c.hexA();
-            emitter->publish<regen_event>();
+            viewport.colors[el.key()][e.key()] = c.hexA();
+            emitter.publish(regen_event{});
           }
           ImGui::SameLine();
           if (ImGui::Button(
@@ -958,17 +958,17 @@ void Editor::drawTilesetWindow() {
           }
         }
         for (auto rk : to_remove) {
-          viewport->colors[el.key()].erase(rk);
+          viewport.colors[el.key()].erase(rk);
         }
         if (to_remove.size() > 0) {
-          emitter->publish<regen_event>();
+          emitter.publish(regen_event{});
         }
         // auto new_key =
-        // fmt::format("NEW_COLOR_{}", viewport->colors[el.key()].size());
+        // fmt::format("NEW_COLOR_{}", viewport.colors[el.key()].size());
         ImGui::InputText("key", new_key_color);
         ImGui::SameLine();
         if (ImGui::Button(fmt::format("Add##{}", el.key()).c_str())) {
-          viewport->colors[el.key()][new_key_color] = "#eeeeeeff";
+          viewport.colors[el.key()][new_key_color] = "#eeeeeeff";
         }
         ImGui::TreePop();
       }
@@ -976,19 +976,19 @@ void Editor::drawTilesetWindow() {
     ImGui::TreePop();
   }
 
-  viewport->tileSet.sprites.erase("");
+  viewport.tileSet.sprites.erase("");
   if (ImGui::TreeNode("Sprites")) {
     std::vector<std::string> to_remove;
-    for (auto [k, v] : viewport->tileSet.sprites) {
+    for (auto [k, v] : viewport.tileSet.sprites) {
       sf::Sprite s;
-      s.setTexture(viewport->tilesTextures[v[0]]);
-      s.setTextureRect(viewport->getTileRect(v[1], v[2]));
-      // s.setOrigin(viewport->tileSet.size.first / 2,
-      //             viewport->tileSet.size.second / 2);
+      s.setTexture(viewport.tilesTextures[v[0]]);
+      s.setTextureRect(viewport.getTileRect(v[1], v[2]));
+      // s.setOrigin(viewport.tileSet.size.first / 2,
+      //             viewport.tileSet.size.second / 2);
       // s.setRotation(90 * v[3]);
       ImGui::Image(s,
-                   sf::Vector2f(viewport->tileSet.size.first,
-                                viewport->tileSet.size.second) *
+                   sf::Vector2f(viewport.tileSet.size.first,
+                                viewport.tileSet.size.second) *
                        GUI_SCALE,
                    sf::Color::White, sf::Color::Transparent);
       ImGui::SameLine();
@@ -996,30 +996,30 @@ void Editor::drawTilesetWindow() {
       ImGui::SameLine(220);
       ImGui::SetNextItemWidth(80);
       if (ImGui::InputInt(fmt::format("##{}{}", k, 0).c_str(),
-                          &(viewport->tileSet.sprites[k][0]))) {
-        engine->tilesCache.clear();
-        engine->invalidate();
+                          &(viewport.tileSet.sprites[k][0]))) {
+        engine.tilesCache.clear();
+        engine.invalidate();
       }
       ImGui::SameLine();
       ImGui::SetNextItemWidth(80);
       if (ImGui::InputInt(fmt::format("##{}{}", k, 1).c_str(),
-                          &(viewport->tileSet.sprites[k][1]))) {
-        engine->tilesCache.clear();
-        engine->invalidate();
+                          &(viewport.tileSet.sprites[k][1]))) {
+        engine.tilesCache.clear();
+        engine.invalidate();
       }
       ImGui::SameLine();
       ImGui::SetNextItemWidth(80);
       if (ImGui::InputInt(fmt::format("##{}{}", k, 2).c_str(),
-                          &(viewport->tileSet.sprites[k][2]))) {
-        engine->tilesCache.clear();
-        engine->invalidate();
+                          &(viewport.tileSet.sprites[k][2]))) {
+        engine.tilesCache.clear();
+        engine.invalidate();
       }
       // ImGui::SameLine();
       // ImGui::SetNextItemWidth(80);
       // if (ImGui::InputInt(fmt::format("##{}{}", k, 3).c_str(),
-      //                     &(viewport->tileSet.sprites[k][3]))) {
-      //   engine->tilesCache.clear();
-      //   engine->invalidate();
+      //                     &(viewport.tileSet.sprites[k][3]))) {
+      //   engine.tilesCache.clear();
+      //   engine.invalidate();
       // }
 
       ImGui::SameLine();
@@ -1028,25 +1028,25 @@ void Editor::drawTilesetWindow() {
       }
     }
     for (auto rk : to_remove) {
-      viewport->tileSet.sprites.erase(rk);
+      viewport.tileSet.sprites.erase(rk);
     }
     if (to_remove.size() > 0) {
-      emitter->publish<regen_event>();
+      emitter.publish(regen_event{});
     }
 
     // auto new_key =
-    //     fmt::format("NEW_SPRITE_{}", viewport->tileSet.sprites.size());
+    //     fmt::format("NEW_SPRITE_{}", viewport.tileSet.sprites.size());
     ImGui::InputText("key", new_key_sprite);
     ImGui::SameLine();
     if (ImGui::Button("Add")) {
-      viewport->tileSet.sprites[new_key_sprite] = {0, 0, 0};
+      viewport.tileSet.sprites[new_key_sprite] = {0, 0, 0};
     }
     ImGui::TreePop();
   }
   if (ImGui::TreeNode("Sprite Variations")) {
-    for (auto [k, _] : viewport->tileSet.spriteVariations) {
+    for (auto [k, _] : viewport.tileSet.spriteVariations) {
       if (ImGui::CollapsingHeader(k.c_str())) {
-        for (auto v : viewport->tileSet.spriteVariations[k]) {
+        for (auto v : viewport.tileSet.spriteVariations[k]) {
           ImGui::Indent();
           ImGui::Text(v.c_str());
           ImGui::Unindent();
@@ -1059,9 +1059,9 @@ void Editor::drawTilesetWindow() {
   }
 
   if (ImGui::TreeNode("Color Variations")) {
-    for (auto [k, _] : viewport->tileSet.colorVariations) {
+    for (auto [k, _] : viewport.tileSet.colorVariations) {
       if (ImGui::CollapsingHeader(k.c_str())) {
-        for (auto v : viewport->tileSet.colorVariations[k]) {
+        for (auto v : viewport.tileSet.colorVariations[k]) {
           ImGui::Indent();
           ImGui::Text(v.c_str());
           ImGui::Unindent();
@@ -1074,19 +1074,19 @@ void Editor::drawTilesetWindow() {
   }
 
   if (ImGui::TreeNode("Color Wandering")) {
-    for (auto [k, _] : viewport->tileSet.colorWandering) {
+    for (auto [k, _] : viewport.tileSet.colorWandering) {
       if (ImGui::CollapsingHeader(k.c_str())) {
-        for (auto [v, p] : viewport->tileSet.colorWandering[k]) {
+        for (auto [v, p] : viewport.tileSet.colorWandering[k]) {
           ImGui::Indent();
           ImGui::Text(v.c_str());
           ImGui::SameLine();
           ImGui::SetNextItemWidth(90 * GUI_SCALE);
           ImGui::InputFloat(fmt::format("##{}{}0", k, v).c_str(),
-                            &(viewport->tileSet.colorWandering[k][v][0]));
+                            &(viewport.tileSet.colorWandering[k][v][0]));
           ImGui::SameLine();
           ImGui::SetNextItemWidth(90 * GUI_SCALE);
           ImGui::InputFloat(fmt::format("##{}{}1", k, v).c_str(),
-                            &(viewport->tileSet.colorWandering[k][v][1]));
+                            &(viewport.tileSet.colorWandering[k][v][1]));
           ImGui::Unindent();
         }
         // TODO: add/del variation
@@ -1098,11 +1098,11 @@ void Editor::drawTilesetWindow() {
 
   if (ImGui::TreeNode("Preview")) {
     auto n = 0;
-    for (auto t : viewport->tilesTextures) {
+    for (auto t : viewport.tilesTextures) {
       auto size = t.getSize();
       sf::Sprite s;
-      s.setTexture(viewport->tilesTextures[n]);
-      ImGui::Text("%s", viewport->tileSet.maps[n].c_str());
+      s.setTexture(viewport.tilesTextures[n]);
+      ImGui::Text("%s", viewport.tileSet.maps[n].c_str());
       ImGui::Image(s, sf::Vector2f(size.x, size.y), sf::Color::White,
                    sf::Color::Transparent);
       ImGui::Text("\n");
@@ -1115,26 +1115,26 @@ void Editor::drawTilesetWindow() {
 }
 
 void Editor::saveTileset() {
-  auto viewport = entt::service_locator<Viewport>::get().lock();
+  auto viewport = entt::locator<Viewport>::value();
   auto path = PATH / fs::path("tilesets") / ts[ts_idx];
   std::ofstream o(path / "colors.json");
-  viewport->colors["VARIATIONS"] = viewport->tileSet.colorVariations;
-  o << std::setw(4) << viewport->colors << std::endl;
+  viewport.colors["VARIATIONS"] = viewport.tileSet.colorVariations;
+  o << std::setw(4) << viewport.colors << std::endl;
 
   json j;
-  j["TILEMAPS"] = viewport->tileSet.maps;
-  j["SIZE"] = viewport->tileSet.size;
-  j["GAP"] = viewport->tileSet.gap;
-  j["SPRITES"] = viewport->tileSet.sprites;
-  j["VARIATIONS"] = viewport->tileSet.spriteVariations;
+  j["TILEMAPS"] = viewport.tileSet.maps;
+  j["SIZE"] = viewport.tileSet.size;
+  j["GAP"] = viewport.tileSet.gap;
+  j["SPRITES"] = viewport.tileSet.sprites;
+  j["VARIATIONS"] = viewport.tileSet.spriteVariations;
 
   std::ofstream o2(path / "tiles.json");
   o2 << std::setw(4) << j << std::endl;
 }
 
 void Editor::drawLocationWindow(std::shared_ptr<Location> location) {
-  auto ents = gm->registry->view<hf::position>();
-  auto emitter = entt::service_locator<event_emitter>::get().lock();
+  auto ents = gm->registry.view<hf::position>();
+  event_emitter emitter{};
 
   ImGui::Begin("Location info");
   ImGui::Text(fmt::format("Tags [{}]:", location->tags.tags.size()).c_str());
@@ -1148,30 +1148,28 @@ void Editor::drawLocationWindow(std::shared_ptr<Location> location) {
     ImGui::SameLine();
     if (ImGui::Button(
             fmt::format("{}##enter", ICON_FA_ARROWS_TO_DOT).c_str())) {
-      emitter->publish<center_event>(location->enterCell->x,
-                                     location->enterCell->y);
+      emitter.publish(center_event{location->enterCell->x,location->enterCell->y});
     }
     // ImGui::SameLine();
     ImGui::BulletText("Exit: %s", location->exitCell->getSId().c_str());
     ImGui::SameLine();
     if (ImGui::Button(fmt::format("{}##exit", ICON_FA_ARROWS_TO_DOT).c_str())) {
-      emitter->publish<center_event>(location->exitCell->x,
-                                     location->exitCell->y);
+      emitter.publish(center_event{location->exitCell->x,location->exitCell->y});
     }
     ImGui::BulletText("Path: %zu", location->path.size());
     ImGui::SameLine();
     if (ImGui::Button(fmt::format("{}##path", ICON_FA_ARROWS_TO_DOT).c_str())) {
       for (auto e : ents) {
-        if (!gm->registry->has<hf::cell>(e))
+        if (!gm->registry.all_of<hf::cell>(e))
           continue;
-        auto c = gm->registry->get<hf::cell>(e);
+        auto c = gm->registry.get<hf::cell>(e);
         for (auto cell : location->path) {
           if (c.cell == cell) {
 
-            auto ie = gm->registry->get<hf::ineditor>(e);
+            auto ie = gm->registry.get<hf::ineditor>(e);
             ie.selected = true;
-            gm->registry->assign_or_replace<hellfrost::ineditor>(e, ie);
-            emitter->publish<redraw_event>();
+            gm->registry.emplace_or_replace<hellfrost::ineditor>(e, ie);
+            emitter.publish(redraw_event{});
           }
         }
       }
@@ -1199,7 +1197,7 @@ void Editor::drawLocationWindow(std::shared_ptr<Location> location) {
   //           continue;
   //         std::vector<entt::entity> es;
   //         for (auto e : ents) {
-  //           auto p = gm->registry->get<hf::position>(e);
+  //           auto p = gm->registry.get<hf::position>(e);
   //           // fmt::print("{}.{} -> {}.{}\n", cell->x, p.x, cell->y, p.y);
   //           if (cell->x == p.x && cell->y == p.y) {
   //             es.push_back(e);

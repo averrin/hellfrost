@@ -118,11 +118,11 @@ bool ListEdit(const char *label, std::vector<std::string> &values) {
     Text("%s count: %lu", label, values.size());
     for (auto v : values) {
       char label[11];
-      std::sprintf(label, "##%d-input", n);
+      std::snprintf(label, sizeof(label), "##%d-input", n);
       InputText(label, v);
       SameLine();
       char blabel[13];
-      std::sprintf(blabel, "X##%d-button", n);
+      std::snprintf(blabel, sizeof(blabel), "X##%d-button", n);
       if (Button(blabel)) {
         to_remove.push_back(n);
       }
@@ -134,7 +134,7 @@ bool ListEdit(const char *label, std::vector<std::string> &values) {
     }
   }
   char nlabel[11];
-  std::sprintf(nlabel, "##%d-input", n);
+  std::snprintf(nlabel, sizeof(nlabel), "##%d-input", n);
   InputText(nlabel, newItem);
   SameLine();
   if (Button("+##list-edit-add")) {

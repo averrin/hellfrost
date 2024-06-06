@@ -30,7 +30,7 @@ void Location::addRoom(std::shared_ptr<Room> room, int x, int y) {
 
   for (auto e : room->entities) {
     auto &p = registry->get<hf::position>(e);
-    registry->assign_or_replace<hf::position>(e, p.x + x, p.y + y, p.z);
+    registry->emplace_or_replace<hf::position>(e, p.x + x, p.y + y, p.z);
   }
   for (auto c : room->cells) {
     c->x = c->_x + room->x;
@@ -60,7 +60,8 @@ void Location::invalidateVisibilityCache(std::shared_ptr<Cell> cell,
   std::vector<std::pair<std::shared_ptr<Cell>, float>> hits;
   for (auto [p, _] : visibilityCache) {
     if (p.first == cell ||
-        std::find(visibilityCache[p].begin(), visibilityCache[p].end(), cell) != visibilityCache[p].end()) {
+        std::find(visibilityCache[p].begin(), visibilityCache[p].end(), cell) !=
+            visibilityCache[p].end()) {
       hits.push_back(p);
     }
   }
@@ -571,20 +572,27 @@ std::vector<std::shared_ptr<Cell>> Location::getLine(std::shared_ptr<Cell> c1,
 
 entt::entity Location::addEntity(std::string typeKey,
                                  std::shared_ptr<Cell> cell) {
-  auto data = entt::service_locator<GameData>::get().lock();
+  auto &data = entt::locator<GameData>::value();
   auto e = registry->create();
 
   auto ne = registry->create();
-  // for (auto e : data->prototypes->group(entt::get<entt::tag<"proto"_hs>)) {
-  for (auto e : data->prototypes->view<hf::meta>()) {
-    if (data->prototypes->get<hf::meta>(e).id == typeKey) {
-      registry->stomp(ne, e, *data->prototypes,
-                      entt::exclude<entt::tag<"proto"_hs>>);
-      registry->assign<hf::ingame>(ne);
-      registry->assign<hf::position>(ne, cell->x, cell->y, 0);
-      auto meta = data->prototypes->get<hf::meta>(e);
-      meta.id = fmt::format("{}_{}", meta.id, (int)registry->entity(ne));
-      registry->assign_or_replace<hf::meta>(ne, meta);
+  // for (auto e : data.prototypes.group(entt::get<entt::tag<"proto"_hs>)) {
+  for (auto e : data.prototypes.view<hf::meta>()) {
+    if (data.prototypes.get<hf::meta>(e).id == typeKey) {
+      // registry->push(ne, e, *data.prototypes,
+      //                entt::exclude<entt::tag<"proto"_hs>>);
+
+      for (auto [id, storage] : registry->storage()) {
+        if (storage.contains(e)) {
+          storage.push(ne, storage.value(e));
+        }
+      }
+      registry->emplace<hf::ingame>(ne);
+      registry->remove<entt::tag<"proto"_hs>>(ne);
+      registry->emplace<hf::position>(ne, cell->x, cell->y, 0);
+      auto meta = data.prototypes.get<hf::meta>(e);
+      meta.id = fmt::format("{}_{}", meta.id, (int)ne);
+      registry->emplace_or_replace<hf::meta>(ne, meta);
       // log.debug("Add entity: {} @ {}.{}", meta.id, cell->x, cell->y);
       break;
     }
@@ -597,19 +605,25 @@ entt::entity Location::addEntity(std::string typeKey,
 
 entt::entity Location::addTerrain(std::string typeKey,
                                   std::shared_ptr<Cell> cell) {
-  auto data = entt::service_locator<GameData>::get().lock();
+  auto &data = entt::locator<GameData>::value();
   auto e = registry->create();
 
   auto ne = registry->create();
-  for (auto e : data->prototypes->view<entt::tag<"terrain"_hs>>()) {
-    if (data->prototypes->get<hf::meta>(e).id == typeKey) {
-      registry->stomp(ne, e, *data->prototypes,
-                      entt::exclude<entt::tag<"proto"_hs>>);
-      registry->assign<hf::ingame>(ne);
-      registry->assign<hf::position>(ne, cell->x, cell->y, 0);
-      auto meta = data->prototypes->get<hf::meta>(e);
-      meta.id = fmt::format("{}_{}", meta.id, (int)registry->entity(ne));
-      registry->assign_or_replace<hf::meta>(ne, meta);
+  for (auto e : data.prototypes.view<entt::tag<"terrain"_hs>>()) {
+    if (data.prototypes.get<hf::meta>(e).id == typeKey) {
+      // registry->push(ne, e, *data.prototypes,
+      //                 entt::exclude<entt::tag<"proto"_hs>>);
+      for (auto [id, storage] : registry->storage()) {
+        if (storage.contains(e)) {
+          storage.push(ne, storage.value(e));
+        }
+      }
+      registry->emplace<hf::ingame>(ne);
+      registry->remove<entt::tag<"proto"_hs>>(ne);
+      registry->emplace<hf::position>(ne, cell->x, cell->y, 0);
+      auto meta = data.prototypes.get<hf::meta>(e);
+      meta.id = fmt::format("{}_{}", meta.id, (int)ne);
+      registry->emplace_or_replace<hf::meta>(ne, meta);
       break;
     }
   }

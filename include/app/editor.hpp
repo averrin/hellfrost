@@ -30,26 +30,26 @@ public:
   int ts_idx = 0;
   std::vector<std::string> ts;
 
-  void Meta(std::shared_ptr<entt::registry>, entt::entity);
-  void Tags(std::shared_ptr<entt::registry>, entt::entity);
-  void Visible(std::shared_ptr<entt::registry>, entt::entity);
-  void Position(std::shared_ptr<entt::registry>, entt::entity);
-  void Renderable(std::shared_ptr<entt::registry>, entt::entity);
-  void PlayerComponent(std::shared_ptr<entt::registry>, entt::entity);
-  void CreatureComponent(std::shared_ptr<entt::registry>, entt::entity);
-  void Obstacle(std::shared_ptr<entt::registry>, entt::entity);
-  void Script(std::shared_ptr<entt::registry>, entt::entity);
-  void Vision(std::shared_ptr<entt::registry>, entt::entity);
-  void InEditor(std::shared_ptr<entt::registry>, entt::entity);
+  void Meta(entt::registry &registry, entt::entity);
+  void Tags(entt::registry &registry, entt::entity);
+  void Visible(entt::registry &registry, entt::entity);
+  void Position(entt::registry &registry, entt::entity);
+  void Renderable(entt::registry &registry, entt::entity);
+  void PlayerComponent(entt::registry &registry, entt::entity);
+  void CreatureComponent(entt::registry &registry, entt::entity);
+  void Obstacle(entt::registry &registry, entt::entity);
+  void Script(entt::registry &registry, entt::entity);
+  void Vision(entt::registry &registry, entt::entity);
+  void InEditor(entt::registry &registry, entt::entity);
 
-  void Pickable(std::shared_ptr<entt::registry>, entt::entity);
-  void Wearable(std::shared_ptr<entt::registry>, entt::entity);
+  void Pickable(entt::registry &registry, entt::entity);
+  void Wearable(entt::registry &registry, entt::entity);
 
-  void Glow(std::shared_ptr<entt::registry>, entt::entity);
-  void CellW(std::shared_ptr<entt::registry>, entt::entity);
-  void RoomW(std::shared_ptr<entt::registry>, entt::entity);
-  void Children(std::shared_ptr<entt::registry>, entt::entity);
-  void Size(std::shared_ptr<entt::registry>, entt::entity);
+  void Glow(entt::registry &registry, entt::entity);
+  void CellW(entt::registry &registry, entt::entity);
+  void RoomW(entt::registry &registry, entt::entity);
+  void Children(entt::registry &registry, entt::entity);
+  void Size(entt::registry &registry, entt::entity);
 
   void drawSelectedInfo();
   void drawCellInfo(std::optional<std::shared_ptr<Cell>> cell);
@@ -62,15 +62,15 @@ public:
   void drawTemplates(sol::state &lua);
 
 
-  template <typename... T> void drawEntityTree(std::shared_ptr<entt::registry>);
+  template <typename... T> void drawEntityTree(entt::registry &registry);
 
-  void drawEntityInfo(entt::entity e, std::shared_ptr<entt::registry>);
-  void drawEntityEditor(std::shared_ptr<entt::registry>);
+  void drawEntityInfo(entt::entity e, entt::registry &registry);
+  void drawEntityEditor(entt::registry &registry);
 
   std::shared_ptr<GameManager> gm;
-  MM::ImGuiEntityEditor<entt::basic_registry<entt::entity>> entityEditor;
+  MM::EntityEditor<entt::basic_registry<entt::entity>> entityEditor;
 
-  void processRegistry(std::shared_ptr<entt::registry>);
+  void processRegistry(entt::registry &registry);
 };
 
 #endif // __EDITOR_H_

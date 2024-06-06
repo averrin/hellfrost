@@ -16,8 +16,6 @@
 #include <app/editor.hpp>
 #include <app/ide.hpp>
 #include <app/scriptWrappers.hpp>
-#include <app/ui/drawEngine.hpp>
-#include <app/ui/viewport.hpp>
 #include <mutex>
 
 // #define SOL_ALL_SAFETIES_ON 1
@@ -55,9 +53,7 @@ public:
   std::shared_ptr<Editor> editor;
   std::shared_ptr<IDE> ide;
 
-  std::shared_ptr<DrawEngine> engine;
   sf::RenderWindow *window;
-  std::shared_ptr<Viewport> viewport;
   void processEvent(sf::Event event);
   void processKeyboardEvent(sf::Event event);
     std::string getKeyName(sf::Keyboard::Key key, bool sys, bool alt,

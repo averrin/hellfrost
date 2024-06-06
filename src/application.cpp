@@ -22,6 +22,7 @@
 
 #include <app/editor.hpp>
 #include <app/ui/drawEngine.hpp>
+#include <app/ui/viewport.hpp>
 
 #include <IconsFontAwesome6.h>
 #include <lua/logger.hpp>
@@ -112,26 +113,25 @@ Application::Application(std::string app_name, fs::path path,
   entt::monostate<"path"_hs>{} = PATH.string().data();
   entt::monostate<"tileset"_hs>{} = DEFAULT_TILESET.data();
 
-  entt::service_locator<entt::registry>::empty();
-  entt::service_locator<event_emitter>::set(std::make_shared<event_emitter>());
-  entt::service_locator<Viewport>::empty();
-  entt::service_locator<GameData>::empty();
-  // entt::service_locator<GameData>::empty();
-  entt::service_locator<std::mutex>::set(reg_mutex);
+  // entt::locator<entt::registry>::empty();
+  // entt::locator<event_emitter>::emplace();
+  // entt::locator<Viewport>::empty();
+  // entt::locator<GameData>::empty();
+  // entt::locator<GameData>::empty();
+  entt::locator<std::mutex>::emplace(reg_mutex);
 
   std::shared_ptr<R::Generator> gen = std::make_shared<R::Generator>();
-  viewport = std::make_shared<Viewport>();
-  entt::service_locator<Viewport>::set(viewport);
-  viewport->loadTileset(PATH / "tilesets" / DEFAULT_TILESET);
-  engine = std::make_unique<DrawEngine>(window);
-  engine->vW = viewport->width / viewport->scale;
-  engine->vH = viewport->height / viewport->scale;
-  engine->alpha_per_d = lua.get<sol::table>("light")["alpha_per_d"];
-  engine->alpha_blend_inc = lua.get<sol::table>("light")["alpha_blend_inc"];
-  engine->blend_mode = lua.get<sol::table>("light")["blend_mode"];
-  engine->max_bright = lua.get<sol::table>("light")["max_bright"];
+  // viewport = std::make_shared<Viewport>();
+  auto &viewport = entt::locator<Viewport>::emplace();
+  viewport.loadTileset(PATH / "tilesets" / DEFAULT_TILESET);
+  auto &engine = entt::locator<DrawEngine>::emplace(window);
+  engine.vW = viewport.width / viewport.scale;
+  engine.vH = viewport.height / viewport.scale;
+  engine.alpha_per_d = lua.get<sol::table>("light")["alpha_per_d"];
+  engine.alpha_blend_inc = lua.get<sol::table>("light")["alpha_blend_inc"];
+  engine.blend_mode = lua.get<sol::table>("light")["blend_mode"];
+  engine.max_bright = lua.get<sol::table>("light")["max_bright"];
 
-  entt::service_locator<DrawEngine>::set(engine);
   gm = std::make_shared<GameManager>(PATH / DATA_FILE);
   editor = std::make_unique<Editor>(gm, PATH);
   ide = std::make_unique<IDE>(PATH);
@@ -183,66 +183,76 @@ void Application::setupGui() {
 
   window->resetGLStates();
 
-  auto emitter = entt::service_locator<event_emitter>::get().lock();
+  event_emitter emitter{};
 
-  emitter->on<regen_event>([&](const auto &p, auto &em) {
+  emitter.on<regen_event>([&](const auto &p, auto &em) {
     if (p.seed == -1) {
       seed = rand();
     } else if (p.seed >= 0) {
       seed = p.seed;
     }
-    viewport->view_x = 0;
-    viewport->view_y = 0;
-    viewport->view_z = 0;
+    auto &viewport = entt::locator<Viewport>::value();
+    auto &engine = entt::locator<DrawEngine>::value();
+    viewport.view_x = 0;
+    viewport.view_y = 0;
+    viewport.view_z = 0;
     if (p.specKey != "") {
       genLocation(seed, *gm->locationSpecs[p.specKey]);
     } else {
       genLocation(seed);
     }
-    engine->invalidate();
+    engine.invalidate();
   });
-  emitter->on<center_event>([&](const auto &p, auto &em) {
+  emitter.on<center_event>([&](const auto &p, auto &em) {
     // lockedPos = {p.x, p.y};
-    viewport->view_x = p.x - viewport->width / 2 / GUI_SCALE;
-    viewport->view_y = p.y - viewport->height / 2 / GUI_SCALE;
-    engine->invalidate();
+    auto &viewport = entt::locator<Viewport>::value();
+    auto &engine = entt::locator<DrawEngine>::value();
+    viewport.view_x = p.x - viewport.width / 2 / GUI_SCALE;
+    viewport.view_y = p.y - viewport.height / 2 / GUI_SCALE;
+    engine.invalidate();
   });
-  emitter->on<mouse_center_event>([&](const auto &p, auto &em) {
+  emitter.on<mouse_center_event>([&](const auto &p, auto &em) {
     // lockedPos = {p.x, p.y};
+    auto &viewport = entt::locator<Viewport>::value();
+    auto &engine = entt::locator<DrawEngine>::value();
     current_pos = window->mapPixelToCoords(sf::Mouse::getPosition(*window));
     auto _x = int(current_pos.x /
-                  (viewport->tileSet.size.first * viewport->scale * GUI_SCALE));
-    auto _y = int(current_pos.y / (viewport->tileSet.size.second *
-                                   viewport->scale * GUI_SCALE));
-    auto rx = _x + viewport->view_x;
-    auto ry = _y + viewport->view_y;
+                  (viewport.tileSet.size.first * viewport.scale * GUI_SCALE));
+    auto _y = int(current_pos.y /
+                  (viewport.tileSet.size.second * viewport.scale * GUI_SCALE));
+    auto rx = _x + viewport.view_x;
+    auto ry = _y + viewport.view_y;
     // fmt::print("{}.{} => {}.{}\n", p.x, p.y, rx, ry);
-    viewport->view_x += p.x - rx;
-    viewport->view_y += p.y - ry;
-    engine->invalidate();
+    viewport.view_x += p.x - rx;
+    viewport.view_y += p.y - ry;
+    engine.invalidate();
   });
 
-  emitter->on<redraw_event>(
-      [&](const auto &p, auto &em) { engine->invalidate(); });
+  emitter.on<redraw_event>([&](const auto &p, auto &em) {
+    auto &engine = entt::locator<DrawEngine>::value();
+    engine.invalidate();
+  });
 
-  emitter->on<resize_event>([&](const auto &p, auto &em) {
+  emitter.on<resize_event>([&](const auto &p, auto &em) {
     sf::FloatRect visibleArea(0, 0, window->getSize().x, window->getSize().y);
     auto sv = sf::View(visibleArea);
     window->setView(sv);
-    viewport->width = window->getSize().x / viewport->tileSet.size.first + 1;
-    viewport->height = window->getSize().y / viewport->tileSet.size.second + 1;
-    engine->vW = viewport->width / viewport->scale / GUI_SCALE;
-    engine->vH = viewport->height / viewport->scale / GUI_SCALE;
-    // engine->tilesCache.clear();
-    engine->resize(window->getSize());
+    auto &viewport = entt::locator<Viewport>::value();
+    auto &engine = entt::locator<DrawEngine>::value();
+    viewport.width = window->getSize().x / viewport.tileSet.size.first + 1;
+    viewport.height = window->getSize().y / viewport.tileSet.size.second + 1;
+    engine.vW = viewport.width / viewport.scale / GUI_SCALE;
+    engine.vH = viewport.height / viewport.scale / GUI_SCALE;
+    // engine.tilesCache.clear();
+    engine.resize(window->getSize());
     rectangle.setSize(sf::Vector2f(window->getSize().x, window->getSize().y));
-    cursor.setSize(sf::Vector2f(viewport->tileSet.size.first,
-                                viewport->tileSet.size.second) *
-                   viewport->scale * GUI_SCALE);
-    engine->invalidate();
+    cursor.setSize(sf::Vector2f(viewport.tileSet.size.first,
+                                viewport.tileSet.size.second) *
+                   viewport.scale * GUI_SCALE);
+    engine.invalidate();
   });
 
-  // emitter->on<duk_error>([&](auto event, auto &em) {
+  // emitter.on<duk_error>([&](auto event, auto &em) {
   //   std::string err = std::string(event.msg);
   //   std::string line;
   //   std::vector<std::string> lines;
@@ -262,7 +272,7 @@ void Application::setupGui() {
   //   console.AddLog("[error] %s", event.msg.data());
   // });
 
-  /* emitter->on<exec_event>(
+  /* emitter.on<exec_event>(
       [&](auto event, auto &em) { duk_exec(event.code.data()); }); */
 
   ide->init();
@@ -271,14 +281,14 @@ void Application::setupGui() {
 
   // std::function<void()> scale_f = [&]() {
   //   auto _x = int(current_pos.x /
-  //                 (viewport->tileSet.size.first * viewport->scale *
+  //                 (viewport.tileSet.size.first * viewport.scale *
   //                 GUI_SCALE));
-  //   auto _y = int(current_pos.y / (viewport->tileSet.size.second *
-  //                                  viewport->scale * GUI_SCALE));
-  //   auto rx = _x + viewport->view_x;
-  //   auto ry = _y + viewport->view_y;
-  //   auto emitter = entt::service_locator<event_emitter>::get().lock();
-  //   emitter->publish<center_event>(rx, ry);
+  //   auto _y = int(current_pos.y / (viewport.tileSet.size.second *
+  //                                  viewport.scale * GUI_SCALE));
+  //   auto rx = _x + viewport.view_x;
+  //   auto ry = _y + viewport.view_y;
+  //   event_emitter emitter{};
+  //   emitter.publish(center_event{rx, ry});
   //   updateScale();
   // };
   // db_scale_f = Debounced(scale_f, 500);
@@ -298,26 +308,29 @@ void Application::processKeyboardEvent(sf::Event event) {
     mapping[event_str]();
   }
 
+  auto &engine = entt::locator<DrawEngine>::value();
+  auto &viewport = entt::locator<Viewport>::value();
   current_pos = window->mapPixelToCoords(sf::Mouse::getPosition(*window));
   auto _x = int(current_pos.x /
-                (viewport->tileSet.size.first * viewport->scale * GUI_SCALE));
+                (viewport.tileSet.size.first * viewport.scale * GUI_SCALE));
   auto _y = int(current_pos.y /
-                (viewport->tileSet.size.second * viewport->scale * GUI_SCALE));
-  auto rx = _x + viewport->view_x;
-  auto ry = _y + viewport->view_y;
+                (viewport.tileSet.size.second * viewport.scale * GUI_SCALE));
+  auto rx = _x + viewport.view_x;
+  auto ry = _y + viewport.view_y;
   switch (event.key.code) {
   case sf::Keyboard::Escape: {
     window->close();
     break;
   }
   case sf::Keyboard::Right: {
-    viewport->view_x += 1;
-    engine->invalidate();
+    viewport.view_x += 1;
+    engine.invalidate();
     auto i = 0;
     for (auto p : gm->location->creatures) {
       auto e = p.first;
-      gm->commit(lss::Action(p.first, "creatureMove", 200,
-                             [=]() { gm->moveCreature(gm->location->creatures[e], Direction::E); }));
+      gm->commit(lss::Action(p.first, "creatureMove", 200, [=]() {
+        gm->moveCreature(gm->location->creatures[e], Direction::E);
+      }));
       i++;
       if (i > 5) {
         break;
@@ -326,26 +339,26 @@ void Application::processKeyboardEvent(sf::Event event) {
     break;
   }
   case sf::Keyboard::Left: {
-    viewport->view_x -= 1;
-    engine->invalidate();
+    viewport.view_x -= 1;
+    engine.invalidate();
     break;
   }
   case sf::Keyboard::Up: {
     if (!event.key.control) {
-      viewport->view_y -= 1;
+      viewport.view_y -= 1;
     } else {
-      viewport->view_z += 1;
+      viewport.view_z += 1;
     }
-    engine->invalidate();
+    engine.invalidate();
     break;
   }
   case sf::Keyboard::Down: {
     if (!event.key.control) {
-      viewport->view_y += 1;
+      viewport.view_y += 1;
     } else {
-      viewport->view_z -= 1;
+      viewport.view_z -= 1;
     }
-    engine->invalidate();
+    engine.invalidate();
     break;
   }
   case sf::Keyboard::F1: {
@@ -353,21 +366,21 @@ void Application::processKeyboardEvent(sf::Event event) {
     break;
   }
   case sf::Keyboard::F2: {
-    auto emitter = entt::service_locator<event_emitter>::get().lock();
-    emitter->publish<regen_event>(-1);
+    event_emitter emitter{};
+    emitter.publish(regen_event{-1});
     break;
   }
   case sf::Keyboard::M: {
-    auto ents = gm->registry->view<hf::ineditor>();
+    auto ents = gm->registry.view<hf::ineditor>();
 
     if (ents.size() > 0) {
       for (auto e : ents) {
-        auto ie = gm->registry->get<hf::ineditor>(e);
+        auto ie = gm->registry.get<hf::ineditor>(e);
         if (ie.selected) {
-          auto p = gm->registry->get<hf::position>(e);
+          auto p = gm->registry.get<hf::position>(e);
           p.x = rx;
           p.y = ry;
-          gm->registry->assign_or_replace<hellfrost::position>(e, p);
+          gm->registry.emplace_or_replace<hellfrost::position>(e, p);
         }
       }
     }
@@ -378,14 +391,16 @@ void Application::processKeyboardEvent(sf::Event event) {
 }
 
 void Application::processEvent(sf::Event event) {
+  auto &viewport = entt::locator<Viewport>::value();
+  auto &engine = entt::locator<DrawEngine>::value();
   ImGuiIO &io = ImGui::GetIO();
   current_pos = window->mapPixelToCoords(sf::Mouse::getPosition(*window));
   auto _x = int(current_pos.x /
-                (viewport->tileSet.size.first * viewport->scale * GUI_SCALE));
+                (viewport.tileSet.size.first * viewport.scale * GUI_SCALE));
   auto _y = int(current_pos.y /
-                (viewport->tileSet.size.second * viewport->scale * GUI_SCALE));
-  auto rx = _x + viewport->view_x;
-  auto ry = _y + viewport->view_y;
+                (viewport.tileSet.size.second * viewport.scale * GUI_SCALE));
+  auto rx = _x + viewport.view_x;
+  auto ry = _y + viewport.view_y;
 
   ImGui::SFML::ProcessEvent(*window, event);
   switch (event.type) {
@@ -396,12 +411,12 @@ void Application::processEvent(sf::Event event) {
     processKeyboardEvent(event);
     break;
   case sf::Event::Resized: {
-    auto emitter = entt::service_locator<event_emitter>::get().lock();
-    emitter->publish<resize_event>();
+    event_emitter emitter{};
+    emitter.publish(resize_event{});
   }
   // case sf::Event::LostFocus:
   case sf::Event::GainedFocus:
-    engine->invalidate();
+    engine.invalidate();
     break;
   case sf::Event::Closed:
     window->close();
@@ -410,25 +425,25 @@ void Application::processEvent(sf::Event event) {
     if (io.WantCaptureMouse)
       break;
     if (is_mb_pressed) {
-      auto emitter = entt::service_locator<event_emitter>::get().lock();
-      auto _sx = int(start_drag_pos.x / (viewport->tileSet.size.first *
-                                         viewport->scale * GUI_SCALE));
-      auto _sy = int(start_drag_pos.y / (viewport->tileSet.size.second *
-                                         viewport->scale * GUI_SCALE));
+      event_emitter emitter{};
+      auto _sx = int(start_drag_pos.x / (viewport.tileSet.size.first *
+                                         viewport.scale * GUI_SCALE));
+      auto _sy = int(start_drag_pos.y / (viewport.tileSet.size.second *
+                                         viewport.scale * GUI_SCALE));
 
-      emitter->publish<mouse_center_event>(_sx, _sy);
+      emitter.publish(mouse_center_event{_sx, _sy});
     }
     if (is_rb_pressed) {
-      auto ents = gm->registry->view<hf::ineditor>();
+      auto ents = gm->registry.view<hf::ineditor>();
 
       if (ents.size() > 0) {
         for (auto e : ents) {
-          auto ie = gm->registry->get<hf::ineditor>(e);
+          auto ie = gm->registry.get<hf::ineditor>(e);
           if (ie.selected) {
-            auto p = gm->registry->get<hf::position>(e);
+            auto p = gm->registry.get<hf::position>(e);
             p.x = rx;
             p.y = ry;
-            gm->registry->assign_or_replace<hellfrost::position>(e, p);
+            gm->registry.emplace_or_replace<hellfrost::position>(e, p);
           }
         }
       }
@@ -452,29 +467,29 @@ void Application::processEvent(sf::Event event) {
       is_rb_pressed = true;
       lockedPos = {rx, ry};
 
-      auto ents = gm->registry->view<hf::ineditor>();
+      auto ents = gm->registry.view<hf::ineditor>();
 
       if (ents.size() > 0) {
         for (auto e : ents) {
-          auto p = gm->registry->get<hf::ineditor>(e);
+          auto p = gm->registry.get<hf::ineditor>(e);
           if (p.selected) {
             p.selected = false;
-            gm->registry->assign_or_replace<hellfrost::ineditor>(e, p);
+            gm->registry.emplace_or_replace<hellfrost::ineditor>(e, p);
           }
         }
       }
 
-      auto _ents = gm->registry->view<hf::position>();
+      auto _ents = gm->registry.view<hf::position>();
 
       if (_ents.size() > 0) {
         for (auto e : _ents) {
-          auto p = gm->registry->get<hf::position>(e);
+          auto p = gm->registry.get<hf::position>(e);
           if (!p.movable)
             continue;
-          auto ie = gm->registry->get<hf::ineditor>(e);
+          auto ie = gm->registry.get<hf::ineditor>(e);
           if (p.x == rx && p.y == ry) {
             ie.selected = true;
-            gm->registry->assign_or_replace<hellfrost::ineditor>(e, ie);
+            gm->registry.emplace_or_replace<hellfrost::ineditor>(e, ie);
           }
         }
       }
@@ -483,14 +498,14 @@ void Application::processEvent(sf::Event event) {
       is_mb_pressed = true;
       lockedPos = std::nullopt;
 
-      auto ents = gm->registry->view<hf::ineditor>();
+      auto ents = gm->registry.view<hf::ineditor>();
 
       if (ents.size() > 0) {
         for (auto e : ents) {
-          auto p = gm->registry->get<hf::ineditor>(e);
+          auto p = gm->registry.get<hf::ineditor>(e);
           if (p.selected) {
             p.selected = false;
-            gm->registry->assign_or_replace<hellfrost::ineditor>(e, p);
+            gm->registry.emplace_or_replace<hellfrost::ineditor>(e, p);
           }
         }
       }
@@ -500,10 +515,10 @@ void Application::processEvent(sf::Event event) {
     if (io.WantCaptureMouse)
       break;
     if (event.mouseWheelScroll.wheel == sf::Mouse::VerticalWheel) {
-      viewport->scale += event.mouseWheelScroll.delta * 0.05f; // step
+      viewport.scale += event.mouseWheelScroll.delta * 0.05f; // step
       updateScale();
-      auto emitter = entt::service_locator<event_emitter>::get().lock();
-      emitter->publish<mouse_center_event>(rx, ry);
+      event_emitter emitter{};
+      emitter.publish(mouse_center_event{rx, ry});
       // TODO: move previous cell under mouse
     }
     break;
@@ -555,6 +570,7 @@ void Application::drawDocking(float padding) {
 void Application::drawStatusBar(float width, float height, float pos_x,
                                 float pos_y) {
   // Draw status bar (no docking)
+  auto &viewport = entt::locator<Viewport>::emplace();
   ImGui::SetNextWindowSize(ImVec2(width, height), ImGuiCond_Always);
   ImGui::SetNextWindowPos(ImVec2(pos_x, pos_y), ImGuiCond_Always);
   ImGui::Begin("statusbar", nullptr,
@@ -582,12 +598,12 @@ void Application::drawStatusBar(float width, float height, float pos_x,
   ImGui::SameLine();
   current_pos = window->mapPixelToCoords(sf::Mouse::getPosition(*window));
   auto _x = int(current_pos.x /
-                (viewport->tileSet.size.first * viewport->scale * GUI_SCALE));
+                (viewport.tileSet.size.first * viewport.scale * GUI_SCALE));
   auto _y = int(current_pos.y /
-                (viewport->tileSet.size.second * viewport->scale * GUI_SCALE));
+                (viewport.tileSet.size.second * viewport.scale * GUI_SCALE));
   ImGui::Text("|  pos: %d.%d", _x, _y);
-  auto rx = _x + viewport->view_x;
-  auto ry = _y + viewport->view_y;
+  auto rx = _x + viewport.view_x;
+  auto ry = _y + viewport.view_y;
   ImGui::SameLine();
   ImGui::Text("|  cell: %d.%d", rx, ry);
   ImGui::SameLine();
@@ -612,6 +628,8 @@ void Application::drawStatusBar(float width, float height, float pos_x,
 }
 
 void Application::drawViewportWindow() {
+  auto &viewport = entt::locator<Viewport>::value();
+  auto &engine = entt::locator<DrawEngine>::value();
   if (!ImGui::Begin("Viewport")) {
     ImGui::End();
     return;
@@ -627,15 +645,15 @@ void Application::drawViewportWindow() {
   ImGui::Text("Cache len: %d/%lu", cache_count, cache_full);
   ImGui::Text("Vis Cache cell count: %zu",
               gm->location->visibilityCache.size());
-  ImGui::Text("Redraws: %d", engine->redraws);
-  ImGui::Text("Tiles updated: %d", engine->tilesUpdated);
-  ImGui::Text("Objects in render: %d\n", engine->layers->size());
+  ImGui::Text("Redraws: %d", engine.redraws);
+  ImGui::Text("Tiles updated: %d", engine.tilesUpdated);
+  ImGui::Text("Objects in render: %d\n", engine.layers->size());
 
   if (ImGui::BeginTable("layers", 3,
                         ImGuiTableFlags_Resizable |
                             ImGuiTableFlags_SizingFixedFit |
                             ImGuiTableFlags_NoSavedSettings)) {
-    for (auto [k, l] : engine->layers->layers) {
+    for (auto [k, l] : engine.layers->layers) {
       ImGui::TableNextRow();
       ImGui::TableNextColumn();
       ImGui::Text(fmt::format("{}", k).c_str());
@@ -643,40 +661,40 @@ void Application::drawViewportWindow() {
       ImGui::Text(fmt::format("{}", l->children.size()).c_str());
       ImGui::TableNextColumn();
       if (ImGui::Checkbox(fmt::format("##{}", k).c_str(), &l->enabled)) {
-        engine->invalidate();
+        engine.invalidate();
       }
     }
     ImGui::EndTable();
   }
   ImGui::Text("\n");
-  auto emitter = entt::service_locator<event_emitter>::get().lock();
-  if (ImGui::SliderInt("width", &viewport->width, 10, 200)) {
-    engine->invalidate();
-    engine->vW = viewport->width / viewport->scale / GUI_SCALE;
-    if (engine->vW > 200)
-      engine->vW = 200;
+  event_emitter emitter{};
+  if (ImGui::SliderInt("width", &viewport.width, 10, 200)) {
+    engine.invalidate();
+    engine.vW = viewport.width / viewport.scale / GUI_SCALE;
+    if (engine.vW > 200)
+      engine.vW = 200;
   }
-  if (ImGui::SliderInt("height", &viewport->height, 10, 200)) {
-    engine->invalidate();
-    engine->vH = viewport->height / viewport->scale / GUI_SCALE;
-    if (engine->vH > 200)
-      engine->vH = 200;
+  if (ImGui::SliderInt("height", &viewport.height, 10, 200)) {
+    engine.invalidate();
+    engine.vH = viewport.height / viewport.scale / GUI_SCALE;
+    if (engine.vH > 200)
+      engine.vH = 200;
   }
-  if (ImGui::SliderInt("x", &viewport->view_x, -viewport->width,
+  if (ImGui::SliderInt("x", &viewport.view_x, -viewport.width,
                        gm->location->cells.front().size())) {
 
-    engine->invalidate();
+    engine.invalidate();
   }
-  if (ImGui::SliderInt("y", &viewport->view_y, -viewport->height,
+  if (ImGui::SliderInt("y", &viewport.view_y, -viewport.height,
 
                        gm->location->cells.size())) {
-    engine->invalidate();
+    engine.invalidate();
   }
-  if (ImGui::SliderInt("z", &viewport->view_z, -10, 10)) {
-    engine->invalidate();
+  if (ImGui::SliderInt("z", &viewport.view_z, -10, 10)) {
+    engine.invalidate();
   }
 
-  if (ImGui::SliderFloat("scale", &viewport->scale, 0.3f, 2.f)) {
+  if (ImGui::SliderFloat("scale", &viewport.scale, 0.3f, 2.f)) {
     updateScale();
   }
   // ImGui::SetItemUsingMouseWheel();
@@ -686,7 +704,7 @@ void Application::drawViewportWindow() {
   //   if (ImGui::IsItemActive()) {
   //     ImGui::ClearActiveID();
   //   } else {
-  //     viewport->scale += wheel * 0.025f; // step
+  //     viewport.scale += wheel * 0.025f; // step
   //     updateScale();
   //   }
   // }
@@ -695,23 +713,25 @@ void Application::drawViewportWindow() {
   ImGui::SameLine();
   // if (ImGui::Button(ICON_FA_FORMAT_SIZE)) {
   if (ImGui::Button("size")) {
-    viewport->scale = 1;
-    emitter->publish<resize_event>();
+    viewport.scale = 1;
+    emitter.publish(resize_event{});
   }
-  ImGui::Checkbox("Room debug", &engine->roomDebug);
+  ImGui::Checkbox("Room debug", &engine.roomDebug);
 
   ImGui::End();
 }
 
 void Application::updateScale() {
-  auto emitter = entt::service_locator<event_emitter>::get().lock();
-  engine->vW = viewport->width / viewport->scale / GUI_SCALE;
-  engine->vH = viewport->height / viewport->scale / GUI_SCALE;
-  if (engine->vW > 200)
-    engine->vW = 200;
-  if (engine->vH > 200)
-    engine->vH = 200;
-  emitter->publish<resize_event>();
+  auto &viewport = entt::locator<Viewport>::value();
+  auto &engine = entt::locator<DrawEngine>::value();
+  event_emitter emitter{};
+  engine.vW = viewport.width / viewport.scale / GUI_SCALE;
+  engine.vH = viewport.height / viewport.scale / GUI_SCALE;
+  if (engine.vW > 200)
+    engine.vW = 200;
+  if (engine.vH > 200)
+    engine.vH = 200;
+  emitter.publish(resize_event{});
 }
 
 void Application::drawLocationWindow() {
@@ -719,16 +739,18 @@ void Application::drawLocationWindow() {
     ImGui::End();
     return;
   }
-  auto data = entt::service_locator<GameData>::get().lock();
+  auto &viewport = entt::locator<Viewport>::value();
+  auto &engine = entt::locator<DrawEngine>::value();
+  auto &data = entt::locator<GameData>::value();
 
   if (ImGui::InputInt("Seed", &seed)) {
     genLocation(seed);
-    engine->invalidate();
+    engine.invalidate();
   }
   ImGui::SameLine();
   if (ImGui::Button(ICON_FA_DICE_THREE)) {
-    auto emitter = entt::service_locator<event_emitter>::get().lock();
-    emitter->publish<regen_event>(-1);
+    event_emitter emitter{};
+    emitter.publish(regen_event{-1});
   }
   if (gm->location == nullptr) {
     ImGui::End();
@@ -736,8 +758,8 @@ void Application::drawLocationWindow() {
   }
   ImGui::SameLine();
   if (ImGui::Button("Redraw")) {
-    auto emitter = entt::service_locator<event_emitter>::get().lock();
-    emitter->publish<redraw_event>();
+    event_emitter emitter{};
+    emitter.publish(redraw_event{});
   }
   ImGui::Separator();
   std::vector<std::string> lts;
@@ -752,8 +774,8 @@ void Application::drawLocationWindow() {
   }
   if (ImGui::Combo("Location type", &lts_idx, lts)) {
     //   locationType = Location::A_LOCATION_TYPES[lts_idx];
-    auto emitter = entt::service_locator<event_emitter>::get().lock();
-    emitter->publish<regen_event>(seed, lts[lts_idx]);
+    event_emitter emitter{};
+    emitter.publish(regen_event{seed, lts[lts_idx]});
     // genLocation(seed, lts[lt_idx]);
   }
 
@@ -767,7 +789,7 @@ void Application::drawLocationWindow() {
       }
     }
     genLocation(seed, gm->location->type);
-    engine->invalidate();
+    engine.invalidate();
     ImGui::End();
     return;
   }
@@ -781,7 +803,7 @@ void Application::drawLocationWindow() {
       }
     }
     genLocation(seed, gm->location->type);
-    engine->invalidate();
+    engine.invalidate();
     ImGui::End();
     return;
   }
@@ -793,15 +815,15 @@ void Application::drawLocationWindow() {
         if (ImGui::Button(fmt::format("1##{}", key).c_str())) {
           gm->location->type.templateMap[k][key] = 1;
           genLocation(seed, gm->location->type);
-          engine->invalidate();
+          engine.invalidate();
           ImGui::End();
           return;
         }
         ImGui::SameLine();
         if (ImGui::Button(fmt::format("D##{}", key).c_str())) {
-          gm->location->type.templateMap[k][key] = data->mapFeatures[k][key];
+          gm->location->type.templateMap[k][key] = data.mapFeatures[k][key];
           genLocation(seed, gm->location->type);
-          engine->invalidate();
+          engine.invalidate();
           ImGui::End();
           return;
         }
@@ -809,7 +831,7 @@ void Application::drawLocationWindow() {
         if (ImGui::Button(fmt::format("0##{}", key).c_str())) {
           gm->location->type.templateMap[k][key] = 0;
           genLocation(seed, gm->location->type);
-          engine->invalidate();
+          engine.invalidate();
           ImGui::End();
           return;
         }
@@ -864,22 +886,24 @@ bool Application::movePlayer(Direction d) {
   if (!s) {
     return false;
   }
+  auto &viewport = entt::locator<Viewport>::value();
+  auto &engine = entt::locator<DrawEngine>::value();
 
-  auto p = gm->registry->get<hf::position>(gm->location->player->entity);
+  auto p = gm->registry.get<hf::position>(gm->location->player->entity);
   auto margin = lua.get<int>("margin");
-  if (p.x < viewport->view_x + margin) {
-    viewport->view_x--;
-    engine->invalidate();
-  } else if (p.x > viewport->view_x + viewport->width - margin) {
-    viewport->view_x++;
-    engine->invalidate();
+  if (p.x < viewport.view_x + margin) {
+    viewport.view_x--;
+    engine.invalidate();
+  } else if (p.x > viewport.view_x + viewport.width - margin) {
+    viewport.view_x++;
+    engine.invalidate();
   }
-  if (p.y < viewport->view_y + margin) {
-    viewport->view_y--;
-    engine->invalidate();
-  } else if (p.y > viewport->view_y + viewport->height - margin) {
-    viewport->view_y++;
-    engine->invalidate();
+  if (p.y < viewport.view_y + margin) {
+    viewport.view_y--;
+    engine.invalidate();
+  } else if (p.y > viewport.view_y + viewport.height - margin) {
+    viewport.view_y++;
+    engine.invalidate();
   }
   // gm->serve();
   // gm->location->invalidateVisibilityCache(gm->location->player->currentCell,
@@ -889,13 +913,15 @@ bool Application::movePlayer(Direction d) {
 
 void Application::genLocation(int s, LocationSpec spec) {
 
-  auto mutex = entt::service_locator<std::mutex>::get().lock();
-  mutex->lock();
+  auto &mutex = entt::locator<std::mutex>::value();
+  auto &viewport = entt::locator<Viewport>::value();
+  auto &engine = entt::locator<DrawEngine>::value();
+  mutex.lock();
   if (cacheThread.joinable()) {
     cacheThread.join();
   }
 
-  auto emitter = entt::service_locator<event_emitter>::get().lock();
+  event_emitter emitter{};
   gm->setSeed(s);
 
   auto label = "Generate location";
@@ -903,30 +929,29 @@ void Application::genLocation(int s, LocationSpec spec) {
 
   gm->gen(spec);
   log.stop(label);
-  viewport->regions.clear();
+  viewport.regions.clear();
 
   auto location = std::make_shared<Region>();
   location->cells = gm->location->cells;
   location->position = {0, 0};
   location->active = true;
   location->location = gm->location;
-  viewport->regions.push_back(location);
+  viewport.regions.push_back(location);
 
-  engine->update();
-  emitter->publish<resize_event>();
+  engine.update();
+  emitter.publish(resize_event{});
 
   if (location->location->enterCell != nullptr) {
-    emitter->publish<center_event>(location->location->enterCell->x,
-                                   location->location->enterCell->y);
+    emitter.publish(center_event{location->location->enterCell->x, location->location->enterCell->y});
   }
 
   cache_count = 0;
-  engine->tilesCache.clear();
+  engine.tilesCache.clear();
   // cacheThread = std::thread([&]() {
   //   if (!gm->location->cells.empty()) {
   //     for (auto x = 0; x < gm->location->cells.front().size(); x++) {
   //       for (auto y = 0; y < gm->location->cells.size(); y++) {
-  //         auto t = engine->cacheTile(x, y, viewport->view_z);
+  //         auto t = engine.cacheTile(x, y, viewport.view_z);
   //         cache_count++;
   //       }
   //     }
@@ -934,7 +959,7 @@ void Application::genLocation(int s, LocationSpec spec) {
   //   log.info("cache thread ends");
   // });
 
-  mutex->unlock();
+  mutex.unlock();
 }
 
 int Application::serve() {
@@ -943,6 +968,8 @@ int Application::serve() {
   log.stop("init");
 
   log.info("serve");
+  auto &viewport = entt::locator<Viewport>::value();
+  auto &engine = entt::locator<DrawEngine>::value();
 
   sf::ContextSettings settings;
   settings.antialiasingLevel = 4;
@@ -950,18 +977,18 @@ int Application::serve() {
 
   // genLocation(seed);
 
-  auto c = Color::fromHexString(viewport->colors["PALETTE"]["BACKGROUND"]);
+  auto c = Color::fromHexString(viewport.colors["PALETTE"]["BACKGROUND"]);
   auto bgColor = sf::Color(c.r, c.g, c.b, c.a);
 
-  engine->resize(window->getSize());
+  engine.resize(window->getSize());
 
   window->clear(bgColor);
   rectangle.setPosition(0, 0);
   rectangle.setSize(sf::Vector2f(window->getSize().x, window->getSize().y));
 
-  cursor.setSize(sf::Vector2f(viewport->tileSet.size.first,
-                              viewport->tileSet.size.second) *
-                 viewport->scale * GUI_SCALE);
+  cursor.setSize(
+      sf::Vector2f(viewport.tileSet.size.first, viewport.tileSet.size.second) *
+      viewport.scale * GUI_SCALE);
   cursor.setFillColor(sf::Color::Transparent);
   cursor.setOutlineThickness(1);
 
@@ -986,26 +1013,28 @@ int Application::serve() {
   log.info("fonts: {}", io.Fonts->Fonts.Size);
   io.Fonts->Build();
   log.debug("Update font tex: {}", ImGui::SFML::UpdateFontTexture());
-  log.info("reg size: {}", gm->registry->size());
+  log.info("reg size: {}", gm->registry.storage<entt::entity>().size());
 
   std::thread t([=]() {
     auto d = lua.get<sol::table>("light")["flick_delay"];
-    auto mutex = entt::service_locator<std::mutex>::get().lock();
+    auto &mutex = entt::locator<std::mutex>::value();
+    auto &viewport = entt::locator<Viewport>::value();
+    auto &engine = entt::locator<DrawEngine>::value();
     while (true) {
       std::this_thread::sleep_for(std::chrono::milliseconds(d));
       // mutex->lock();
-      // engine->updateLight();
+      // engine.updateLight();
       // mutex->unlock();
-      engine->updateExistingLight();
-      // engine->scheduleFastRedraw();
-      // engine->invalidate();
+      engine.updateExistingLight();
+      // engine.scheduleFastRedraw();
+      // engine.invalidate();
     }
   });
   t.detach();
 
   auto de = true;
   // auto de = lua.get<bool>("darkness");
-  engine->layers->layers["darkness"]->enabled = de;
+  engine.layers->layers["darkness"]->enabled = de;
 
   // gm->serve();
   while (window->isOpen()) {
@@ -1020,25 +1049,25 @@ int Application::serve() {
 
     float current_fps = ImGui::GetIO().Framerate;
 
-    auto t = engine->draw();
+    auto t = engine.draw();
     rectangle.setTexture(&t);
 
     window->draw(rectangle);
     // window->clear(sf::Color::Cyan);
 
     auto x = int(current_pos.x /
-                 (viewport->tileSet.size.first * viewport->scale * GUI_SCALE));
+                 (viewport.tileSet.size.first * viewport.scale * GUI_SCALE));
     auto y = int(current_pos.y /
-                 (viewport->tileSet.size.second * viewport->scale * GUI_SCALE));
-    auto rx = x + viewport->view_x;
-    auto ry = y + viewport->view_y;
+                 (viewport.tileSet.size.second * viewport.scale * GUI_SCALE));
+    auto rx = x + viewport.view_x;
+    auto ry = y + viewport.view_y;
     if (lockedPos) {
       rx = (*lockedPos).first;
       ry = (*lockedPos).second;
-      x = rx - viewport->view_x;
-      y = ry - viewport->view_y;
+      x = rx - viewport.view_x;
+      y = ry - viewport.view_y;
     }
-    auto [cc, rz] = viewport->getCell(rx, ry, viewport->view_z);
+    auto [cc, rz] = viewport.getCell(rx, ry, viewport.view_z);
 
     if (!cc || (*cc)->type == CellType::UNKNOWN) {
       cursor.setOutlineColor(sf::Color(70, 70, 70));
@@ -1048,9 +1077,9 @@ int Application::serve() {
     if (lockedPos) {
       cursor.setOutlineColor(sf::Color(70, 70, 255));
     }
-    cursor.setPosition(sf::Vector2f(x * viewport->tileSet.size.first,
-                                    y * viewport->tileSet.size.second) *
-                       viewport->scale * GUI_SCALE);
+    cursor.setPosition(sf::Vector2f(x * viewport.tileSet.size.first,
+                                    y * viewport.tileSet.size.second) *
+                       viewport.scale * GUI_SCALE);
     window->draw(cursor);
 
     ImGui::SFML::Update(*window, deltaClock.restart());
@@ -1077,7 +1106,7 @@ int Application::serve() {
       }
 
       ImGui::Begin("Timeline");
-      Sequentity::EventEditor(*gm->registry);
+      Sequentity::EventEditor(gm->registry);
       ImGui::End();
 
       // console.Draw("Console");
@@ -1095,8 +1124,8 @@ int Application::serve() {
 }
 
 Application::~Application() {
-  entt::service_locator<GameData>::reset();
-  entt::service_locator<Viewport>::reset();
+  entt::locator<GameData>::reset();
+  entt::locator<Viewport>::reset();
   if (jsThread.joinable()) {
     jsThread.join();
   }

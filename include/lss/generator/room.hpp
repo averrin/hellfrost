@@ -59,7 +59,7 @@ public:
           auto cy = n / width;
           auto nx = height - (cy + 1);
           auto ny = cx;
-          registry->assign_or_replace<hf::position>(e, nx, ny, p.z);
+          registry->emplace_or_replace<hf::position>(e, nx, ny, p.z);
           break;
         }
         n++;

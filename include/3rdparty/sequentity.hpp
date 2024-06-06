@@ -24,7 +24,7 @@ before you include this file in *one* C++ (17 and above) file to create the impl
 #include <imgui.h>
 
 // External required dependency
-#include <entt/entity/registry.hpp>
+#include <entt/entt.hpp>
 
 namespace Sequentity {
 
@@ -531,7 +531,7 @@ Event& PushEvent(Channel& channel, Event event) {
 
 
 void EventEditor(entt::registry& registry) {
-    auto& state = registry.ctx_or_set<State>();
+    auto& state = registry.ctx().emplace<State>();
 
     _transition(state.pan[0], state.target_pan[0], CommonTheme.transition_speed, 1.0f);
     _transition(state.pan[1], state.target_pan[1], CommonTheme.transition_speed, 1.0f);

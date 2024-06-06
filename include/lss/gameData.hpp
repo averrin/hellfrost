@@ -14,24 +14,25 @@ class GameData {
   friend class cereal::access;
   template <class Archive> void load(Archive &ar) {
     ar(probability, itemSpecs, terrainSpecs, lootBoxes, mapFeatures);
-    prototypes = std::make_shared<entt::registry>();
-    prototypes->loader().entities(ar);
-    prototypes->loader()
-        .component<hf::meta, hf::visible, hf::ineditor, hf::pickable,
-                   hf::wearable, hf::glow, hf::renderable, hf::wall, hf::tags,
-                   hf::player, hf::vision, hf::obstacle, hf::creature,
-                   hf::script, entt::tag<"item"_hs>, entt::tag<"enemy"_hs>,
-                   entt::tag<"terrain"_hs>, entt::tag<"proto"_hs>>(ar);
+    entt::registry prototypes;
+    entt::snapshot_loader{prototypes}
+        .get<entt::entity>(ar)
+        .template get<hf::meta, hf::visible, hf::ineditor, hf::pickable, hf::wearable,
+             hf::glow, hf::renderable, hf::wall, hf::tags, hf::player,
+             hf::vision, hf::obstacle, hf::creature, hf::script,
+             entt::tag<"item"_hs>, entt::tag<"enemy"_hs>,
+             entt::tag<"terrain"_hs>, entt::tag<"proto"_hs>>(ar)
+        .orphans();
   };
   template <class Archive> void save(Archive &ar) const {
     ar(probability, itemSpecs, terrainSpecs, lootBoxes, mapFeatures);
-    prototypes->snapshot().entities(ar);
-    prototypes->snapshot()
-        .component<hf::meta, hf::visible, hf::ineditor, hf::pickable,
-                   hf::wearable, hf::glow, hf::renderable, hf::wall, hf::tags,
-                   hf::player, hf::vision, hf::obstacle, hf::creature,
-                   hf::script, entt::tag<"item"_hs>, entt::tag<"enemy"_hs>,
-                   entt::tag<"terrain"_hs>, entt::tag<"proto"_hs>>(ar);
+    entt::snapshot{prototypes}
+        .get<entt::entity>(ar)
+        .template get<hf::meta, hf::visible, hf::ineditor, hf::pickable, hf::wearable,
+             hf::glow, hf::renderable, hf::wall, hf::tags, hf::player,
+             hf::vision, hf::obstacle, hf::creature, hf::script,
+             entt::tag<"item"_hs>, entt::tag<"enemy"_hs>,
+             entt::tag<"terrain"_hs>, entt::tag<"proto"_hs>>(ar);
   };
 
 public:
@@ -39,8 +40,11 @@ public:
   std::map<std::string, ItemSpec> itemSpecs;
   std::map<std::string, std::map<std::string, float>> mapFeatures;
   std::map<std::string, TerrainSpec> terrainSpecs;
-  std::shared_ptr<entt::registry> prototypes;
+  entt::registry& prototypes;
   std::vector<LootBox> lootBoxes;
+
+  GameData(entt::registry& p) : prototypes(p) {}
+  GameData(const GameData& other) : prototypes(other.prototypes) {}
 };
 
 #endif // __GAMEDATA_H_

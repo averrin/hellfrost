@@ -45,6 +45,12 @@ public:
     }
   }
   Viewport() {}
+  Viewport(const Viewport& other) {
+    tileSet = other.tileSet;
+    colors = other.colors;
+    tilesTextures = other.tilesTextures;
+    regions = other.regions;
+  }
   TileSet tileSet;
   json colors;
   // std::shared_ptr<Tile> UT;

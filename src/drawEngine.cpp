@@ -15,47 +15,47 @@
 using RandomLocal = effolkronium::random_thread_local;
 
 void DrawEngine::updateVisible() {
-  auto registry = entt::service_locator<entt::registry>::get().lock();
-  auto viewport = entt::service_locator<Viewport>::get().lock();
-  auto ents = registry->view<hellfrost::visible>();
+  auto &registry = entt::locator<entt::registry>::value();
+  auto &viewport = entt::locator<Viewport>::value();
+  auto ents = registry.view<hellfrost::visible>();
   for (auto e : ents) {
     auto render = hf::renderable{};
-    if (registry->has<hf::renderable>(e))
-      render = registry->get<hf::renderable>(e);
-    auto [v, m] = registry->get<hellfrost::visible, hf::meta>(e);
+    if (registry.all_of<hf::renderable>(e))
+      render = registry.get<hf::renderable>(e);
+    auto [v, m] = registry.get<hellfrost::visible, hf::meta>(e);
     // log.info("Creating renderable for {}", m.id);
     render.spriteKey =
-        (v.sign != "" && viewport->tileSet.sprites.find(v.sign) !=
-                             viewport->tileSet.sprites.end())
+        (v.sign != "" && viewport.tileSet.sprites.find(v.sign) !=
+                             viewport.tileSet.sprites.end())
             ? v.sign
             : "UNKNOWN";
-    render.fgColor = viewport->colors[v.type].contains(v.sign)
-                         ? viewport->getColorString(v.type, v.sign)
+    render.fgColor = viewport.colors[v.type].contains(v.sign)
+                         ? viewport.getColorString(v.type, v.sign)
                          : "#aa3333ff";
-    registry->assign_or_replace<hellfrost::renderable>(e, render);
+    registry.emplace_or_replace<hellfrost::renderable>(e, render);
   }
 }
 
 void DrawEngine::update() {
-  auto registry = entt::service_locator<entt::registry>::get().lock();
-  auto viewport = entt::service_locator<Viewport>::get().lock();
+  auto &registry = entt::locator<entt::registry>::value();
+  auto &viewport = entt::locator<Viewport>::value();
   updateVisible();
 
-  // registry->on_construct<hf::visible>().connect<&create_renderable>();
+  // registry.on_construct<hf::visible>().connect<&create_renderable>();
 
   visible = std::make_shared<entt::observer>(
-      *registry, entt::collector.group<hf::visible>());
+      registry, entt::collector.group<hf::visible>());
   new_visible = std::make_shared<entt::observer>(
-      *registry, entt::collector.replace<hf::visible>());
+      registry, entt::collector.update<hf::visible>());
   renderable = std::make_shared<entt::observer>(
-      *registry, entt::collector.replace<hf::renderable>());
+      registry, entt::collector.update<hf::renderable>());
   new_renderable = std::make_shared<entt::observer>(
-      *registry, entt::collector.group<hf::renderable>());
+      registry, entt::collector.group<hf::renderable>());
   position = std::make_shared<entt::observer>(
-      *registry, entt::collector.replace<hf::position>());
+      registry, entt::collector.update<hf::position>());
   ineditor = std::make_shared<entt::observer>(
-      *registry, entt::collector.replace<hf::ineditor>());
-  glow = std::make_shared<entt::observer>(*registry,
+      registry, entt::collector.update<hf::ineditor>());
+  glow = std::make_shared<entt::observer>(registry,
                                           entt::collector.group<hf::glow>());
 
   layers->layers.clear();
@@ -75,30 +75,30 @@ void DrawEngine::update() {
 }
 
 void DrawEngine::updateEntity(entt::entity e) {
-  auto registry = entt::service_locator<entt::registry>::get().lock();
-  auto render = registry->get<hf::renderable>(e);
+  auto &registry = entt::locator<entt::registry>::value();
+  auto render = registry.get<hf::renderable>(e);
   auto brdLayer = layers->layers[render.brdLayer];
   auto bgLayer = layers->layers[render.bgLayer];
   auto layer = layers->layers[render.fgLayer];
-  brdLayer->remove((int)registry->entity(e));
-  bgLayer->remove((int)registry->entity(e));
-  layer->remove((int)registry->entity(e));
+  brdLayer->remove((int)e);
+  bgLayer->remove((int)e);
+  layer->remove((int)e);
   renderEntity(e);
 }
 
 sf::Color DrawEngine::getGlowColorForCell(entt::entity e,
                                           std::shared_ptr<Cell> n, int pulse) {
-  auto registry = entt::service_locator<entt::registry>::get().lock();
-  auto viewport = entt::service_locator<Viewport>::get().lock();
-  auto [pos, glow] = registry->get<hf::position, hf::glow>(e);
-  auto [_c, rz] = viewport->getCell(pos.x, pos.y, 0);
+  auto &registry = entt::locator<entt::registry>::value();
+  auto viewport = entt::locator<Viewport>::value();
+  auto [pos, glow] = registry.get<hf::position, hf::glow>(e);
+  auto [_c, rz] = viewport.getCell(pos.x, pos.y, 0);
   auto c = *_c;
   std::string t(magic_enum::enum_name(glow.type));
   sf::Color l_color;
-  if (glow.type == LightType::INHERIT && registry->has<hf::renderable>(e)) {
-    l_color = viewport->getColor(registry->get<hf::renderable>(e).fgColor);
+  if (glow.type == LightType::INHERIT && registry.all_of<hf::renderable>(e)) {
+    l_color = viewport.getColor(registry.get<hf::renderable>(e).fgColor);
   } else {
-    l_color = viewport->getColor("LIGHT", t);
+    l_color = viewport.getColor("LIGHT", t);
   }
   l_color.a = glow.bright + pulse;
   auto d = sqrt(pow(c->x - n->x, 2) + pow(c->y - n->y, 2));
@@ -109,13 +109,13 @@ sf::Color DrawEngine::getGlowColorForCell(entt::entity e,
 }
 
 void DrawEngine::updateExistingLight() {
-  auto mutex = entt::service_locator<std::mutex>::get().lock();
+  auto &mutex = entt::locator<std::mutex>::value();
   if (lightUpdating) {
-    mutex->unlock();
+    mutex.unlock();
     return;
   }
   lightUpdating = true;
-  mutex->lock();
+  mutex.lock();
   // log.start("update existing light", false);
   auto light = layers->layers["light"];
   auto lights = light->children;
@@ -136,26 +136,26 @@ void DrawEngine::updateExistingLight() {
   light->update();
   redrawCanvas();
   // log.stop("update existing light");
-  mutex->unlock();
+  mutex.unlock();
   lightUpdating = false;
 }
 
 void DrawEngine::updateDark() {
-  auto registry = entt::service_locator<entt::registry>::get().lock();
-  auto viewport = entt::service_locator<Viewport>::get().lock();
+  auto &registry = entt::locator<entt::registry>::value();
+  auto viewport = entt::locator<Viewport>::value();
   auto dark = layers->layers["darkness"];
   float GUI_SCALE = entt::monostate<"gui_scale"_hs>{};
-  auto rScale = viewport->scale * GUI_SCALE;
+  auto rScale = viewport.scale * GUI_SCALE;
   dark->clear();
 
-  auto location = viewport->regions.front()->location;
+  auto location = viewport.regions.front()->location;
   if (location->player == nullptr) {
     log.error("No player exists");
     return;
   }
   log.start("update dark", true);
 
-  auto vis = registry->get<hf::vision>(location->player->entity);
+  auto vis = registry.get<hf::vision>(location->player->entity);
   auto d = vis.distance;
   auto fov = location->getVisible(location->player->currentCell, d, true);
   location->player->viewField = fov;
@@ -166,7 +166,7 @@ void DrawEngine::updateDark() {
 
   for (auto x = 0; x < location->cells.front().size(); x++) {
     for (auto y = 0; y < location->cells.size(); y++) {
-      auto [_c, rz] = viewport->getCell(x, y, 0);
+      auto [_c, rz] = viewport.getCell(x, y, 0);
       auto c = *_c;
       if (c->type == CellType::EMPTY || c->type == CellType::UNKNOWN) {
         continue;
@@ -182,19 +182,19 @@ void DrawEngine::updateDark() {
         continue;
       }
 
-      auto e_size = sf::Vector2f(viewport->tileSet.size.first,
-                                 viewport->tileSet.size.second) *
+      auto e_size = sf::Vector2f(viewport.tileSet.size.first,
+                                 viewport.tileSet.size.second) *
                     rScale;
-      auto e_pos = sf::Vector2f(x * viewport->tileSet.size.first,
-                                y * viewport->tileSet.size.second) *
+      auto e_pos = sf::Vector2f(x * viewport.tileSet.size.first,
+                                y * viewport.tileSet.size.second) *
                    rScale;
-      e_pos.x += -viewport->tileSet.size.first * viewport->view_x * rScale;
-      e_pos.y += -viewport->tileSet.size.second * viewport->view_y * rScale;
+      e_pos.x += -viewport.tileSet.size.first * viewport.view_x * rScale;
+      e_pos.y += -viewport.tileSet.size.second * viewport.view_y * rScale;
 
       auto bg = std::make_shared<sf::RectangleShape>();
       bg->setSize(e_size);
       bg->setPosition(e_pos);
-      auto cs = viewport->colors["PALETTE"]["BACKGROUND"];
+      auto cs = viewport.colors["PALETTE"]["BACKGROUND"];
       if (c->visibilityState == VisibilityState::SEEN) {
         cs = "#1f1f1f";
         if (c->type == CellType::WALL) {
@@ -204,13 +204,13 @@ void DrawEngine::updateDark() {
         bg->setFillColor(sf::Color(color.r, color.g, color.b, color.a));
         dark->draw(bg, 100000 + x * 100 + y);
         // if (c->type == CellType::WALL) {
-        //   auto sprite = viewport->makeSprite("", "WALL");
+        //   auto sprite = viewport.makeSprite("", "WALL");
         //   auto color = Color::fromHexString("#666666");
         //   sprite->setColor(sf::Color(color.r, color.g, color.b, color.a));
         //   sprite->setPosition(e_pos);
 
-        //   if (registry->has<hf::wall>(e)) {
-        //     sprite = viewport->makeSprite(viewport->getWallSpec(cell));
+        //   if (registry.all_of<hf::wall>(e)) {
+        //     sprite = viewport.makeSprite(viewport.getWallSpec(cell));
         //   }
 
         //   auto s = *sprite;
@@ -232,60 +232,60 @@ void DrawEngine::updateLight() {
   log.start("update light", true);
   lightMap.clear();
   lightMapAlpha.clear();
-  auto registry = entt::service_locator<entt::registry>::get().lock();
-  auto viewport = entt::service_locator<Viewport>::get().lock();
+  auto &registry = entt::locator<entt::registry>::value();
+  auto viewport = entt::locator<Viewport>::value();
   auto light = layers->layers["light"];
   float GUI_SCALE = entt::monostate<"gui_scale"_hs>{};
-  auto rScale = viewport->scale * GUI_SCALE;
+  auto rScale = viewport.scale * GUI_SCALE;
   light->clear();
-  auto ents = registry->group(entt::get<hf::position, hf::glow>);
+  auto ents = registry.group(entt::get<hf::position, hf::glow>);
   tf::Executor executor;
   tf::Taskflow taskflow;
 
-  // auto mutex = entt::service_locator<std::mutex>::get().lock();
+  // auto &mutex = entt::locator<std::mutex>::value();
   std::mutex mutex;
 
   taskflow.for_each(ents.begin(), ents.end(), [&](auto e) {
     // for (auto e : ents) {
-    if (!registry->valid(e)) {
+    if (!registry.valid(e)) {
       // continue;
       return;
     }
     // TODO: fetch only renderable?
-    if (registry->has<hf::renderable>(e)) {
-      if (registry->get<hf::renderable>(e).hidden) {
+    if (registry.all_of<hf::renderable>(e)) {
+      if (registry.get<hf::renderable>(e).hidden) {
         // continue;
         return;
       }
     }
 
-    auto pos = registry->get<hf::position>(e);
+    auto pos = registry.get<hf::position>(e);
 
-    // if (pos.y - viewport->view_y < 0 || pos.y - viewport->view_y >= vH)
+    // if (pos.y - viewport.view_y < 0 || pos.y - viewport.view_y >= vH)
     //   continue;
-    // if (pos.x - viewport->view_x < 0 || pos.x - viewport->view_x >= vW)
+    // if (pos.x - viewport.view_x < 0 || pos.x - viewport.view_x >= vW)
     //   continue;
-    if (pos.z != viewport->view_z)
+    if (pos.z != viewport.view_z)
       return;
     // continue;
 
-    auto e_size = sf::Vector2f(viewport->tileSet.size.first,
-                               viewport->tileSet.size.second) *
+    auto e_size = sf::Vector2f(viewport.tileSet.size.first,
+                               viewport.tileSet.size.second) *
                   rScale;
-    auto e_pos = sf::Vector2f(pos.x * viewport->tileSet.size.first,
-                              pos.y * viewport->tileSet.size.second) *
+    auto e_pos = sf::Vector2f(pos.x * viewport.tileSet.size.first,
+                              pos.y * viewport.tileSet.size.second) *
                  rScale;
-    e_pos.x += -viewport->tileSet.size.first * viewport->view_x * rScale;
-    e_pos.y += -viewport->tileSet.size.second * viewport->view_y * rScale;
+    e_pos.x += -viewport.tileSet.size.first * viewport.view_x * rScale;
+    e_pos.y += -viewport.tileSet.size.second * viewport.view_y * rScale;
 
-    auto glow = registry->get<hf::glow>(e);
+    auto glow = registry.get<hf::glow>(e);
     auto pulse = RandomLocal::get(-1 * glow.pulse, glow.pulse);
     if (glow.distance > 0 && glow.bright > 0) {
       std::vector<int> ids;
 
-      auto [_c, rz] = viewport->getCell(pos.x, pos.y, 0);
+      auto [_c, rz] = viewport.getCell(pos.x, pos.y, 0);
       auto c = *_c;
-      auto location = viewport->regions.front()->location;
+      auto location = viewport.regions.front()->location;
       auto i = 1;
 
       auto vis = location->getVisible(c, glow.distance, false);
@@ -300,11 +300,11 @@ void DrawEngine::updateLight() {
         ids.push_back(lid);
         mutex.unlock();
 
-        auto e_pos = sf::Vector2f(n->x * viewport->tileSet.size.first,
-                                  n->y * viewport->tileSet.size.second) *
+        auto e_pos = sf::Vector2f(n->x * viewport.tileSet.size.first,
+                                  n->y * viewport.tileSet.size.second) *
                      rScale;
-        e_pos.x += -viewport->tileSet.size.first * viewport->view_x * rScale;
-        e_pos.y += -viewport->tileSet.size.second * viewport->view_y * rScale;
+        e_pos.x += -viewport.tileSet.size.first * viewport.view_x * rScale;
+        e_pos.y += -viewport.tileSet.size.second * viewport.view_y * rScale;
 
         auto bg = std::make_shared<sf::RectangleShape>();
         bg->setSize(e_size);
@@ -327,10 +327,10 @@ void DrawEngine::updateLight() {
           auto es = lightMap[lid];
           mutex.unlock();
           for (auto _e : es) {
-            if (!registry->valid(_e)) {
+            if (!registry.valid(_e)) {
               continue;
             }
-            auto g = registry->get<hf::glow>(_e);
+            auto g = registry.get<hf::glow>(_e);
             if (g.passive)
               continue;
             std::string _t(magic_enum::enum_name(glow.type));
@@ -409,41 +409,41 @@ void DrawEngine::updateLight() {
 }
 
 void DrawEngine::renderEntity(entt::entity e) {
-  auto registry = entt::service_locator<entt::registry>::get().lock();
-  if (!registry->has<hf::position, hf::renderable>(e)) {
-    auto m = registry->get<hf::meta>(e);
+  auto &registry = entt::locator<entt::registry>::value();
+  if (!registry.all_of<hf::position, hf::renderable>(e)) {
+    auto m = registry.get<hf::meta>(e);
     log.info("Cancel Rendering: {}", m.id);
     return;
   }
-  auto viewport = entt::service_locator<Viewport>::get().lock();
+  auto viewport = entt::locator<Viewport>::value();
   float GUI_SCALE = entt::monostate<"gui_scale"_hs>{};
-  auto rScale = viewport->scale * GUI_SCALE;
+  auto rScale = viewport.scale * GUI_SCALE;
   auto [pos, render, meta] =
-      registry->get<hf::position, hf::renderable, hf::meta>(e);
+      registry.get<hf::position, hf::renderable, hf::meta>(e);
   // if (render.spriteKey != "EMPTY_CELL") {
   //   log.info("Rendering: {}", meta.id);
   // }
 
-  if (pos.y - viewport->view_y < 0 || pos.y - viewport->view_y >= vH)
+  if (pos.y - viewport.view_y < 0 || pos.y - viewport.view_y >= vH)
     return;
-  if (pos.x - viewport->view_x < 0 || pos.x - viewport->view_x >= vW)
+  if (pos.x - viewport.view_x < 0 || pos.x - viewport.view_x >= vW)
     return;
-  if (pos.z != viewport->view_z)
+  if (pos.z != viewport.view_z)
     return;
 
-  auto e_size = sf::Vector2f(viewport->tileSet.size.first,
-                             viewport->tileSet.size.second) *
+  auto e_size = sf::Vector2f(viewport.tileSet.size.first,
+                             viewport.tileSet.size.second) *
                 rScale;
-  if (registry->has<hf::size>(e)) {
-    auto size = registry->get<hf::size>(e);
+  if (registry.all_of<hf::size>(e)) {
+    auto size = registry.get<hf::size>(e);
     e_size.x *= size.width;
     e_size.y *= size.height;
   }
-  auto e_pos = sf::Vector2f(pos.x * viewport->tileSet.size.first,
-                            pos.y * viewport->tileSet.size.second) *
+  auto e_pos = sf::Vector2f(pos.x * viewport.tileSet.size.first,
+                            pos.y * viewport.tileSet.size.second) *
                rScale;
-  e_pos.x += -viewport->tileSet.size.first * viewport->view_x * rScale;
-  e_pos.y += -viewport->tileSet.size.second * viewport->view_y * rScale;
+  e_pos.x += -viewport.tileSet.size.first * viewport.view_x * rScale;
+  e_pos.y += -viewport.tileSet.size.second * viewport.view_y * rScale;
   auto rect = sf::Rect(e_pos, e_size);
 
   auto brdLayer = layers->layers[render.brdLayer];
@@ -459,7 +459,7 @@ void DrawEngine::renderEntity(entt::entity e) {
     log.error("Layer {} not found", render.fgLayer);
   }
   auto light = layers->layers["light"];
-  auto eid = (int)registry->entity(e);
+  auto eid = (int)e;
 
   if (render.hidden)
     return;
@@ -467,7 +467,7 @@ void DrawEngine::renderEntity(entt::entity e) {
     auto bg = std::make_shared<sf::RectangleShape>();
     bg->setSize(e_size);
     bg->setPosition(e_pos);
-    bg->setFillColor(viewport->getColor(render.bgColor));
+    bg->setFillColor(viewport.getColor(render.bgColor));
     bgLayer->draw(bg, eid);
   }
 
@@ -476,46 +476,46 @@ void DrawEngine::renderEntity(entt::entity e) {
     bg->setSize(e_size);
     bg->setPosition(e_pos);
     bg->setFillColor(sf::Color::Transparent);
-    bg->setOutlineColor(viewport->getColor(render.borderColor));
+    bg->setOutlineColor(viewport.getColor(render.borderColor));
     bg->setOutlineThickness(1);
     brdLayer->draw(bg, eid);
   }
 
-  auto sprite = viewport->makeSprite("", render.spriteKey);
-  if (registry->has<hf::wall>(e)) {
-    auto [c, rz] = viewport->getCell(pos.x, pos.y, pos.z);
+  auto sprite = viewport.makeSprite("", render.spriteKey);
+  if (registry.all_of<hf::wall>(e)) {
+    auto [c, rz] = viewport.getCell(pos.x, pos.y, pos.z);
     if (c) {
       auto cell = *c;
-      sprite = viewport->makeSprite(viewport->getWallSpec(cell));
+      sprite = viewport.makeSprite(viewport.getWallSpec(cell));
     }
   }
-  sprite->setColor(viewport->getColor(render.fgColor));
+  sprite->setColor(viewport.getColor(render.fgColor));
   sprite->setPosition(e_pos);
 
   auto s = *sprite;
-  if (registry->has<hf::size>(e)) {
-    auto size = registry->get<hf::size>(e);
+  if (registry.all_of<hf::size>(e)) {
+    auto size = registry.get<hf::size>(e);
     s.setScale(sf::Vector2f(size.width, size.height) * rScale);
   } else {
     s.setScale(sf::Vector2f(1, 1) * rScale);
   }
-  layer->draw(std::make_shared<sf::Sprite>(s), (int)registry->entity(e));
+  layer->draw(std::make_shared<sf::Sprite>(s), (int)e);
 }
 
 std::shared_ptr<sf::RectangleShape> makeBg(sf::Vector2f pos) {
-  auto viewport = entt::service_locator<Viewport>::get().lock();
+  auto viewport = entt::locator<Viewport>::value();
   float GUI_SCALE = entt::monostate<"gui_scale"_hs>{};
-  auto rScale = viewport->scale * GUI_SCALE;
+  auto rScale = viewport.scale * GUI_SCALE;
   auto bg = std::make_shared<sf::RectangleShape>();
 
-  auto e_size = sf::Vector2f(viewport->tileSet.size.first,
-                             viewport->tileSet.size.second) *
+  auto e_size = sf::Vector2f(viewport.tileSet.size.first,
+                             viewport.tileSet.size.second) *
                 rScale;
-  auto e_pos = sf::Vector2f(pos.x * viewport->tileSet.size.first,
-                            pos.y * viewport->tileSet.size.second) *
+  auto e_pos = sf::Vector2f(pos.x * viewport.tileSet.size.first,
+                            pos.y * viewport.tileSet.size.second) *
                rScale;
-  e_pos.x += -viewport->tileSet.size.first * viewport->view_x * rScale;
-  e_pos.y += -viewport->tileSet.size.second * viewport->view_y * rScale;
+  e_pos.x += -viewport.tileSet.size.first * viewport.view_x * rScale;
+  e_pos.y += -viewport.tileSet.size.second * viewport.view_y * rScale;
 
   bg->setSize(e_size);
   bg->setPosition(e_pos);
@@ -535,11 +535,11 @@ void DrawEngine::resize(sf::Vector2u size) {
 void DrawEngine::observe() {
   // log.start("de::observe", true);
   // log.info("OBSERVE");
-  auto viewport = entt::service_locator<Viewport>::get().lock();
-  auto registry = entt::service_locator<entt::registry>::get().lock();
+  auto viewport = entt::locator<Viewport>::value();
+  auto &registry = entt::locator<entt::registry>::value();
 
-  auto mutex = entt::service_locator<std::mutex>::get().lock();
-  mutex->lock();
+  auto &mutex = entt::locator<std::mutex>::value();
+  mutex.lock();
 
   // if (new_visible && new_visible->size() > 0) {
   //   log.info("+VISIBLE");
@@ -555,10 +555,10 @@ void DrawEngine::observe() {
   if (ineditor && ineditor->size() > 0) {
     log.info("+SELECTED");
     for (auto e : *ineditor) {
-      auto ie = registry->get<hf::ineditor>(e);
-      if (!registry->has<hf::renderable>(e))
+      auto ie = registry.get<hf::ineditor>(e);
+      if (!registry.all_of<hf::renderable>(e))
         continue;
-      auto r = registry->get<hf::renderable>(e);
+      auto r = registry.get<hf::renderable>(e);
       if (ie.selected) {
         r.hasBorder = true;
         r.borderColor = "#ff2";
@@ -566,18 +566,18 @@ void DrawEngine::observe() {
         r.hasBorder = false;
         r.borderColor = "#00000000";
       }
-      registry->assign_or_replace<hellfrost::renderable>(e, r);
+      registry.emplace_or_replace<hellfrost::renderable>(e, r);
     }
     ineditor->clear();
   }
   if (position && position->size() > 0) {
     for (auto e : *position) {
       // log.info("+MOVED");
-      // if (registry->has<hf::player>(e)) {
-      //   auto pos = registry->get<hf::position>(e);
-      //   auto [_c, rz] = viewport->getCell(pos.x, pos.y, 0);
+      // if (registry.all_of<hf::player>(e)) {
+      //   auto pos = registry.get<hf::position>(e);
+      //   auto [_c, rz] = viewport.getCell(pos.x, pos.y, 0);
       //   auto c = *_c;
-      //   auto l = viewport->regions[0]->location;
+      //   auto l = viewport.regions[0]->location;
       //   l->player->currentCell = c;
       // }
       // position->clear();
@@ -591,13 +591,13 @@ void DrawEngine::observe() {
   //   }
   //   glow->clear();
   // }
-  mutex->unlock();
+  mutex.unlock();
   // log.stop("de::observe");
 }
 
 sf::Texture DrawEngine::draw() {
-  auto registry = entt::service_locator<entt::registry>::get().lock();
-  if (registry == nullptr || registry->size() == 0) {
+  auto &registry = entt::locator<entt::registry>::value();
+  if (registry.storage<entt::entity>().size() == 0) {
     return canvas->getTexture();
   }
 
@@ -622,10 +622,10 @@ sf::Texture DrawEngine::draw() {
     // return canvas->getTexture();
   }
   observe();
-  auto mutex = entt::service_locator<std::mutex>::get().lock();
-  mutex->lock();
+  auto &mutex = entt::locator<std::mutex>::value();
+  mutex.lock();
 
-  auto viewport = entt::service_locator<Viewport>::get().lock();
+  auto &viewport = entt::locator<Viewport>::value();
 
   std::vector<std::shared_ptr<entt::observer>> observers = {
       position, renderable, new_renderable};
@@ -649,21 +649,21 @@ sf::Texture DrawEngine::draw() {
     std::list<int> w(vW);
     std::iota(w.begin(), w.end(), 0);
     if (roomDebug) {
-      auto l = viewport->regions[0]->location;
+      auto l = viewport.regions[0]->location;
       float GUI_SCALE = entt::monostate<"gui_scale"_hs>{};
-      auto rScale = viewport->scale * GUI_SCALE;
+      auto rScale = viewport.scale * GUI_SCALE;
       auto i = 1;
       auto debug = layers->layers["debug"];
       for (auto r : l->rooms) {
 
-        auto e_size = sf::Vector2f(r->width * viewport->tileSet.size.first,
-                                   r->height * viewport->tileSet.size.second) *
+        auto e_size = sf::Vector2f(r->width * viewport.tileSet.size.first,
+                                   r->height * viewport.tileSet.size.second) *
                       rScale;
-        auto e_pos = sf::Vector2f(r->x * viewport->tileSet.size.first,
-                                  r->y * viewport->tileSet.size.second) *
+        auto e_pos = sf::Vector2f(r->x * viewport.tileSet.size.first,
+                                  r->y * viewport.tileSet.size.second) *
                      rScale;
-        e_pos.x += -viewport->tileSet.size.first * viewport->view_x * rScale;
-        e_pos.y += -viewport->tileSet.size.second * viewport->view_y * rScale;
+        e_pos.x += -viewport.tileSet.size.first * viewport.view_x * rScale;
+        e_pos.y += -viewport.tileSet.size.second * viewport.view_y * rScale;
 
         auto bg = std::make_shared<sf::RectangleShape>();
         bg->setSize(e_size);
@@ -677,9 +677,9 @@ sf::Texture DrawEngine::draw() {
         i++;
       }
     }
-    auto ents = registry->group(entt::get<hf::position, hf::renderable>);
+    auto ents = registry.group(entt::get<hf::position, hf::renderable>);
     for (auto e : ents) {
-      if (registry->valid(e)) {
+      if (registry.valid(e)) {
         renderEntity(e);
       }
     }
@@ -696,7 +696,7 @@ sf::Texture DrawEngine::draw() {
     log.start("partial redraw", true);
     canvas->clear(bgColor);
     // for (auto d : damage) {
-    //   auto t = cacheTile(d.first, d.second, viewport->view_z);
+    //   auto t = cacheTile(d.first, d.second, viewport.view_z);
     //   if (t) {
     //     updateTile(*t);
     //     tilesUpdated++;
@@ -705,7 +705,7 @@ sf::Texture DrawEngine::draw() {
 
     for (auto observer : observers) {
       for (auto e : *observer) {
-        if (!registry->valid(e))
+        if (!registry.valid(e))
           continue;
         updateEntity(e);
         tilesUpdated++;
@@ -721,7 +721,7 @@ sf::Texture DrawEngine::draw() {
     canvas->display();
     log.stop("partial redraw", 50);
   }
-  mutex->unlock();
+  mutex.unlock();
   log.stop(label, 50);
   return canvas->getTexture();
 }

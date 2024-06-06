@@ -58,8 +58,8 @@ public:
   DrawEngine(sf::RenderWindow *w) : window(w) {
     layers = std::make_shared<LayersManager>();
 
-    auto viewport = entt::service_locator<Viewport>::get().lock();
-    auto c = Color::fromHexString(viewport->colors["PALETTE"]["BACKGROUND"]);
+    auto &viewport = entt::locator<Viewport>::value();
+    auto c = Color::fromHexString(viewport.colors["PALETTE"]["BACKGROUND"]);
     bgColor = sf::Color(c.r, c.g, c.b, c.a);
   }
   void invalidate() {

@@ -25,7 +25,13 @@ CPMAddPackage("gh:averrin/libcolor#master")
 CPMAddPackage("gh:averrin/libprint#master")
 CPMAddPackage("gh:averrin/liblog#master")
 CPMAddPackage("gh:juliettef/IconFontCppHeaders#main")
-# CPMAddPackage("gh:Green-Sky/imgui_entt_entity_editor#master")
+CPMAddPackage("gh:Green-Sky/imgui_entt_entity_editor#master")
+# CPMAddPackage("gh:USCiLab/cereal#master")
+
+# FetchContent_Declare(
+#   cereal
+#   URL "https://github.com/USCiLab/cereal/archive/refs/tags/v1.3.2.zip"
+# )
 
 FetchContent_Declare(
   imgui
@@ -33,6 +39,7 @@ FetchContent_Declare(
   URL "https://github.com/ocornut/imgui/archive/refs/heads/docking.zip"
 )
 FetchContent_MakeAvailable(imgui)
+# FetchContent_MakeAvailable(cereal)
 
 FetchContent_Declare(
   SFML
@@ -43,6 +50,11 @@ FetchContent_Declare(
   taskflow
   URL "https://github.com/taskflow/taskflow/archive/refs/tags/v3.7.0.zip"
 )
+
+FetchContent_Declare(
+  entt
+  URL "https://github.com/skypjack/entt/releases/download/v3.13.2/entt-v3.13.2.tar.gz"
+)
 option(SFML_BUILD_AUDIO "Build audio" OFF)
 option(SFML_BUILD_NETWORK "Build network" OFF)
 set(OpenGL_GL_PREFERENCE "GLVND")
@@ -50,6 +62,7 @@ set(OpenGL_GL_PREFERENCE "GLVND")
 find_package(OpenGL REQUIRED)
 FetchContent_MakeAvailable(sfml)
 FetchContent_MakeAvailable(taskflow)
+FetchContent_MakeAvailable(entt)
 
 FetchContent_Declare(
   lua
@@ -146,15 +159,20 @@ endif()
 if(IconFontCppHeaders_ADDED)
   target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC "${IconFontCppHeaders_SOURCE_DIR}")
 endif()
-# if(imgui_entt_entity_editor_ADDED)
-#   target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC "${imgui_entt_entity_editor_SOURCE_DIR}")
+if(imgui_entt_entity_editor_ADDED)
+  target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC "${imgui_entt_entity_editor_SOURCE_DIR}")
+endif()
+# if(cereal_ADDED)
+#   target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC "${cereal_SOURCE_DIR}/include")
 # endif()
 
 target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC ${OPENGL_INCLUDE_DIR})
 target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC "${lua_SOURCE_DIR}/src")
 target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC "${PROJECT_PATH}/include/3rdparty")
+target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC "${PROJECT_PATH}/include/3rdparty/cereal/include")
 target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC ${OPENGL_INCLUDE_DIR})
 target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC "${taskflow_SOURCE_DIR}")
+target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC "${entt_SOURCE_DIR}/single_include")
 
 target_compile_options(${PROJECT_NAME} PRIVATE -Wno-format-security -Wno-switch)
 
