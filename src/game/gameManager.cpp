@@ -10,15 +10,14 @@
 #include <app/ui/viewport.hpp>
 #include <thread>
 
-void convertVisibleToRenderable(std::shared_ptr<entt::registry> registry,
-                                entt::entity e) {
-  auto viewport = entt::service_locator<Viewport>::get().lock();
+void convertVisibleToRenderable(entt::registry& registry,
+                                entt::entity e) {auto viewport = entt::locator<Viewport>::value();
   auto render = hf::renderable{};
   if (registry.all_of<hf::renderable>(e))
-    render = registry.get<hf::renderable>(e);
+  render = registry.get<hf::renderable>(e);
   auto [v, m] = registry.get<hellfrost::visible, hf::meta>(e);
-  render.spriteKey = (v.sign != "" && viewport->tileSet.sprites.find(v.sign) !=
-                                          viewport->tileSet.sprites.end())
+  render.spriteKey = (v.sign != "" && viewport.tileSet.sprites.find(v.sign) !=
+                                          viewport.tileSet.sprites.end())
                          ? v.sign
                          : "UNKNOWN";
   render.fgColor = fmt::format("{}/{}", v.type, v.sign);
@@ -36,21 +35,21 @@ void GameManager::gen(LocationSpec spec) {
   Random::seed(seed);
   log.info("Seed: {}", seed);
 
-  registry.reset();
-  auto data = entt::service_locator<GameData>::get().lock();
+  //registry.reset();
+  auto data = entt::locator<GameData>::value();
   // registry
   //     .on_construct<hellfrost::renderable>()
   //     .connect<&entt::registry::emplace<hellfrost::position>>(registry);
   if (spec.templateMap.size() == 0) {
-    spec.templateMap = data->mapFeatures;
+    spec.templateMap = data.mapFeatures;
   }
 
   generator->templates = templates;
   generator->features = features;
   location = generator->getLocation(spec);
-  registry = location->registry;
-  entt::service_locator<entt::registry>::set(registry);
-  auto view_map = entt::service_locator<Viewport>::get().lock();
+  //registry = location->registry.emplace();
+  //entt::locator<entt::registry>::set(registry);
+  //auto view_map = entt::locator<Viewport>::value();
 
   std::map<std::shared_ptr<Room>, entt::entity> res;
   for (auto r : location->rooms) {
@@ -123,7 +122,7 @@ void GameManager::gen(LocationSpec spec) {
   // for (auto i : utils::castObjects<Item>(location->objects)) {
   //   auto e = registry.create();
   //   registry.emplace<hellfrost::ingame>(e);
-  //   auto type = data->itemSpecs[i->typeKey];
+  //   auto type = data.itemSpecs[i->typeKey];
   //   i->type = type;
 
   //   i->identified = type.identified;
@@ -180,18 +179,18 @@ void GameManager::gen(LocationSpec spec) {
     }
   }
 
-  for (auto p : data->prototypes->view<hellfrost::visible>()) {
-    convertVisibleToRenderable(data->prototypes, p);
+  for (auto p : data.prototypes.view<hellfrost::visible>()) {
+    convertVisibleToRenderable(data.prototypes, p);
   }
 
   // serve();
   return;
   // EsToProto(EnemyType::CULTIST, data, 99);
-  for (auto e : data->prototypes->view<hellfrost::ineditor>()) {
-    auto v = data->prototypes->get<hellfrost::ineditor>(e);
+  for (auto e : data.prototypes.view<hellfrost::ineditor>()) {
+    auto v = data.prototypes.get<hellfrost::ineditor>(e);
     if (v.folders.front() == "Items") {
       log.info(v.name);
-      data->prototypes->destroy(e);
+      data.prototypes.destroy(e);
     }
   }
   // auto n = 0;
@@ -201,12 +200,12 @@ void GameManager::gen(LocationSpec spec) {
   // }
   // return;
 
-  // data->prototypes->reset();
+  // data.prototypes.reset();
   // auto n = 0;
   std::map<std::string, int> counter;
   for (auto c : Prototype::ALL) {
     for (auto item : c) {
-      auto type = data->itemSpecs[item->typeKey];
+      auto type = data.itemSpecs[item->typeKey];
       item->type = type;
 
       item->identified = type.identified;
@@ -221,39 +220,39 @@ void GameManager::gen(LocationSpec spec) {
       //   counter[item->unidName] = 0;
       // }
 
-      auto e = data->prototypes->create();
-      data->prototypes->emplace<entt::tag<"proto"_hs>>(e);
+      auto e = data.prototypes.create();
+      data.prototypes.emplace<entt::tag<"proto"_hs>>(e);
       // auto key = fmt::format("{}_{}", item->type.name, n);
       auto key = fmt::format("{}", item->name);
       std::transform(key.begin(), key.end(), key.begin(), ::toupper);
       std::replace(key.begin(), key.end(), ' ', '_');
-      data->prototypes->emplace<hf::meta>(e, item->getFullTitle(true),
+      data.prototypes.emplace<hf::meta>(e, item->getFullTitle(true),
                                          item->unidName, key);
-      data->prototypes->emplace<hf::ineditor>(
+      data.prototypes.emplace<hf::ineditor>(
           e, key, std::vector<std::string>{"Items", item->type.name},
           ICON_FA_CARROT);
-      data->prototypes->emplace<hf::visible>(e, "ITEMS", item->type.sign);
+      data.prototypes.emplace<hf::visible>(e, "ITEMS", item->type.sign);
 
-      data->prototypes->emplace<hf::pickable>(e, item->type.category,
+      data.prototypes.emplace<hf::pickable>(e, item->type.category,
                                              item->type.identified, item->count,
                                              item->unidName);
-      data->prototypes->emplace<hf::wearable>(e, item->type.wearableType,
+      data.prototypes.emplace<hf::wearable>(e, item->type.wearableType,
                                              item->type.durability);
       // n++;
     }
   }
 
-  // for (auto [sid, spec] : data->terrainSpecs) {
-  //   auto e = data->prototypes->create();
-  //   data->prototypes->emplace<entt::tag<"proto"_hs>>(e);
-  //   data->prototypes->emplace<entt::tag<"terrain"_hs>>(e);
+  // for (auto [sid, spec] : data.terrainSpecs) {
+  //   auto e = data.prototypes.create();
+  //   data.prototypes.emplace<entt::tag<"proto"_hs>>(e);
+  //   data.prototypes.emplace<entt::tag<"terrain"_hs>>(e);
 
-  //   data->prototypes->emplace<hf::meta>(e, sid, "", sid);
-  //   data->prototypes->emplace<hf::ineditor>(
+  //   data.prototypes.emplace<hf::meta>(e, sid, "", sid);
+  //   data.prototypes.emplace<hf::ineditor>(
   //       e, sid, std::vector<std::string>{"Terrain", spec.name}, u8"\uF531");
-  //   data->prototypes->emplace<hf::visible>(e, "TERRAIN", spec.sign);
+  //   data.prototypes.emplace<hf::visible>(e, "TERRAIN", spec.sign);
   //   if (spec.light.distance > 0) {
-  //     data->prototypes->emplace<hf::glow>(e, spec.light.distance,
+  //     data.prototypes.emplace<hf::glow>(e, spec.light.distance,
   //                                        spec.light.type, spec.light.stable);
   //   }
   //   n++;
@@ -313,13 +312,13 @@ void GameManager::serve() {
 //   std::transform(key.begin(), key.end(), key.begin(), ::toupper);
 //   std::replace(key.begin(), key.end(), ' ', '_');
 
-//   auto e = data->prototypes->create();
-//   data->prototypes->emplace<entt::tag<"proto"_hs>>(e);
+//   auto e = data.prototypes.create();
+//   data.prototypes.emplace<entt::tag<"proto"_hs>>(e);
 //   // auto id = fmt::format("{}_{}", es.name, n);
-//   data->prototypes->emplace<hf::meta>(e, es.name, "", key);
-//   data->prototypes->emplace<hf::ineditor>(
+//   data.prototypes.emplace<hf::meta>(e, es.name, "", key);
+//   data.prototypes.emplace<hf::ineditor>(
 //       e, key, std::vector<std::string>{"Enemies", es.name}, ICON_FA_DRAGON);
-//   data->prototypes->emplace<hf::visible>(e, "ENEMY", key);
+//   data.prototypes.emplace<hf::visible>(e, "ENEMY", key);
 // }
 
 std::shared_ptr<EntityWrapper>
@@ -329,7 +328,7 @@ GameManager::createInLua(std::shared_ptr<Location> location,
   auto ne =
       location->addEntity(id, std::make_shared<Cell>(x, y, CellType::EMPTY));
   auto ew = std::make_shared<EntityWrapper>(ne, registry);
-  ew->registry = registry;
+  //ew->registry = registry;
   return ew;
 }
 
@@ -421,11 +420,11 @@ void GameManager::exec(int points) {
   for (auto action : to_exec) {
     if (action->executed)
       continue;
-    auto emitter = entt::service_locator<event_emitter>::get().lock();
-    emitter->publish<pre_action_event>();
+    auto & emitter = entt::locator<event_emitter>::value();
+    emitter.publish<pre_action_event>(pre_action_event{});
     log.info("Executing action: {} ({})", action->name, action->executed);
     action->action();
-    emitter->publish<post_action_event>();
+    emitter.publish<post_action_event>(post_action_event{});
     action->executed = true;
     auto &track = registry.get<Sequentity::Track>(action->entity);
     auto &channel = track.channels[0];
@@ -436,13 +435,13 @@ void GameManager::exec(int points) {
     event.enabled = false;
   }
   cursor += points;
-  auto &state = registry.ctx<Sequentity::State>();
+  auto &state = registry.ctx().template get<Sequentity::State>();
   state.current_time = cursor;
   state.range[1] = cursor + 250;
 
   serve();
 
-  // auto emitter = entt::service_locator<event_emitter>::get().lock();
+  // auto emitter = entt::locator<event_emitter>::get().lock();
   // // lastAction = action;
   // emitter->publish<pre_action_event>();
   // // emitter->publish<action_event>(action);

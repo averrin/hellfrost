@@ -19,7 +19,7 @@ namespace hf = hellfrost;
 class EntityWrapper {
 public:
   entt::entity entity;
-  entt::registry& registry;
+  entt::registry& registry = entt::locator<entt::registry>::emplace();
   EntityWrapper(entt::entity e, entt::registry& registry) : entity(e), registry(registry) {}
   std::string getId() {
     auto meta = registry.get<hf::meta>(entity);
@@ -124,7 +124,6 @@ public:
     cereal::BinaryInputArchive iarchive(file);
     entt::registry p{};
     auto &data = entt::locator<GameData>::emplace(p);
-
     iarchive(data);
   }
   void saveData() {

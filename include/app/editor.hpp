@@ -68,7 +68,8 @@ public:
   void drawEntityEditor(entt::registry &registry);
 
   std::shared_ptr<GameManager> gm;
-  MM::EntityEditor<entt::basic_registry<entt::entity>> entityEditor;
+  //MM::EntityEditor<entt::basic_registry<entt::entity>> entityEditor;
+  MM::EntityEditor<entt::entity> entityEditor;
 
   void processRegistry(entt::registry &registry);
 };

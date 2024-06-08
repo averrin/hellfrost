@@ -354,7 +354,7 @@ void Generator::fixOverlapped(std::shared_ptr<Location> location) {
 }
 
 void Generator::placeDoors(std::shared_ptr<Location> location) {
-  auto data = entt::service_locator<GameData>::get().lock();
+  auto data = entt::locator<GameData>::value();
   dlog("place doors");
   auto d = 0;
   for (auto r : location->cells) {
@@ -370,7 +370,7 @@ void Generator::placeDoors(std::shared_ptr<Location> location) {
               }) < 6) {
             // TODO: migrate to entitiees
             //  auto o = location->getObjects(c);
-            if (R::R() > data->probability["DOOR"] || c->tags.has("CAVE"))
+            if (R::R() > data.probability["DOOR"] || c->tags.has("CAVE"))
               continue;
             // auto nd = false;
             // for (auto nc : n) {
@@ -518,7 +518,7 @@ void Generator::placeEnemies(std::shared_ptr<Location> location, int threat) {
       location->log.info(key);
       auto e = location->addEntity(key, c);
       location->creatures[e] = std::make_shared<Creature>();
-      location->creatures[e]->name = location->registry->get<hf::meta>(e).id;
+      location->creatures[e]->name = location->registry.get<hf::meta>(e).id;
       location->creatures[e]->entity = e;
       location->creatures[e]->currentCell = c;
     }
@@ -760,7 +760,7 @@ void Generator::makePassages(std::shared_ptr<Location> location,
 }
 
 void Generator::makeExterior(std::shared_ptr<Location> location) {
-  // auto data = entt::service_locator<GameData>::get().lock();
+  // auto data = entt::locator<GameData>::get().lock();
   // dlog("place caves");
   // auto rc = rand() % 20 + 35;
 
@@ -885,7 +885,7 @@ Generator::placeRooms(std::shared_ptr<Location> location, int min, int max,
 std::vector<std::shared_ptr<Room>>
 Generator::placeCaves(std::shared_ptr<Location> location, int min, int max,
                       int w, int h, int x, int y) {
-  auto data = entt::service_locator<GameData>::get().lock();
+  auto data = entt::locator<GameData>::value();
   dlog("place caves");
   auto rc = Random::get<int>(min, max);
   std::vector<std::shared_ptr<Room>> rooms;
@@ -894,7 +894,7 @@ Generator::placeCaves(std::shared_ptr<Location> location, int min, int max,
     auto room = Room::makeRoom(h / 2, 12, w / 2, 12, location->type.border);
 
     for (auto c : room->cells) {
-      if (R::R() > data->probability["CAVERN_WALL"]) {
+      if (R::R() > data.probability["CAVERN_WALL"]) {
         mapUtils::updateCell(c, location->type.floor);
       }
     }
@@ -958,7 +958,7 @@ void Generator::cleanWalls(std::shared_ptr<Location> location) {
 }
 
 void Generator::makeCavePassage(std::shared_ptr<Location> location) {
-  auto data = entt::service_locator<GameData>::get().lock();
+  auto data = entt::locator<GameData>::value();
   dlog("place cave passage");
   std::vector<Direction> ds{N, E, S, W};
   auto room = location->rooms[rand() % location->rooms.size()];
@@ -975,11 +975,11 @@ void Generator::makeCavePassage(std::shared_ptr<Location> location) {
     location->rooms.push_back(newRoom);
     for (auto c : newRoom->cells) {
       if (c->type == CellType::GROUND &&
-          R::R() < data->probability["CAVE_ROCK"]) {
+          R::R() < data.probability["CAVE_ROCK"]) {
         location->addEntity("ROCK", c);
       } else if (c->type == CellType::GROUND &&
-                 R::R() < data->probability["CAVE_GRASS"]) {
-        if (R::R() < data->probability["CAVE_BUSH"]) {
+                 R::R() < data.probability["CAVE_GRASS"]) {
+        if (R::R() < data.probability["CAVE_BUSH"]) {
           location->addTerrain("BUSH", c);
         } else {
           location->addEntity("HERB_GREEN", c);
@@ -1040,7 +1040,7 @@ std::shared_ptr<Room> placeLake(std::shared_ptr<Location> location) {
 
 std::shared_ptr<Location> Generator::getLocation(LocationSpec spec) {
   using milliseconds = std::chrono::duration<double, std::milli>;
-  auto data = entt::service_locator<GameData>::get().lock();
+  //auto data = entt::locator<GameData>::get().lock();
 
   auto t0 = std::chrono::system_clock::now();
   std::map<std::string, milliseconds> timings;

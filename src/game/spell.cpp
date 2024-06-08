@@ -5,7 +5,7 @@
 
 void CellSpell::applyEffect(std::shared_ptr<Location> location,
                 std::shared_ptr<Cell> c) {
-  auto data = entt::service_locator<GameData>::get().lock();
+  //auto data = entt::locator<GameData>::get().lock();
 
 if (spec == "FROSTBALL") {
     location->addTerrain(spec, c);
