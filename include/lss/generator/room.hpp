@@ -48,10 +48,10 @@ public:
   std::shared_ptr<Cell> getCell(int x, int y) { return cells[x + y * width]; }
   std::string color;
 
-  void rotateEntities(std::shared_ptr<entt::registry> registry) {
+  void rotateEntities(entt::registry& registry) {
 
     for (auto e : entities) {
-      auto &p = registry->get<hf::position>(e);
+      auto &p = registry.get<hf::position>(e);
       auto n = 0;
       for (auto c : cells) {
         if (c->x == p.x && c->y == p.y) {
@@ -59,7 +59,7 @@ public:
           auto cy = n / width;
           auto nx = height - (cy + 1);
           auto ny = cx;
-          registry->emplace_or_replace<hf::position>(e, nx, ny, p.z);
+          registry.emplace_or_replace<hf::position>(e, nx, ny, p.z);
           break;
         }
         n++;

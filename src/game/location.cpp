@@ -29,8 +29,8 @@ void Location::addRoom(std::shared_ptr<Room> room, int x, int y) {
   room->y = y;
 
   for (auto e : room->entities) {
-    auto &p = registry->get<hf::position>(e);
-    registry->emplace_or_replace<hf::position>(e, p.x + x, p.y + y, p.z);
+    auto &p = registry.get<hf::position>(e);
+    registry.emplace_or_replace<hf::position>(e, p.x + x, p.y + y, p.z);
   }
   for (auto c : room->cells) {
     c->x = c->_x + room->x;
@@ -43,9 +43,9 @@ std::vector<entt::entity> Location::getEntities(std::shared_ptr<Cell> cell) {
     return cellEntities[cell];
   }
   std::vector<entt::entity> result;
-  auto ents = registry->group(entt::get<hf::position, hf::meta>);
+  auto ents = registry.group(entt::get<hf::position, hf::meta>);
   for (auto e : ents) {
-    auto p = registry->get<hf::position>(e);
+    auto p = registry.get<hf::position>(e);
     if (p.movable && p.x == cell->x && p.y == cell->y) {
       result.push_back(e);
     }
@@ -573,31 +573,31 @@ std::vector<std::shared_ptr<Cell>> Location::getLine(std::shared_ptr<Cell> c1,
 entt::entity Location::addEntity(std::string typeKey,
                                  std::shared_ptr<Cell> cell) {
   auto &data = entt::locator<GameData>::value();
-  auto e = registry->create();
+  auto e = registry.create();
 
-  auto ne = registry->create();
+  auto ne = registry.create();
   // for (auto e : data.prototypes.group(entt::get<entt::tag<"proto"_hs>)) {
   for (auto e : data.prototypes.view<hf::meta>()) {
     if (data.prototypes.get<hf::meta>(e).id == typeKey) {
-      // registry->push(ne, e, *data.prototypes,
+      // registry.push(ne, e, *data.prototypes,
       //                entt::exclude<entt::tag<"proto"_hs>>);
 
-      for (auto [id, storage] : registry->storage()) {
+      for (auto [id, storage] : registry.storage()) {
         if (storage.contains(e)) {
           storage.push(ne, storage.value(e));
         }
       }
-      registry->emplace<hf::ingame>(ne);
-      registry->remove<entt::tag<"proto"_hs>>(ne);
-      registry->emplace<hf::position>(ne, cell->x, cell->y, 0);
+      registry.emplace<hf::ingame>(ne);
+      registry.remove<entt::tag<"proto"_hs>>(ne);
+      registry.emplace<hf::position>(ne, cell->x, cell->y, 0);
       auto meta = data.prototypes.get<hf::meta>(e);
       meta.id = fmt::format("{}_{}", meta.id, (int)ne);
-      registry->emplace_or_replace<hf::meta>(ne, meta);
+      registry.emplace_or_replace<hf::meta>(ne, meta);
       // log.debug("Add entity: {} @ {}.{}", meta.id, cell->x, cell->y);
       break;
     }
   }
-  if (!registry->valid(ne)) {
+  if (!registry.valid(ne)) {
     log.error("Cannot create: {} @ {}", typeKey, cell->getSId());
   }
   return ne;
@@ -606,28 +606,28 @@ entt::entity Location::addEntity(std::string typeKey,
 entt::entity Location::addTerrain(std::string typeKey,
                                   std::shared_ptr<Cell> cell) {
   auto &data = entt::locator<GameData>::value();
-  auto e = registry->create();
+  auto e = registry.create();
 
-  auto ne = registry->create();
+  auto ne = registry.create();
   for (auto e : data.prototypes.view<entt::tag<"terrain"_hs>>()) {
     if (data.prototypes.get<hf::meta>(e).id == typeKey) {
-      // registry->push(ne, e, *data.prototypes,
+      // registry.push(ne, e, *data.prototypes,
       //                 entt::exclude<entt::tag<"proto"_hs>>);
-      for (auto [id, storage] : registry->storage()) {
+      for (auto [id, storage] : registry.storage()) {
         if (storage.contains(e)) {
           storage.push(ne, storage.value(e));
         }
       }
-      registry->emplace<hf::ingame>(ne);
-      registry->remove<entt::tag<"proto"_hs>>(ne);
-      registry->emplace<hf::position>(ne, cell->x, cell->y, 0);
+      registry.emplace<hf::ingame>(ne);
+      registry.remove<entt::tag<"proto"_hs>>(ne);
+      registry.emplace<hf::position>(ne, cell->x, cell->y, 0);
       auto meta = data.prototypes.get<hf::meta>(e);
       meta.id = fmt::format("{}_{}", meta.id, (int)ne);
-      registry->emplace_or_replace<hf::meta>(ne, meta);
+      registry.emplace_or_replace<hf::meta>(ne, meta);
       break;
     }
   }
-  if (!registry->valid(ne)) {
+  if (!registry.valid(ne)) {
     log.error("Cannot create: {} @ {}", typeKey, cell->getSId());
   }
   return ne;

@@ -118,7 +118,7 @@ Application::Application(std::string app_name, fs::path path,
   // entt::locator<Viewport>::empty();
   // entt::locator<GameData>::empty();
   // entt::locator<GameData>::empty();
-  entt::locator<std::mutex>::emplace(reg_mutex);
+  entt::locator<std::mutex *>::emplace(reg_mutex.get());
 
   std::shared_ptr<R::Generator> gen = std::make_shared<R::Generator>();
   // viewport = std::make_shared<Viewport>();

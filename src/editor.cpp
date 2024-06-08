@@ -11,6 +11,7 @@
 #include <lss/generator/mapUtils.hpp>
 #include <magic_enum.hpp>
 
+
 void Editor::drawEntityEditor(entt::registry& registry) {
   entityEditor.registerComponent<hf::meta>("Meta");
   entityEditor.registerComponent<hf::position>("Position");
