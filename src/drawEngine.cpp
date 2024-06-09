@@ -109,13 +109,13 @@ sf::Color DrawEngine::getGlowColorForCell(entt::entity e,
 }
 
 void DrawEngine::updateExistingLight() {
-  auto &mutex = entt::locator<std::mutex>::value();
+  auto mutex = entt::locator<std::mutex *>::value();
   if (lightUpdating) {
-    mutex.unlock();
+    mutex->unlock();
     return;
   }
   lightUpdating = true;
-  mutex.lock();
+  mutex->lock();
   // log.start("update existing light", false);
   auto light = layers->layers["light"];
   auto lights = light->children;
@@ -136,7 +136,7 @@ void DrawEngine::updateExistingLight() {
   light->update();
   redrawCanvas();
   // log.stop("update existing light");
-  mutex.unlock();
+  mutex->unlock();
   lightUpdating = false;
 }
 
@@ -149,7 +149,11 @@ void DrawEngine::updateDark() {
   dark->clear();
 
   auto location = viewport.regions.front()->location;
-  if (location->player == nullptr) {
+  if (!registry.valid(location->player->entity))
+      return;
+  if (location->player == nullptr ||
+      !registry.valid(location->player->entity) ||
+      !registry.all_of<hf::vision>(location->player->entity)) {
     log.error("No player exists");
     return;
   }
@@ -538,8 +542,8 @@ void DrawEngine::observe() {
   auto viewport = entt::locator<Viewport>::value();
   auto &registry = entt::locator<entt::registry>::value();
 
-  auto &mutex = entt::locator<std::mutex>::value();
-  mutex.lock();
+  auto mutex = entt::locator<std::mutex *>::value();
+  mutex->lock();
 
   // if (new_visible && new_visible->size() > 0) {
   //   log.info("+VISIBLE");
@@ -591,7 +595,7 @@ void DrawEngine::observe() {
   //   }
   //   glow->clear();
   // }
-  mutex.unlock();
+  mutex->unlock();
   // log.stop("de::observe");
 }
 
@@ -622,8 +626,8 @@ sf::Texture DrawEngine::draw() {
     // return canvas->getTexture();
   }
   observe();
-  auto &mutex = entt::locator<std::mutex>::value();
-  mutex.lock();
+  auto mutex = entt::locator<std::mutex *>::value();
+  mutex->lock();
 
   auto &viewport = entt::locator<Viewport>::value();
 
@@ -721,7 +725,7 @@ sf::Texture DrawEngine::draw() {
     canvas->display();
     log.stop("partial redraw", 50);
   }
-  mutex.unlock();
+  mutex->unlock();
   log.stop(label, 50);
   return canvas->getTexture();
 }

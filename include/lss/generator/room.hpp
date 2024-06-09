@@ -51,6 +51,8 @@ public:
   void rotateEntities(entt::registry& registry) {
 
     for (auto e : entities) {
+      if (!registry.valid(e) || !registry.all_of<hf::position>(e))
+          continue;
       auto &p = registry.get<hf::position>(e);
       auto n = 0;
       for (auto c : cells) {

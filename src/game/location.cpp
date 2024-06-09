@@ -29,6 +29,8 @@ void Location::addRoom(std::shared_ptr<Room> room, int x, int y) {
   room->y = y;
 
   for (auto e : room->entities) {
+    if (!registry.valid(e) || !registry.all_of<hf::position>(e))
+        continue;
     auto &p = registry.get<hf::position>(e);
     registry.emplace_or_replace<hf::position>(e, p.x + x, p.y + y, p.z);
   }
@@ -573,6 +575,11 @@ std::vector<std::shared_ptr<Cell>> Location::getLine(std::shared_ptr<Cell> c1,
 entt::entity Location::addEntity(std::string typeKey,
                                  std::shared_ptr<Cell> cell) {
   auto &data = entt::locator<GameData>::value();
+  //if (data.prototypes == nullptr) {
+  if (!data.prototypes.storage<entt::entity>().size() ) {
+      log.error("No prototypes");
+      return entt::null;
+  }
   auto e = registry.create();
 
   auto ne = registry.create();
@@ -606,6 +613,11 @@ entt::entity Location::addEntity(std::string typeKey,
 entt::entity Location::addTerrain(std::string typeKey,
                                   std::shared_ptr<Cell> cell) {
   auto &data = entt::locator<GameData>::value();
+  // if (data.prototypes == nullptr) {
+  if (!data.prototypes.storage<entt::entity>().size() ) {
+      log.error("No prototypes");
+      return entt::null;
+  }
   auto e = registry.create();
 
   auto ne = registry.create();

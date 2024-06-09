@@ -720,6 +720,10 @@ void Editor::drawSelectedInfo() {
 
 template <typename... T>
 void Editor::drawEntityTree(entt::registry& registry) {
+  // if(registry == nullptr) {
+  //     ImGui::Text("The Data registry is fucked");
+  //     return;
+  // }
   auto ents = registry.view<T...>();
   auto entityTree = std::make_shared<tree_node>();
 

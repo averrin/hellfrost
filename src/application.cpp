@@ -570,7 +570,7 @@ void Application::drawDocking(float padding) {
 void Application::drawStatusBar(float width, float height, float pos_x,
                                 float pos_y) {
   // Draw status bar (no docking)
-  auto &viewport = entt::locator<Viewport>::emplace();
+  auto &viewport = entt::locator<Viewport>::value();
   ImGui::SetNextWindowSize(ImVec2(width, height), ImGuiCond_Always);
   ImGui::SetNextWindowPos(ImVec2(pos_x, pos_y), ImGuiCond_Always);
   ImGui::Begin("statusbar", nullptr,
@@ -913,10 +913,10 @@ bool Application::movePlayer(Direction d) {
 
 void Application::genLocation(int s, LocationSpec spec) {
 
-  auto &mutex = entt::locator<std::mutex>::value();
+  auto mutex = entt::locator<std::mutex *>::value();
   auto &viewport = entt::locator<Viewport>::value();
   auto &engine = entt::locator<DrawEngine>::value();
-  mutex.lock();
+  mutex->lock();
   if (cacheThread.joinable()) {
     cacheThread.join();
   }
@@ -959,7 +959,7 @@ void Application::genLocation(int s, LocationSpec spec) {
   //   log.info("cache thread ends");
   // });
 
-  mutex.unlock();
+  mutex->unlock();
 }
 
 int Application::serve() {
@@ -1017,7 +1017,7 @@ int Application::serve() {
 
   std::thread t([=]() {
     auto d = lua.get<sol::table>("light")["flick_delay"];
-    auto &mutex = entt::locator<std::mutex>::value();
+    auto mutex = entt::locator<std::mutex *>::value();
     auto &viewport = entt::locator<Viewport>::value();
     auto &engine = entt::locator<DrawEngine>::value();
     while (true) {

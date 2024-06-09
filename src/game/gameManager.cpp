@@ -75,6 +75,10 @@ void GameManager::gen(LocationSpec spec) {
       if (cell->type == CellType::UNKNOWN || cell->type == CellType::EMPTY)
         continue;
       auto e = location->addEntity(cell->type.name, cell);
+      if (!registry.valid(e) || !registry.all_of<hf::ineditor>(e)) {
+          log.error("Invalid entity");
+          continue;
+      }
       registry.emplace_or_replace<hellfrost::cell>(e, cell);
       auto i = cell->getSId();
       registry.emplace_or_replace<hellfrost::meta>(e, i, "", i);
@@ -179,10 +183,13 @@ void GameManager::gen(LocationSpec spec) {
     }
   }
 
-  for (auto p : data.prototypes.view<hellfrost::visible>()) {
-    convertVisibleToRenderable(data.prototypes, p);
+  if (data.prototypes.storage<entt::entity>().size()) {
+      for (auto p : data.prototypes.view<hellfrost::visible>()) {
+          convertVisibleToRenderable(data.prototypes, p);
+      }
+      location->cellEntities.clear();
+      serve();
   }
-
   // serve();
   return;
   // EsToProto(EnemyType::CULTIST, data, 99);
@@ -263,25 +270,49 @@ void GameManager::gen(LocationSpec spec) {
 void GameManager::serve() {
   // fmt::print("GameManager::serve\n");
   log.start("GameManager::serve", true);
-  auto vis = registry.get<hf::vision>(location->player->entity);
-  auto d = vis.distance;
-  auto fov = location->player->viewField;
-  for (auto c : fov) {
-    c->seeThrough = c->type.seeThrough;
-    c->passThrough = c->type.passThrough;
-    auto es = location->getEntities(c);
-    for (auto e : es) {
-      if (registry.all_of<hf::obstacle>(e)) {
-        auto o = registry.get<hf::obstacle>(e);
-        if (!o.seeThrough) {
-          c->seeThrough = false;
-        }
-        if (!o.passThrough) {
-          c->passThrough = false;
-        }
+  if (registry.valid(location->player->entity) &&
+      registry.all_of<hf::position>(location->player->entity)) {
+      auto vis = registry.get<hf::vision>(location->player->entity);
+      auto d = vis.distance;
+      auto fov = location->player->viewField;
+      if (fov.size() == 0) {
+          fov = location->getVisible(location->player->currentCell, d, true);
+          if (fov.size() == 0) {
+              log.error("No visible cells");
+              return;
+          }
       }
-    }
+      for (auto c : fov) {
+          c->seeThrough = c->type.seeThrough;
+          c->passThrough = c->type.passThrough;
+          auto es = location->getEntities(c);
+          for (auto e : es) {
+              if (registry.all_of<hf::obstacle>(e)) {
+                  auto o = registry.get<hf::obstacle>(e);
+                  if (!o.seeThrough) {
+                      c->seeThrough = false;
+                  }
+                  if (!o.passThrough) {
+                      c->passThrough = false;
+                  }
+                  auto visCacheThread = std::thread([&]() {
+                      auto vis = registry.get<hf::vision>(location->player->entity);
+                      auto d = vis.distance;
+                      for (auto n : location->getNeighbors(location->player->currentCell)) {
+                          if (!n->passThrough)
+                              continue;
+                          location->getVisible(n, d, true);
+                          location->getEntities(n);
+                      }
+                  });
+                  visCacheThread.detach();
+                  // fmt::print("GameManager::after creatures\n");
+                  //
+              }
+          }
+      }
   }
+
   // fmt::print("GameManager::before creatures\n");
   for (auto [e, c] : location->creatures) {
     if (registry.valid(e) && registry.all_of<hf::position>(e) &&
@@ -292,16 +323,6 @@ void GameManager::serve() {
       registry.emplace_or_replace<hellfrost::position>(e, p);
     }
   }
-  auto visCacheThread = std::thread([&]() {
-    auto vis = registry.get<hf::vision>(location->player->entity);
-    auto d = vis.distance;
-    for (auto n : location->getNeighbors(location->player->currentCell)) {
-      if (!n->passThrough)
-        continue;
-      location->getVisible(n, d, true);
-    }
-  });
-  visCacheThread.detach();
   // fmt::print("GameManager::after creatures\n");
   log.stop("GameManager::serve");
 }

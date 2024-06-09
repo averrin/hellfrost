@@ -43,9 +43,9 @@ class Location : public Object,
                  public micropather::Graph,
                  public std::enable_shared_from_this<Location> {
 public:
-  entt::registry& registry = entt::locator<entt::registry>::emplace();
+  entt::registry& registry;
   LibLog::Logger &log = LibLog::Logger::getInstance();
-  Location(LocationSpec t) : Object(), type(t) {}
+  Location(LocationSpec t) : Object(), type(t), registry(entt::locator<entt::registry>::value()) {}
   ~Location();
   LocationSpec type;
   Cells cells;

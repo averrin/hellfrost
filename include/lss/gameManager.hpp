@@ -19,7 +19,7 @@ namespace hf = hellfrost;
 class EntityWrapper {
 public:
   entt::entity entity;
-  entt::registry& registry = entt::locator<entt::registry>::emplace();
+  entt::registry& registry;
   EntityWrapper(entt::entity e, entt::registry& registry) : entity(e), registry(registry) {}
   std::string getId() {
     auto meta = registry.get<hf::meta>(entity);

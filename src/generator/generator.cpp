@@ -454,6 +454,12 @@ void Generator::placeLoot(std::shared_ptr<Location> location, int threat) {
 
 void Generator::placeEnemies(std::shared_ptr<Location> location, int threat) {
   dlog("place enemies");
+  auto data = entt::locator<GameData>::value();
+  // if(data.prototypes == nullptr) {
+  if (!data.prototypes.storage<entt::entity>().size() ) {
+      location->log.error("prototypes not loaded");
+      return;
+  }
   std::map<EnemySpec, float> table;
   auto pather = new micropather::MicroPather(location.get());
   micropather::MPVector<void *> path;
@@ -517,6 +523,7 @@ void Generator::placeEnemies(std::shared_ptr<Location> location, int threat) {
       std::replace(key.begin(), key.end(), ' ', '_');
       location->log.info(key);
       auto e = location->addEntity(key, c);
+      if(!location->registry.valid(e) || !location->registry.all_of<hf::meta>(e)) return;
       location->creatures[e] = std::make_shared<Creature>();
       location->creatures[e]->name = location->registry.get<hf::meta>(e).id;
       location->creatures[e]->entity = e;
