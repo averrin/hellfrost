@@ -183,12 +183,15 @@ struct creature {
 struct obstacle {
   bool passThrough = false;
   bool seeThrough = false;
+  bool interactive = false;
+  int passAddCost = 0;
+  int interactionCost = 0;
   friend class cereal::access;
   template <class Archive> void save(Archive &ar) const {
-    ar(passThrough, seeThrough);
+    ar(passThrough, seeThrough, interactive, passAddCost, interactionCost);
   };
   template <class Archive> void load(Archive &ar) {
-    ar(passThrough, seeThrough);
+    ar(passThrough, seeThrough, interactive, passAddCost, interactionCost);
   };
 };
 struct player {};

@@ -3,7 +3,7 @@ tileset = "boxy"
 -- seed=1320999521
 seed = 873130520
 -- location_type="DUNGEON"
-location_type = "MIX"
+location_type = "CAVERN"
 margin = 8
 
 light = {

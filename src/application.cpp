@@ -113,11 +113,8 @@ Application::Application(std::string app_name, fs::path path,
   entt::monostate<"path"_hs>{} = PATH.string().data();
   entt::monostate<"tileset"_hs>{} = DEFAULT_TILESET.data();
 
-  // entt::locator<entt::registry>::empty();
-  // entt::locator<event_emitter>::emplace();
-  // entt::locator<Viewport>::empty();
-  // entt::locator<GameData>::empty();
-  // entt::locator<GameData>::empty();
+  entt::locator<event_emitter>::emplace();
+  entt::locator<entt::registry>::emplace();
   entt::locator<std::mutex *>::emplace(reg_mutex.get());
 
   std::shared_ptr<R::Generator> gen = std::make_shared<R::Generator>();
@@ -182,8 +179,7 @@ void Application::setupGui() {
   log.debug("Sfml init: {}", ImGui::SFML::Init(*window, false));
 
   window->resetGLStates();
-
-  event_emitter emitter{};
+  auto &emitter = entt::locator<event_emitter>::value();
 
   emitter.on<regen_event>([&](const auto &p, auto &em) {
     if (p.seed == -1) {
@@ -252,28 +248,14 @@ void Application::setupGui() {
     engine.invalidate();
   });
 
-  // emitter.on<duk_error>([&](auto event, auto &em) {
-  //   std::string err = std::string(event.msg);
-  //   std::string line;
-  //   std::vector<std::string> lines;
-  //   std::istringstream ss(err);
-  //   std::regex re("eval:(\\d+)");
-  //   std::smatch m;
-  //   while (std::getline(ss, line, '\n')) {
-  //     lines.push_back(line);
-  //   }
-  //   std::regex_search(lines.back(), m, re);
-
-  //   markers.insert(std::make_pair<int, std::string>(
-  //       std::atoi(std::string(m[m.size() - 1]).data()),
-  //       std::string(lines.front())));
-  //   duk_editor.SetErrorMarkers(markers);
-
-  //   console.AddLog("[error] %s", event.msg.data());
-  // });
-
-  /* emitter.on<exec_event>(
-      [&](auto event, auto &em) { duk_exec(event.code.data()); }); */
+  emitter.on<script_event>(
+    [&](auto event, auto &em) {
+      lua.script_file(PATH / "scripts" / event.path);
+      auto entity = lua.get<sol::table>("entity");
+      lua.set("instance", event.instance);
+      auto f = entity[event.function];
+      f(gm->location, event.arg);
+  });
 
   ide->init();
 
@@ -310,6 +292,8 @@ void Application::processKeyboardEvent(sf::Event event) {
 
   auto &engine = entt::locator<DrawEngine>::value();
   auto &viewport = entt::locator<Viewport>::value();
+  auto &registry = entt::locator<entt::registry>::value();
+  auto &emitter = entt::locator<event_emitter>::value();
   current_pos = window->mapPixelToCoords(sf::Mouse::getPosition(*window));
   auto _x = int(current_pos.x /
                 (viewport.tileSet.size.first * viewport.scale * GUI_SCALE));
@@ -327,13 +311,15 @@ void Application::processKeyboardEvent(sf::Event event) {
     engine.invalidate();
     auto i = 0;
     for (auto p : gm->location->creatures) {
+      if (p.first == gm->location->player->entity)
+        continue;
       auto e = p.first;
       gm->commit(lss::Action(p.first, "creatureMove", 200, [=]() {
         gm->moveCreature(gm->location->creatures[e], Direction::E);
       }));
       i++;
       if (i > 5) {
-        break;
+        // break;
       }
     }
     break;
@@ -366,21 +352,20 @@ void Application::processKeyboardEvent(sf::Event event) {
     break;
   }
   case sf::Keyboard::F2: {
-    event_emitter emitter{};
     emitter.publish(regen_event{-1});
     break;
   }
   case sf::Keyboard::M: {
-    auto ents = gm->registry.view<hf::ineditor>();
+    auto ents = registry.view<hf::ineditor>();
 
     if (ents.size() > 0) {
       for (auto e : ents) {
-        auto ie = gm->registry.get<hf::ineditor>(e);
+        auto ie = registry.get<hf::ineditor>(e);
         if (ie.selected) {
-          auto p = gm->registry.get<hf::position>(e);
+          auto p = registry.get<hf::position>(e);
           p.x = rx;
           p.y = ry;
-          gm->registry.emplace_or_replace<hellfrost::position>(e, p);
+          registry.emplace_or_replace<hellfrost::position>(e, p);
         }
       }
     }
@@ -393,6 +378,8 @@ void Application::processKeyboardEvent(sf::Event event) {
 void Application::processEvent(sf::Event event) {
   auto &viewport = entt::locator<Viewport>::value();
   auto &engine = entt::locator<DrawEngine>::value();
+  auto &registry = entt::locator<entt::registry>::value();
+  auto &emitter = entt::locator<event_emitter>::value();
   ImGuiIO &io = ImGui::GetIO();
   current_pos = window->mapPixelToCoords(sf::Mouse::getPosition(*window));
   auto _x = int(current_pos.x /
@@ -411,7 +398,6 @@ void Application::processEvent(sf::Event event) {
     processKeyboardEvent(event);
     break;
   case sf::Event::Resized: {
-    event_emitter emitter{};
     emitter.publish(resize_event{});
   }
   // case sf::Event::LostFocus:
@@ -425,7 +411,6 @@ void Application::processEvent(sf::Event event) {
     if (io.WantCaptureMouse)
       break;
     if (is_mb_pressed) {
-      event_emitter emitter{};
       auto _sx = int(start_drag_pos.x / (viewport.tileSet.size.first *
                                          viewport.scale * GUI_SCALE));
       auto _sy = int(start_drag_pos.y / (viewport.tileSet.size.second *
@@ -434,16 +419,16 @@ void Application::processEvent(sf::Event event) {
       emitter.publish(mouse_center_event{_sx, _sy});
     }
     if (is_rb_pressed) {
-      auto ents = gm->registry.view<hf::ineditor>();
+      auto ents = registry.view<hf::ineditor>();
 
       if (ents.size() > 0) {
         for (auto e : ents) {
-          auto ie = gm->registry.get<hf::ineditor>(e);
+          auto ie = registry.get<hf::ineditor>(e);
           if (ie.selected) {
-            auto p = gm->registry.get<hf::position>(e);
+            auto p = registry.get<hf::position>(e);
             p.x = rx;
             p.y = ry;
-            gm->registry.emplace_or_replace<hellfrost::position>(e, p);
+            registry.emplace_or_replace<hellfrost::position>(e, p);
           }
         }
       }
@@ -467,29 +452,29 @@ void Application::processEvent(sf::Event event) {
       is_rb_pressed = true;
       lockedPos = {rx, ry};
 
-      auto ents = gm->registry.view<hf::ineditor>();
+      auto ents = registry.view<hf::ineditor>();
 
       if (ents.size() > 0) {
         for (auto e : ents) {
-          auto p = gm->registry.get<hf::ineditor>(e);
+          auto p = registry.get<hf::ineditor>(e);
           if (p.selected) {
             p.selected = false;
-            gm->registry.emplace_or_replace<hellfrost::ineditor>(e, p);
+            registry.emplace_or_replace<hellfrost::ineditor>(e, p);
           }
         }
       }
 
-      auto _ents = gm->registry.view<hf::position>();
+      auto _ents = registry.view<hf::position>();
 
       if (_ents.size() > 0) {
         for (auto e : _ents) {
-          auto p = gm->registry.get<hf::position>(e);
+          auto p = registry.get<hf::position>(e);
           if (!p.movable)
             continue;
-          auto ie = gm->registry.get<hf::ineditor>(e);
+          auto ie = registry.get<hf::ineditor>(e);
           if (p.x == rx && p.y == ry) {
             ie.selected = true;
-            gm->registry.emplace_or_replace<hellfrost::ineditor>(e, ie);
+            registry.emplace_or_replace<hellfrost::ineditor>(e, ie);
           }
         }
       }
@@ -498,14 +483,14 @@ void Application::processEvent(sf::Event event) {
       is_mb_pressed = true;
       lockedPos = std::nullopt;
 
-      auto ents = gm->registry.view<hf::ineditor>();
+      auto ents = registry.view<hf::ineditor>();
 
       if (ents.size() > 0) {
         for (auto e : ents) {
-          auto p = gm->registry.get<hf::ineditor>(e);
+          auto p = registry.get<hf::ineditor>(e);
           if (p.selected) {
             p.selected = false;
-            gm->registry.emplace_or_replace<hellfrost::ineditor>(e, p);
+            registry.emplace_or_replace<hellfrost::ineditor>(e, p);
           }
         }
       }
@@ -517,7 +502,6 @@ void Application::processEvent(sf::Event event) {
     if (event.mouseWheelScroll.wheel == sf::Mouse::VerticalWheel) {
       viewport.scale += event.mouseWheelScroll.delta * 0.05f; // step
       updateScale();
-      event_emitter emitter{};
       emitter.publish(mouse_center_event{rx, ry});
       // TODO: move previous cell under mouse
     }
@@ -630,6 +614,7 @@ void Application::drawStatusBar(float width, float height, float pos_x,
 void Application::drawViewportWindow() {
   auto &viewport = entt::locator<Viewport>::value();
   auto &engine = entt::locator<DrawEngine>::value();
+  auto &emitter = entt::locator<event_emitter>::value();
   if (!ImGui::Begin("Viewport")) {
     ImGui::End();
     return;
@@ -667,7 +652,6 @@ void Application::drawViewportWindow() {
     ImGui::EndTable();
   }
   ImGui::Text("\n");
-  event_emitter emitter{};
   if (ImGui::SliderInt("width", &viewport.width, 10, 200)) {
     engine.invalidate();
     engine.vW = viewport.width / viewport.scale / GUI_SCALE;
@@ -724,7 +708,7 @@ void Application::drawViewportWindow() {
 void Application::updateScale() {
   auto &viewport = entt::locator<Viewport>::value();
   auto &engine = entt::locator<DrawEngine>::value();
-  event_emitter emitter{};
+  auto &emitter = entt::locator<event_emitter>::value();
   engine.vW = viewport.width / viewport.scale / GUI_SCALE;
   engine.vH = viewport.height / viewport.scale / GUI_SCALE;
   if (engine.vW > 200)
@@ -742,6 +726,7 @@ void Application::drawLocationWindow() {
   auto &viewport = entt::locator<Viewport>::value();
   auto &engine = entt::locator<DrawEngine>::value();
   auto &data = entt::locator<GameData>::value();
+  auto &emitter = entt::locator<event_emitter>::value();
 
   if (ImGui::InputInt("Seed", &seed)) {
     genLocation(seed);
@@ -749,7 +734,6 @@ void Application::drawLocationWindow() {
   }
   ImGui::SameLine();
   if (ImGui::Button(ICON_FA_DICE_THREE)) {
-    event_emitter emitter{};
     emitter.publish(regen_event{-1});
   }
   if (gm->location == nullptr) {
@@ -758,7 +742,6 @@ void Application::drawLocationWindow() {
   }
   ImGui::SameLine();
   if (ImGui::Button("Redraw")) {
-    event_emitter emitter{};
     emitter.publish(redraw_event{});
   }
   ImGui::Separator();
@@ -774,7 +757,6 @@ void Application::drawLocationWindow() {
   }
   if (ImGui::Combo("Location type", &lts_idx, lts)) {
     //   locationType = Location::A_LOCATION_TYPES[lts_idx];
-    event_emitter emitter{};
     emitter.publish(regen_event{seed, lts[lts_idx]});
     // genLocation(seed, lts[lt_idx]);
   }
@@ -888,8 +870,9 @@ bool Application::movePlayer(Direction d) {
   }
   auto &viewport = entt::locator<Viewport>::value();
   auto &engine = entt::locator<DrawEngine>::value();
+  auto &registry = entt::locator<entt::registry>::value();
 
-  auto p = gm->registry.get<hf::position>(gm->location->player->entity);
+  auto p = registry.get<hf::position>(gm->location->player->entity);
   auto margin = lua.get<int>("margin");
   if (p.x < viewport.view_x + margin) {
     viewport.view_x--;
@@ -916,12 +899,12 @@ void Application::genLocation(int s, LocationSpec spec) {
   auto mutex = entt::locator<std::mutex *>::value();
   auto &viewport = entt::locator<Viewport>::value();
   auto &engine = entt::locator<DrawEngine>::value();
+  auto &emitter = entt::locator<event_emitter>::value();
   mutex->lock();
   if (cacheThread.joinable()) {
     cacheThread.join();
   }
 
-  event_emitter emitter{};
   gm->setSeed(s);
 
   auto label = "Generate location";
@@ -970,6 +953,7 @@ int Application::serve() {
   log.info("serve");
   auto &viewport = entt::locator<Viewport>::value();
   auto &engine = entt::locator<DrawEngine>::value();
+  auto &registry = entt::locator<entt::registry>::value();
 
   sf::ContextSettings settings;
   settings.antialiasingLevel = 4;
@@ -1008,12 +992,12 @@ int Application::serve() {
   // io.Fonts->Clear();
   io.Fonts->AddFontDefault();
   io.Fonts->AddFontFromFileTTF("Hack-Bold.ttf", 16.0f);
-  // io.Fonts->AddFontFromFileTTF(FONT_ICON_FILE_NAME_FAS, 16.0f, &icons_config,
-  //                              icons_ranges);
+  io.Fonts->AddFontFromFileTTF(FONT_ICON_FILE_NAME_FAS, 16.0f, &icons_config,
+                               icons_ranges);
   log.info("fonts: {}", io.Fonts->Fonts.Size);
   io.Fonts->Build();
   log.debug("Update font tex: {}", ImGui::SFML::UpdateFontTexture());
-  log.info("reg size: {}", gm->registry.storage<entt::entity>().size());
+  log.info("reg size: {}", registry.storage<entt::entity>().size());
 
   std::thread t([=]() {
     auto d = lua.get<sol::table>("light")["flick_delay"];
@@ -1032,9 +1016,11 @@ int Application::serve() {
   });
   t.detach();
 
-  auto de = true;
+  auto de = false;
   // auto de = lua.get<bool>("darkness");
   engine.layers->layers["darkness"]->enabled = de;
+  auto &emitter = entt::locator<event_emitter>::value();
+  emitter.publish(resize_event{});
 
   // gm->serve();
   while (window->isOpen()) {
@@ -1106,7 +1092,7 @@ int Application::serve() {
       }
 
       ImGui::Begin("Timeline");
-      Sequentity::EventEditor(gm->registry);
+      Sequentity::EventEditor(registry);
       ImGui::End();
 
       // console.Draw("Console");

@@ -196,7 +196,6 @@ struct Console
         }
         else
         {
-            auto emitter = entt::service_locator<event_emitter>::get().lock();
             emitter->publish<exec_event>(std::string(command_line));
             emitter->publish<clear_markers_event>();
         }

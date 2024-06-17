@@ -10,11 +10,12 @@
 #include <app/ui/viewport.hpp>
 #include <thread>
 
-void convertVisibleToRenderable(entt::registry& registry,
-                                entt::entity e) {auto viewport = entt::locator<Viewport>::value();
+void convertVisibleToRenderable(entt::entity e) {
+  auto &registry = entt::locator<entt::registry>::value();
+  auto viewport = entt::locator<Viewport>::value();
   auto render = hf::renderable{};
   if (registry.all_of<hf::renderable>(e))
-  render = registry.get<hf::renderable>(e);
+    render = registry.get<hf::renderable>(e);
   auto [v, m] = registry.get<hellfrost::visible, hf::meta>(e);
   render.spriteKey = (v.sign != "" && viewport.tileSet.sprites.find(v.sign) !=
                                           viewport.tileSet.sprites.end())
@@ -35,21 +36,23 @@ void GameManager::gen(LocationSpec spec) {
   Random::seed(seed);
   log.info("Seed: {}", seed);
 
-  //registry.reset();
+  // registry.reset();
+  auto &registry = entt::locator<entt::registry>::value();
   auto data = entt::locator<GameData>::value();
   // registry
   //     .on_construct<hellfrost::renderable>()
   //     .connect<&entt::registry::emplace<hellfrost::position>>(registry);
   if (spec.templateMap.size() == 0) {
     spec.templateMap = data.mapFeatures;
+    fmt::print("Map features size: {} in gen\n", data.mapFeatures.size());
   }
 
   generator->templates = templates;
   generator->features = features;
   location = generator->getLocation(spec);
-  //registry = location->registry.emplace();
-  //entt::locator<entt::registry>::set(registry);
-  //auto view_map = entt::locator<Viewport>::value();
+  // registry = location->registry.emplace();
+  // entt::locator<entt::registry>::set(registry);
+  // auto view_map = entt::locator<Viewport>::value();
 
   std::map<std::shared_ptr<Room>, entt::entity> res;
   for (auto r : location->rooms) {
@@ -76,8 +79,8 @@ void GameManager::gen(LocationSpec spec) {
         continue;
       auto e = location->addEntity(cell->type.name, cell);
       if (!registry.valid(e) || !registry.all_of<hf::ineditor>(e)) {
-          log.error("Invalid entity");
-          continue;
+        log.error("Invalid entity");
+        continue;
       }
       registry.emplace_or_replace<hellfrost::cell>(e, cell);
       auto i = cell->getSId();
@@ -183,18 +186,21 @@ void GameManager::gen(LocationSpec spec) {
     }
   }
 
-  if (data.prototypes.storage<entt::entity>().size()) {
-      for (auto p : data.prototypes.view<hellfrost::visible>()) {
-          convertVisibleToRenderable(data.prototypes, p);
-      }
-      location->cellEntities.clear();
-      serve();
+  if (!registry.view<entt::tag<"proto"_hs>>().size() ) {
+    for (auto p : registry.view<entt::tag<"proto"_hs>, hellfrost::visible>()) {
+      convertVisibleToRenderable(p);
+    }
+    location->cellEntities.clear();
+    serve();
   }
-  // serve();
+
+  location->cellEntities.clear();
+  serve();
   return;
+  /*
   // EsToProto(EnemyType::CULTIST, data, 99);
-  for (auto e : data.prototypes.view<hellfrost::ineditor>()) {
-    auto v = data.prototypes.get<hellfrost::ineditor>(e);
+  for (auto e : registry.view<entt::tag<"proto"_hs>, hellfrost::ineditor>()) {
+    auto v = registry.get<hellfrost::ineditor>(e);
     if (v.folders.front() == "Items") {
       log.info(v.name);
       data.prototypes.destroy(e);
@@ -234,17 +240,17 @@ void GameManager::gen(LocationSpec spec) {
       std::transform(key.begin(), key.end(), key.begin(), ::toupper);
       std::replace(key.begin(), key.end(), ' ', '_');
       data.prototypes.emplace<hf::meta>(e, item->getFullTitle(true),
-                                         item->unidName, key);
+                                        item->unidName, key);
       data.prototypes.emplace<hf::ineditor>(
           e, key, std::vector<std::string>{"Items", item->type.name},
           ICON_FA_CARROT);
       data.prototypes.emplace<hf::visible>(e, "ITEMS", item->type.sign);
 
       data.prototypes.emplace<hf::pickable>(e, item->type.category,
-                                             item->type.identified, item->count,
-                                             item->unidName);
+                                            item->type.identified, item->count,
+                                            item->unidName);
       data.prototypes.emplace<hf::wearable>(e, item->type.wearableType,
-                                             item->type.durability);
+                                            item->type.durability);
       // n++;
     }
   }
@@ -264,58 +270,16 @@ void GameManager::gen(LocationSpec spec) {
   //   }
   //   n++;
   // }
+  */
 }
 
 // TODO: call it on init
 void GameManager::serve() {
   // fmt::print("GameManager::serve\n");
   log.start("GameManager::serve", true);
-  if (registry.valid(location->player->entity) &&
-      registry.all_of<hf::position>(location->player->entity)) {
-      auto vis = registry.get<hf::vision>(location->player->entity);
-      auto d = vis.distance;
-      auto fov = location->player->viewField;
-      if (fov.size() == 0) {
-          fov = location->getVisible(location->player->currentCell, d, true);
-          if (fov.size() == 0) {
-              log.error("No visible cells");
-              return;
-          }
-      }
-      for (auto c : fov) {
-          c->seeThrough = c->type.seeThrough;
-          c->passThrough = c->type.passThrough;
-          auto es = location->getEntities(c);
-          for (auto e : es) {
-              if (registry.all_of<hf::obstacle>(e)) {
-                  auto o = registry.get<hf::obstacle>(e);
-                  if (!o.seeThrough) {
-                      c->seeThrough = false;
-                  }
-                  if (!o.passThrough) {
-                      c->passThrough = false;
-                  }
-                  auto visCacheThread = std::thread([&]() {
-                      auto vis = registry.get<hf::vision>(location->player->entity);
-                      auto d = vis.distance;
-                      for (auto n : location->getNeighbors(location->player->currentCell)) {
-                          if (!n->passThrough)
-                              continue;
-                          location->getVisible(n, d, true);
-                          location->getEntities(n);
-                      }
-                  });
-                  visCacheThread.detach();
-                  // fmt::print("GameManager::after creatures\n");
-                  //
-              }
-          }
-      }
-  }
-
-  // fmt::print("GameManager::before creatures\n");
+  auto &registry = entt::locator<entt::registry>::value();
   for (auto [e, c] : location->creatures) {
-    if (registry.valid(e) && registry.all_of<hf::position>(e) &&
+    if (registry.valid(e) && registry.any_of<hf::position>(e) &&
         c->currentCell != nullptr) {
       auto p = registry.get<hf::position>(e);
       p.x = c->currentCell->x;
@@ -323,7 +287,49 @@ void GameManager::serve() {
       registry.emplace_or_replace<hellfrost::position>(e, p);
     }
   }
-  // fmt::print("GameManager::after creatures\n");
+  if (registry.valid(location->player->entity) &&
+      registry.all_of<hf::position>(location->player->entity)) {
+    auto vis = registry.get<hf::vision>(location->player->entity);
+    auto d = vis.distance;
+    auto fov = location->player->viewField;
+    if (fov.size() == 0) {
+      fov = location->getVisible(location->player->currentCell, d, true);
+      if (fov.size() == 0) {
+        log.error("No visible cells");
+        return;
+      }
+    }
+    for (auto c : fov) {
+      c->seeThrough = c->type.seeThrough;
+      c->passThrough = c->type.passThrough;
+      auto es = location->getEntities(c);
+      for (auto e : es) {
+        if (registry.all_of<hf::obstacle>(e)) {
+          auto o = registry.get<hf::obstacle>(e);
+          if (!o.seeThrough) {
+            c->seeThrough = false;
+          }
+          if (!o.passThrough) {
+            c->passThrough = false;
+          }
+          auto visCacheThread = std::thread([&]() {
+            auto vis = registry.get<hf::vision>(location->player->entity);
+            auto d = vis.distance;
+            for (auto n :
+                 location->getNeighbors(location->player->currentCell)) {
+              if (!n->passThrough)
+                continue;
+              location->getVisible(n, d, true);
+              location->getEntities(n);
+            }
+          });
+          visCacheThread.detach();
+          // fmt::print("GameManager::after creatures\n");
+          //
+        }
+      }
+    }
+  }
   log.stop("GameManager::serve");
 }
 
@@ -348,8 +354,7 @@ GameManager::createInLua(std::shared_ptr<Location> location,
                          const int z) {
   auto ne =
       location->addEntity(id, std::make_shared<Cell>(x, y, CellType::EMPTY));
-  auto ew = std::make_shared<EntityWrapper>(ne, registry);
-  //ew->registry = registry;
+  auto ew = std::make_shared<EntityWrapper>(ne);
   return ew;
 }
 
@@ -359,12 +364,12 @@ bool GameManager::moveCreature(std::shared_ptr<Creature> creature,
     return false;
   }
   auto nc = location->getCell(creature->currentCell, d);
-  if (!(*nc)->passThrough) {
+  if (!(*nc)->canPass({})) {
     return false;
   }
   fmt::print("Move from {} {} to: {} {}\n", creature->currentCell->x,
              creature->currentCell->y, (*nc)->x, (*nc)->y);
-  location->invalidateVisibilityCache(creature->currentCell, true);
+  location->invalidateVisibilityCache(creature->currentCell);
   location->invalidateEntityCache(creature->currentCell);
 
   creature->currentCell = (*nc);
@@ -374,6 +379,7 @@ bool GameManager::moveCreature(std::shared_ptr<Creature> creature,
 
 void GameManager::commit(lss::Action action) {
   log.info("Committing action: {}", action.name);
+  auto &registry = entt::locator<entt::registry>::value();
   enum { MyEventType = 0 };
   if (action.entity == entt::null || !registry.valid(action.entity) ||
       !registry.all_of<hf::meta>(action.entity))
@@ -408,6 +414,8 @@ void GameManager::commit(lss::Action action) {
 
 void GameManager::exec(int points) {
   log.start("GameManager::exec");
+  auto &registry = entt::locator<entt::registry>::value();
+  auto &emitter = entt::locator<event_emitter>::value();
   std::vector<std::shared_ptr<lss::Action>> to_exec;
   for (auto [e, actions] : timeline) {
     auto local_cursor = cursor;
@@ -441,11 +449,10 @@ void GameManager::exec(int points) {
   for (auto action : to_exec) {
     if (action->executed)
       continue;
-    auto & emitter = entt::locator<event_emitter>::value();
-    emitter.publish<pre_action_event>(pre_action_event{});
+    emitter.publish<pre_action_event>(pre_action_event{*action});
     log.info("Executing action: {} ({})", action->name, action->executed);
     action->action();
-    emitter.publish<post_action_event>(post_action_event{});
+    emitter.publish<post_action_event>(post_action_event{*action});
     action->executed = true;
     auto &track = registry.get<Sequentity::Track>(action->entity);
     auto &channel = track.channels[0];
@@ -472,4 +479,22 @@ void GameManager::exec(int points) {
   // serve();
   // // timeline.clear();
   log.stop("GameManager::exec");
+}
+
+void GameManager::destroyEntity(entt::entity e) {
+  log.debug("Destroy: {}", (int)e);
+  auto &emitter = entt::locator<event_emitter>::value();
+  auto &registry = entt::locator<entt::registry>::value();
+  if (registry.any_of<hf::position>(e)) {
+    auto p = registry.get<hf::position>(e);
+    location->invalidateVisibilityCache(location->cells[p.y][p.x]);
+    location->invalidateEntityCache(location->cells[p.y][p.x]);
+  }
+  if (registry.any_of<hf::script>(e)) {
+    auto script = registry.get<hf::script>(e);
+    emitter.publish(script_event{e, script.path, "destroy"});
+  }
+  registry.destroy(e);
+  // FIXME: use damage_event
+  emitter.publish(redraw_event{});
 }

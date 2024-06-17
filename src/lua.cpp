@@ -45,10 +45,47 @@ void Application::initLuaBindings() {
     // movePlayer(d);
     if (gm->location->player == nullptr)
       return;
-    auto p = 250;
-    gm->commit(lss::Action(gm->location->player->entity, "playerMove", p,
-                           [&]() { movePlayer(d); }));
-    gm->exec(p);
+    auto p = 0;
+
+    // TODO:
+    // leave cell, enter cell script hooks
+    // interact even if cell passable (doors)
+    // pre-interact call to decide should we move or interact
+    auto &emitter = entt::locator<event_emitter>::value();
+    auto &registry = entt::locator<entt::registry>::value();
+    auto nc = gm->location->getCell(gm->location->player->currentCell, d);
+    if (!(*nc)->canPass({})) {
+      for (auto e : gm->location->getEntities(*nc)) {
+        if (registry.any_of<hf::obstacle>(e)) {
+          auto o = registry.get<hf::obstacle>(e);
+          if (o.interactive) {
+            p = o.interactionCost;
+            auto a =
+                lss::Action(gm->location->player->entity, "interact", p, [=]() {
+                  // gm->interact(e);
+                  log.debug("interact with ");
+                  auto &registry = entt::locator<entt::registry>::value();
+                  if (registry.any_of<hf::script>(e)) {
+                    auto &emitter = entt::locator<event_emitter>::value();
+                    auto script = registry.get<hf::script>(e);
+                    emitter.publish(script_event{e, script.path, "interact"});
+                  }
+                });
+            a.targets = {e};
+            gm->commit(a);
+            break;
+          }
+        }
+      }
+
+    } else {
+      p = 250;
+      gm->commit(lss::Action(gm->location->player->entity, "playerMove", p,
+                             [&]() { movePlayer(d); }));
+    }
+    if (p > 0) {
+      gm->exec(p);
+    }
   });
   lua.set_function(
       "genLocation",
@@ -58,10 +95,10 @@ void Application::initLuaBindings() {
   lua.new_usertype<Cell>("Cell", "x", &Cell::x, "y", &Cell::y, "type",
                          &Cell::type, "passThrough", &Cell::passThrough,
                          "seeThrough", &Cell::seeThrough, "tags", &Cell::tags);
-  lua.new_usertype<Location>("Location", "cells", &Location::cells, "rooms",
-                             &Location::rooms, "addRoom", &Location::addRoom,
-                             "tags", &Location::tags, "addEntity",
-                             &Location::addEntity);
+  lua.new_usertype<Location>(
+      "Location", "cells", &Location::cells, "rooms", &Location::rooms,
+      "addRoom", &Location::addRoom, "tags", &Location::tags, "addEntity",
+      &Location::addEntity, "getCellByEntity", &Location::getCellByEntity);
   lua.new_usertype<Tags>("Tags", "add", &Tags::add, "has", &Tags::has, "remove",
                          &Tags::remove);
   lua.new_usertype<Room>(
@@ -175,7 +212,8 @@ void Application::initLuaBindings() {
   lua.new_usertype<GameManager>("GameManage", "size", &GameManager::size,
                                 "create", &GameManager::createInLua, "getData",
                                 &GameManager::getData, "getLocation",
-                                &GameManager::getLocation);
+                                &GameManager::getLocation, "destroyEntity",
+                                &GameManager::destroyEntity);
   lua.new_usertype<EntityWrapper>("Entity", "getId", &EntityWrapper::getId,
                                   "entity", &EntityWrapper::entity);
   lua.new_usertype<GameData>("GameData", "probability", &GameData::probability);

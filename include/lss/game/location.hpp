@@ -113,7 +113,7 @@ public:
   std::vector<std::shared_ptr<Cell>> getVisible(std::shared_ptr<Cell> start,
                                                 float distance, bool);
 
-  void invalidateVisibilityCache(std::shared_ptr<Cell> cell, bool);
+  void invalidateVisibilityCache(std::shared_ptr<Cell> cell);
 
   std::map<std::pair<std::shared_ptr<Cell>, float>,
            std::vector<std::shared_ptr<Cell>>>
@@ -228,16 +228,9 @@ public:
   bool needUpdateLight = true;
   int apAccomulator = 0;
 
-private:
-  // virtual void onEvent(EnemyDiedEvent &e) override;
-  // virtual void onEvent(ItemTakenEvent &e) override;
-  // virtual void onEvent(EnterCellEvent &e) override;
-  // virtual void onEvent(LeaveCellEvent &e) override;
-  // virtual void onEvent(DigEvent &e) override;
-  // virtual void onEvent(DropEvent &e) override;
-  // virtual void onEvent(CommitEvent &e) override;
-  // virtual void onEvent(DoorOpenedEvent &e) override;
+  std::optional<std::shared_ptr<Cell>> getCellByEntity(entt::entity e);
 
+private:
   float LeastCostEstimate(void *stateStart, void *stateEnd) override;
   void AdjacentCost(void *state,
                     MP_VECTOR<micropather::StateCost> *adjacent) override;

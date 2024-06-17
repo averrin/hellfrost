@@ -11,205 +11,70 @@
 #include <lss/generator/mapUtils.hpp>
 #include <magic_enum.hpp>
 
+std::string new_key_sprite;
+std::string new_key_color;
+std::string new_editor_name;
+std::string new_key_prob;
+std::string new_key_lt;
+std::string new_key_lf;
+bool show_unknown = true;
+float new_prob = 0;
 
-void Editor::drawEntityEditor(entt::registry& registry) {
-  entityEditor.registerComponent<hf::meta>("Meta");
-  entityEditor.registerComponent<hf::position>("Position");
-  entityEditor.registerComponent<hf::visible>("Visible");
-  entityEditor.registerComponent<hf::renderable>("Renderable");
-  entityEditor.registerComponent<hf::player>("Player");
-  entityEditor.registerComponent<hf::creature>("Creature");
-  entityEditor.registerComponent<hf::obstacle>("Obstacle");
-  entityEditor.registerComponent<hf::script>("Script");
-  entityEditor.registerComponent<hf::vision>("Vision");
-  entityEditor.registerComponent<hf::ineditor>("Editor");
-  entityEditor.registerComponent<hf::pickable>("Pickable");
-  entityEditor.registerComponent<hf::wearable>("Wearable");
-  entityEditor.registerComponent<hf::glow>("Glow");
-  entityEditor.registerComponent<hf::cell>("Cell");
-  entityEditor.registerComponent<hf::room>("Room");
-  entityEditor.registerComponent<hf::children>("Children");
-  entityEditor.registerComponent<hf::size>("Size");
-  entityEditor.registerComponent<hf::wall>("Wall");
-  entityEditor.registerComponent<hf::tags>("Tags");
-  entityEditor.registerComponent<hf::overwrite>("Overwrite");
-
-  // entityEditor.registerComponentWidgetFn(
-  //     registry.type<hf::meta>(),
-  //     [&](entt::registry &reg, auto e) { Meta(registry, e); });
-  // entityEditor.registerComponentWidgetFn(
-  //     registry.type<hf::ineditor>(),
-  //     [&](entt::registry &reg, auto e) { InEditor(registry, e); });
-  // entityEditor.registerComponentWidgetFn(
-  //     registry.type<hf::position>(),
-  //     [&](entt::registry &reg, auto e) { Position(registry, e); });
-  // entityEditor.registerComponentWidgetFn(
-  //     registry.type<hf::visible>(),
-  //     [&](entt::registry &reg, auto e) { Visible(registry, e); });
-  // entityEditor.registerComponentWidgetFn(
-  //     registry.type<hf::renderable>(),
-  //     [&](entt::registry &reg, auto e) { Renderable(registry, e); });
-  // entityEditor.registerComponentWidgetFn(
-  //     registry.type<hf::size>(),
-  //     [&](entt::registry &reg, auto e) { Size(registry, e); });
-  // entityEditor.registerComponentWidgetFn(
-  //     registry.type<hf::player>(),
-  //     [&](entt::registry &reg, auto e) { PlayerComponent(registry, e); });
-  // entityEditor.registerComponentWidgetFn(
-  //     registry.type<hf::creature>(),
-  //     [&](entt::registry &reg, auto e) { CreatureComponent(registry, e); });
-  // entityEditor.registerComponentWidgetFn(
-  //     registry.type<hf::obstacle>(),
-  //     [&](entt::registry &reg, auto e) { Obstacle(registry, e); });
-  // entityEditor.registerComponentWidgetFn(
-  //     registry.type<hf::script>(),
-  //     [&](entt::registry &reg, auto e) { Script(registry, e); });
-  // entityEditor.registerComponentWidgetFn(
-  //     registry.type<hf::vision>(),
-  //     [&](entt::registry &reg, auto e) { Vision(registry, e); });
-
-  // entityEditor.registerComponentWidgetFn(
-  //     registry.type<hf::pickable>(),
-  //     [&](entt::registry &reg, auto e) { Pickable(registry, e); });
-  // entityEditor.registerComponentWidgetFn(
-  //     registry.type<hf::wearable>(),
-  //     [&](entt::registry &reg, auto e) { Wearable(registry, e); });
-  // entityEditor.registerComponentWidgetFn(
-  //     registry.type<hf::glow>(),
-  //     [&](entt::registry &reg, auto e) { Glow(registry, e); });
-  // entityEditor.registerComponentWidgetFn(
-  //     registry.type<hf::cell>(),
-  //     [&](entt::registry &reg, auto e) { CellW(registry, e); });
-  // entityEditor.registerComponentWidgetFn(
-  //     registry.type<hf::room>(),
-  //     [&](entt::registry &reg, auto e) { RoomW(registry, e); });
-  // entityEditor.registerComponentWidgetFn(
-  //     registry.type<hf::children>(),
-  //     [&](entt::registry &reg, auto e) { Children(registry, e); });
-  // entityEditor.registerComponentWidgetFn(
-  //     registry.type<hf::tags>(),
-  //     [&](entt::registry &reg, auto e) { Tags(registry, e); });
-
-  // entityEditor.registerToolbarFn([&](entt::registry &reg, auto e) {
-  //   event_emitter emitter{};
-  //   if (reg.all_of<entt::tag<"proto"_hs>>(e)) {
-  //     auto data = entt::locator<GameData>::value();
-  //     if (ImGui::Button(ICON_FA_PLUS)) {
-  //       auto viewport = entt::locator<Viewport>::value();
-  //       auto location = viewport.regions.front()->location;
-  //       auto meta = reg.get<hf::meta>(e);
-  //       if (selectedCell) {
-  //         auto cell = *selectedCell;
-  //         location->addEntity(meta.id, cell);
-  //         emitter.publish(center_event{cell->x, cell->y});
-  //       } else {
-  //         location->addEntity(meta.id, location->cells[0][0]);
-  //       }
-  //       emitter.publish(redraw_event{});
-  //     }
-  //     ImGui::SameLine();
-  //     if (ImGui::Button(ICON_FA_CLONE)) {
-  //       auto data = entt::locator<GameData>::value();
-  //       auto ne = reg.create();
-  //       reg.stomp(ne, e, *data.prototypes);
-  //       auto meta = reg.get<hf::meta>(ne);
-  //       meta.id = meta.id + "_copy";
-  //       // auto ne = gm->registry.create();
-  //       // gm->registry.stomp(ne, e, *data.prototypes,
-  //       //                     entt::exclude<entt::tag<"proto"_hs>>);
-  //       // gm->registry.emplace<hf::ingame>(ne);
-  //       // gm->registry.emplace<hf::position>(ne, 0, 0, 0);
-  //     }
-  //     ImGui::SameLine();
-  //   }
-  //   if (reg.all_of<hf::position>(e)) {
-  //     auto &p = reg.get<hf::position>(e);
-
-  //     if (ImGui::Button(ICON_FA_ARROWS_TO_DOT)) {
-  //       emitter.publish(center_event{p.x, p.y});
-  //     }
-  //     ImGui::SameLine();
-  //   }
-  //   if (reg.all_of<hf::ineditor>(e)) {
-  //     auto &ie = reg.get<hf::ineditor>(e);
-
-  //     if (ImGui::Button(ICON_FA_OBJECT_GROUP)) {
-  //       ie.selected = !ie.selected;
-  //       reg.emplace_or_replace<hellfrost::ineditor>(e, ie);
-  //     }
-  //     ImGui::SameLine();
-  //   }
-  //   if (ImGui::Button(ICON_FA_TRASH)) {
-  //     if (reg.all_of<hf::renderable>(e)) {
-  //       // auto &p = reg.get<hf::position>(e);
-  //       reg.destroy(e);
-  //       // FIXME: use damage_event
-  //       emitter.publish(redraw_event{});
-  //     } else {
-  //       reg.destroy(e);
-  //     }
-  //   }
-  // });
+namespace MM {
+template <>
+void ComponentEditorWidget<hf::meta>(entt::registry &registry,
+                                     entt::registry::entity_type e) {
+  auto &m = registry.get<hf::meta>(e);
+  ImGui::InputText("Name", m.name);
+  ImGui::InputText("Description", m.description);
+  ImGui::InputText("ID", m.id);
 }
 
-Editor::Editor(std::shared_ptr<GameManager> _gm, fs::path _path)
-    : gm(_gm), PATH(_path) {
+template <>
+void ComponentEditorWidget<hf::tags>(entt::registry &registry,
+                                     entt::registry::entity_type e) {
 
-  auto n = 0;
-  char *DEFAULT_TILESET = entt::monostate<"tileset"_hs>{};
-  for (auto entity : fs::directory_iterator(PATH / "tilesets")) {
-    if (fs::is_directory(entity)) {
-      auto tileset = entity.path().filename().string();
-      if (tileset == DEFAULT_TILESET) { // TODO: add config
-        ts_idx = n;
-      }
-      ts.push_back(tileset);
-      n++;
-    }
-  }
-}
-
-void Editor::processRegistry(entt::registry&) {}
-
-void Editor::Tags(entt::registry& registry, entt::entity e) {
   auto &t = registry.get<hf::tags>(e);
   if (ImGui::ListEdit("Tags", t.tags)) {
     registry.emplace_or_replace<hf::tags>(e, t);
   }
 }
-
-void Editor::Size(entt::registry& registry, entt::entity e) {
+template <>
+void ComponentEditorWidget<hf::size>(entt::registry &registry,
+                                     entt::registry::entity_type e) {
   auto &s = registry.get<hf::size>(e);
+  auto &emitter = entt::locator<event_emitter>::value();
   if (ImGui::InputInt("Width", &s.width)) {
-    event_emitter emitter{};
     emitter.publish(redraw_event{});
   }
   if (ImGui::InputInt("Height", &s.height)) {
-    event_emitter emitter{};
     emitter.publish(redraw_event{});
   }
 }
-
-void Editor::RoomW(entt::registry& registry, entt::entity e) {
+template <>
+void ComponentEditorWidget<hf::room>(entt::registry &registry,
+                                     entt::registry::entity_type e) {
   auto &r = registry.get<hf::room>(e);
   ImGui::Text(
       fmt::format("Type: {}", magic_enum::enum_name(r.room->type)).c_str());
 }
-void Editor::Children(entt::registry& registry,
-                      entt::entity e) {
-  if (ImGui::TreeNode(
-          fmt::format("childs##{}", (int)e).c_str(),
-          "%s Entities", ICON_FA_CUBE)) {
+template <>
+void ComponentEditorWidget<hf::children>(entt::registry &registry,
+                                         entt::registry::entity_type e) {
+  if (ImGui::TreeNode(fmt::format("childs##{}", (int)e).c_str(), "%s Entities",
+                      ICON_FA_CUBE)) {
     auto ch = registry.get<hf::children>(e);
     for (auto child : ch.children) {
-      drawEntityInfo(child, registry);
+      Editor::drawEntityInfo(child);
     }
     ImGui::TreePop();
   }
 }
-
-void Editor::CellW(entt::registry& registry, entt::entity e) {
+template <>
+void ComponentEditorWidget<hf::cell>(entt::registry &registry,
+                                     entt::registry::entity_type e) {
   auto &p = registry.get<hf::cell>(e);
+  auto &emitter = entt::locator<event_emitter>::value();
   auto cell = p.cell;
 
   auto cti = 0;
@@ -224,8 +89,6 @@ void Editor::CellW(entt::registry& registry, entt::entity e) {
   }
   if (ImGui::Combo("Type##cell_type", &cti, ct_names)) {
     if (cell != nullptr) {
-      event_emitter emitter{};
-      auto &viewport = entt::locator<Viewport>::value();
       auto &engine = entt::locator<DrawEngine>::value();
       mapUtils::updateCell(cell, Cell::types[cti], cell->tags.tags);
       engine.tilesCache.clear();
@@ -233,16 +96,18 @@ void Editor::CellW(entt::registry& registry, entt::entity e) {
     }
   }
 }
-void Editor::Pickable(entt::registry& registry,
-                      entt::entity e) {
+template <>
+void ComponentEditorWidget<hf::pickable>(entt::registry &registry,
+                                         entt::registry::entity_type e) {
   auto &p = registry.get<hf::pickable>(e);
   ImGui::InputText("Category", p.category.name);
   ImGui::InputText("Unidentified name", p.unidName);
   ImGui::InputInt("Count", &p.count);
   ImGui::Checkbox("Identfied", &p.identified);
 }
-void Editor::Wearable(entt::registry& registry,
-                      entt::entity e) {
+template <>
+void ComponentEditorWidget<hf::wearable>(entt::registry &registry,
+                                         entt::registry::entity_type e) {
   auto &w = registry.get<hf::wearable>(e);
 
   constexpr auto types = magic_enum::enum_values<WearableType>();
@@ -257,14 +122,16 @@ void Editor::Wearable(entt::registry& registry,
   }
   ImGui::InputInt("Durability", &w.durability);
 }
-
-void Editor::Visible(entt::registry& registry, entt::entity e) {
+template <>
+void ComponentEditorWidget<hf::visible>(entt::registry &registry,
+                                        entt::registry::entity_type e) {
   auto &v = registry.get<hf::visible>(e);
   ImGui::InputText("Type", v.type);
   ImGui::InputText("Sign", v.sign);
 }
-
-void Editor::Glow(entt::registry& registry, entt::entity e) {
+template <>
+void ComponentEditorWidget<hf::glow>(entt::registry &registry,
+                                     entt::registry::entity_type e) {
   auto &g = registry.get<hf::glow>(e);
   ImGui::InputFloat("Distance", &g.distance);
   constexpr auto types = magic_enum::enum_values<LightType>();
@@ -282,9 +149,9 @@ void Editor::Glow(entt::registry& registry, entt::entity e) {
   ImGui::InputInt("Pulse", &g.pulse);
   ImGui::Checkbox("Passive", &g.passive);
 }
-
-void Editor::InEditor(entt::registry& registry,
-                      entt::entity e) {
+template <>
+void ComponentEditorWidget<hf::ineditor>(entt::registry &registry,
+                                         entt::registry::entity_type e) {
   auto &ie = registry.get<hf::ineditor>(e);
   if (registry.all_of<hf::ineditor>(e)) {
     ie = registry.get<hf::ineditor>(e);
@@ -318,18 +185,12 @@ void Editor::InEditor(entt::registry& registry,
     ImGui::BulletText(fmt::format("Icon: {}", ie.icon).c_str());
   }
 }
-
-void Editor::Meta(entt::registry& registry, entt::entity e) {
-  auto &m = registry.get<hf::meta>(e);
-  ImGui::InputText("Name", m.name);
-  ImGui::InputText("Description", m.description);
-  ImGui::InputText("ID", m.id);
-}
-void Editor::Position(entt::registry& registry,
-                      entt::entity e) {
+template <>
+void ComponentEditorWidget<hf::position>(entt::registry &registry,
+                                         entt::registry::entity_type e) {
   float GUI_SCALE = entt::monostate<"gui_scale"_hs>{};
-  event_emitter emitter{};
   auto &p = registry.get<hf::position>(e);
+  auto &emitter = entt::locator<event_emitter>::value();
   if (ImGui::Button(ICON_FA_ARROWS_TO_DOT)) {
     emitter.publish(center_event{p.x, p.y});
   }
@@ -349,24 +210,23 @@ void Editor::Position(entt::registry& registry,
     registry.emplace_or_replace<hf::position>(e, p);
   }
 }
-
-void Editor::PlayerComponent(entt::registry& registry,
-                             entt::entity e) {}
-
-void Editor::CreatureComponent(entt::registry& registry,
-                               entt::entity e) {}
-
-void Editor::Script(entt::registry& registry, entt::entity e) {
+template <>
+void ComponentEditorWidget<hf::player>(entt::registry &registry,
+                                       entt::registry::entity_type e) {}
+template <>
+void ComponentEditorWidget<hf::creature>(entt::registry &registry,
+                                         entt::registry::entity_type e) {}
+template <>
+void ComponentEditorWidget<hf::script>(entt::registry &registry,
+                                       entt::registry::entity_type e) {
   auto &c = registry.get<hf::script>(e);
-  event_emitter emitter{};
-  if (ImGui::InputText("path", c.path)) {
-  }
+  ImGui::InputText("path", c.path);
 }
-
-void Editor::Obstacle(entt::registry& registry,
-                      entt::entity e) {
+template <>
+void ComponentEditorWidget<hf::obstacle>(entt::registry &registry,
+                                         entt::registry::entity_type e) {
   auto &c = registry.get<hf::obstacle>(e);
-  event_emitter emitter{};
+  auto &emitter = entt::locator<event_emitter>::value();
   if (ImGui::Checkbox("passThrough", &c.passThrough)) {
     registry.emplace_or_replace<hf::obstacle>(e, c);
     emitter.publish(redraw_event{});
@@ -375,18 +235,29 @@ void Editor::Obstacle(entt::registry& registry,
     registry.emplace_or_replace<hf::obstacle>(e, c);
     emitter.publish(redraw_event{});
   }
-}
-void Editor::Vision(entt::registry& registry, entt::entity e) {
-
-  auto &s = registry.get<hf::vision>(e);
-  if (ImGui::InputFloat("Distance", &s.distance)) {
-    event_emitter emitter{};
+  if (ImGui::Checkbox("Intercative", &c.interactive)) {
+    registry.emplace_or_replace<hf::obstacle>(e, c);
+    emitter.publish(redraw_event{});
+  }
+  if (ImGui::InputInt("passAddCost", &c.passAddCost)) {
+    emitter.publish(redraw_event{});
+  }
+  if (ImGui::InputInt("interactionCost", &c.interactionCost)) {
     emitter.publish(redraw_event{});
   }
 }
-
-void Editor::Renderable(entt::registry& registry,
-                        entt::entity e) {
+template <>
+void ComponentEditorWidget<hf::vision>(entt::registry &registry,
+                                       entt::registry::entity_type e) {
+  auto &s = registry.get<hf::vision>(e);
+  auto &emitter = entt::locator<event_emitter>::value();
+  if (ImGui::InputFloat("Distance", &s.distance)) {
+    emitter.publish(redraw_event{});
+  }
+}
+template <>
+void ComponentEditorWidget<hf::renderable>(entt::registry &registry,
+                                           entt::registry::entity_type e) {
   float GUI_SCALE = entt::monostate<"gui_scale"_hs>{};
   auto viewport = entt::locator<Viewport>::value();
   auto r = hf::renderable{};
@@ -408,7 +279,7 @@ void Editor::Renderable(entt::registry& registry,
   auto k = r.spriteKey;
   auto v = viewport.tileSet.sprites[k];
   sf::Sprite s;
-  s.setTexture(viewport.tilesTextures[v[0]]);
+  s.setTexture(*viewport.tilesTextures[v[0]]);
   s.setTextureRect(viewport.getTileRect(v[1], v[2]));
   ImGui::Image(s,
                sf::Vector2f(viewport.tileSet.size.first * GUI_SCALE,
@@ -489,7 +360,7 @@ void Editor::Renderable(entt::registry& registry,
     }
   }
 
-  if (ImGui::Checkbox("all_of border", &r.hasBorder)) {
+  if (ImGui::Checkbox("has border", &r.hasBorder)) {
     registry.emplace_or_replace<hf::renderable>(e, r);
   }
   if (r.hasBorder) {
@@ -544,15 +415,123 @@ void Editor::Renderable(entt::registry& registry,
   }
 }
 
+} // namespace MM
+
+void Editor::drawEntityEditor() {
+
+  // entityEditor.registerToolbarFn([&](entt::registry &reg, auto e) {
+  //   event_emitter emitter{};
+  //   if (reg.all_of<entt::tag<"proto"_hs>>(e)) {
+  //     auto data = entt::locator<GameData>::value();
+  //     if (ImGui::Button(ICON_FA_PLUS)) {
+  //       auto viewport = entt::locator<Viewport>::value();
+  //       auto location = viewport.regions.front()->location;
+  //       auto meta = reg.get<hf::meta>(e);
+  //       if (selectedCell) {
+  //         auto cell = *selectedCell;
+  //         location->addEntity(meta.id, cell);
+  //         emitter.publish(center_event{cell->x, cell->y});
+  //       } else {
+  //         location->addEntity(meta.id, location->cells[0][0]);
+  //       }
+  //       emitter.publish(redraw_event{});
+  //     }
+  //     ImGui::SameLine();
+  //     if (ImGui::Button(ICON_FA_CLONE)) {
+  //       auto data = entt::locator<GameData>::value();
+  //       auto ne = reg.create();
+  //       reg.stomp(ne, e, *data.prototypes);
+  //       auto meta = reg.get<hf::meta>(ne);
+  //       meta.id = meta.id + "_copy";
+  //       // auto ne = gm->registry.create();
+  //       // gm->registry.stomp(ne, e, *data.prototypes,
+  //       //                     entt::exclude<entt::tag<"proto"_hs>>);
+  //       // gm->registry.emplace<hf::ingame>(ne);
+  //       // gm->registry.emplace<hf::position>(ne, 0, 0, 0);
+  //     }
+  //     ImGui::SameLine();
+  //   }
+  //   if (reg.all_of<hf::position>(e)) {
+  //     auto &p = reg.get<hf::position>(e);
+
+  //     if (ImGui::Button(ICON_FA_ARROWS_TO_DOT)) {
+  //       emitter.publish(center_event{p.x, p.y});
+  //     }
+  //     ImGui::SameLine();
+  //   }
+  //   if (reg.all_of<hf::ineditor>(e)) {
+  //     auto &ie = reg.get<hf::ineditor>(e);
+
+  //     if (ImGui::Button(ICON_FA_OBJECT_GROUP)) {
+  //       ie.selected = !ie.selected;
+  //       reg.emplace_or_replace<hellfrost::ineditor>(e, ie);
+  //     }
+  //     ImGui::SameLine();
+  //   }
+  //   if (ImGui::Button(ICON_FA_TRASH)) {
+  //     if (reg.all_of<hf::renderable>(e)) {
+  //       // auto &p = reg.get<hf::position>(e);
+  //       reg.destroy(e);
+  //       // FIXME: use damage_event
+  //       emitter.publish(redraw_event{});
+  //     } else {
+  //       reg.destroy(e);
+  //     }
+  //   }
+  // });
+}
+
+Editor::Editor(std::shared_ptr<GameManager> _gm, fs::path _path)
+    : gm(_gm), PATH(_path) {
+  entt::locator<MM::EntityEditor<entt::entity>>::emplace();
+
+  auto n = 0;
+  char *DEFAULT_TILESET = entt::monostate<"tileset"_hs>{};
+  for (auto entity : fs::directory_iterator(PATH / "tilesets")) {
+    if (fs::is_directory(entity)) {
+      auto tileset = entity.path().filename().string();
+      if (tileset == DEFAULT_TILESET) { // TODO: add config
+        ts_idx = n;
+      }
+      ts.push_back(tileset);
+      n++;
+    }
+  }
+  auto &entityEditor = entt::locator<MM::EntityEditor<entt::entity>>::value();
+
+  entityEditor.registerComponent<hf::meta>("Meta");
+  entityEditor.registerComponent<hf::position>("Position");
+  entityEditor.registerComponent<hf::visible>("Visible");
+  entityEditor.registerComponent<hf::renderable>("Renderable");
+  entityEditor.registerComponent<hf::player>("Player");
+  entityEditor.registerComponent<hf::creature>("Creature");
+  entityEditor.registerComponent<hf::obstacle>("Obstacle");
+  entityEditor.registerComponent<hf::script>("Script");
+  entityEditor.registerComponent<hf::vision>("Vision");
+  entityEditor.registerComponent<hf::ineditor>("Editor");
+  entityEditor.registerComponent<hf::pickable>("Pickable");
+  entityEditor.registerComponent<hf::wearable>("Wearable");
+  entityEditor.registerComponent<hf::glow>("Glow");
+  entityEditor.registerComponent<hf::cell>("Cell");
+  entityEditor.registerComponent<hf::room>("Room");
+  entityEditor.registerComponent<hf::children>("Children");
+  entityEditor.registerComponent<hf::size>("Size");
+  entityEditor.registerComponent<hf::wall>("Wall");
+  entityEditor.registerComponent<hf::tags>("Tags");
+  entityEditor.registerComponent<hf::overwrite>("Overwrite");
+}
+
+void Editor::processRegistry(entt::registry &) {}
+
 void Editor::drawSpecWindow() {
   if (!ImGui::Begin("Specification")) {
     ImGui::End();
     return;
   }
-  event_emitter emitter{};
-  auto viewport = entt::locator<Viewport>::value();
-  auto engine = entt::locator<DrawEngine>::value();
-  auto data = entt::locator<GameData>::value();
+  auto &viewport = entt::locator<Viewport>::value();
+  auto &engine = entt::locator<DrawEngine>::value();
+  auto &data = entt::locator<GameData>::value();
+  auto &emitter = entt::locator<event_emitter>::value();
 
   if (ImGui::Button("Apply")) {
     emitter.publish(regen_event{});
@@ -688,7 +667,8 @@ void Editor::drawSpecWindow() {
   }
 
   if (ImGui::CollapsingHeader("Prototypes")) {
-    drawEntityTree<entt::tag<"proto"_hs>>(data.prototypes);
+    // drawEntityTree<entt::tag<"proto"_hs>>(data.prototypes);
+    drawEntityTree<entt::tag<"proto"_hs>>();
   }
   ImGui::End();
 }
@@ -699,14 +679,15 @@ void Editor::drawSelectedInfo() {
     return;
   }
 
-  auto ents = gm->registry.view<hf::ineditor>();
+  auto &registry = entt::locator<entt::registry>::value();
+  auto ents = registry.view<hf::ineditor>();
 
   auto n = 0;
   if (ents.size() > 0) {
     for (auto e : ents) {
-      auto p = gm->registry.get<hf::ineditor>(e);
+      auto p = registry.get<hf::ineditor>(e);
       if (p.selected) {
-        drawEntityInfo(e, gm->registry);
+        Editor::drawEntityInfo(e);
         n++;
       }
     }
@@ -718,12 +699,13 @@ void Editor::drawSelectedInfo() {
   ImGui::End();
 }
 
-template <typename... T>
-void Editor::drawEntityTree(entt::registry& registry) {
+template <typename... T> void Editor::drawEntityTree() {
   // if(registry == nullptr) {
   //     ImGui::Text("The Data registry is fucked");
   //     return;
   // }
+
+  auto &registry = entt::locator<entt::registry>::value();
   auto ents = registry.view<T...>();
   auto entityTree = std::make_shared<tree_node>();
 
@@ -761,7 +743,7 @@ void Editor::drawEntityTree(entt::registry& registry) {
     std::function<void(std::shared_ptr<tree_node> v)> it;
     it = [&](std::shared_ptr<tree_node> v) {
       for (auto e : v->entities) {
-        drawEntityInfo(e, registry);
+        drawEntityInfo(e);
       }
       for (auto [fn, f] : v->children) {
         if (ImGui::TreeNode(fmt::format("{} {}", ICON_FA_FOLDER, fn).c_str())) {
@@ -783,15 +765,16 @@ void Editor::drawObjectsWindow() {
     ImGui::End();
     return;
   }
+  auto &registry = entt::locator<entt::registry>::value();
   // drawObjects(viewport.regions.front()->location->objects);
-  drawEntityTree<hf::ingame>(gm->registry);
+  drawEntityTree<hf::ingame>();
   ImGui::End();
 }
 
-void Editor::drawEntityInfo(entt::entity e,
-                            entt::registry &registry) {
+void Editor::drawEntityInfo(entt::entity e) {
+  auto &registry = entt::locator<entt::registry>::value();
   auto t = registry.all_of<hf::meta>(e) ? registry.get<hf::meta>(e).name.c_str()
-                                      : "Entity";
+                                        : "Entity";
   t = (registry.all_of<hf::ineditor>(e) &&
        registry.get<hf::ineditor>(e).name != "")
           ? registry.get<hf::ineditor>(e).name.c_str()
@@ -806,10 +789,11 @@ void Editor::drawEntityInfo(entt::entity e,
                       : (ImVec4)ImColor::HSV(0.0f, 0.0f, 0.99f);
   ImGui::PushStyleColor(ImGuiCol_Text, col);
   auto title = fmt::format("{} {}: {}", icon, t, (int)e);
-  drawEntityEditor(registry);
+  Editor::drawEntityEditor();
   if (ImGui::TreeNode(title.c_str())) {
     ImGui::PopStyleColor(1);
-    // entityEditor.renderEditor(registry, e);
+  auto &entityEditor = entt::locator<MM::EntityEditor<entt::entity>>::value();
+    entityEditor.renderEditor(registry, e);
     ImGui::TreePop();
   } else {
     ImGui::PopStyleColor(1);
@@ -817,6 +801,7 @@ void Editor::drawEntityInfo(entt::entity e,
 }
 
 void Editor::drawCellInfo(std::optional<std::shared_ptr<Cell>> cc) {
+  auto &registry = entt::locator<entt::registry>::value();
   selectedCell = cc;
   if (!ImGui::Begin("Current cell info")) {
     ImGui::End();
@@ -829,8 +814,9 @@ void Editor::drawCellInfo(std::optional<std::shared_ptr<Cell>> cc) {
   }
   auto cell = *cc;
 
-  auto engine = entt::locator<DrawEngine>::value();
-  auto viewport = entt::locator<Viewport>::value();
+  auto &engine = entt::locator<DrawEngine>::value();
+  auto &viewport = entt::locator<Viewport>::value();
+  auto &emitter = entt::locator<event_emitter>::value();
   auto [region, _] = viewport.getRegion(cell->x, cell->y, cell->z);
 
   ImGui::Text("%s Position: %d.%d.%d\n", ICON_FA_ARROWS_UP_DOWN_LEFT_RIGHT,
@@ -848,7 +834,6 @@ void Editor::drawCellInfo(std::optional<std::shared_ptr<Cell>> cc) {
     n++;
   }
   if (ImGui::Combo("Type##cell_type", &cti, ct_names)) {
-    event_emitter emitter{};
     auto viewport = entt::locator<Viewport>::value();
     mapUtils::updateCell(cell, Cell::types[cti], cell->tags.tags);
     engine.tilesCache.clear();
@@ -868,14 +853,15 @@ void Editor::drawCellInfo(std::optional<std::shared_ptr<Cell>> cc) {
     ImGui::BulletText("%s", f.c_str());
   }
 
-  auto ents = gm->registry.view<hf::position>();
+  gm->location->invalidateEntityCache(cell);
+  auto ents = gm->location->getEntities(cell);
 
   if (ents.size() > 0) {
     if (ImGui::TreeNode("ents", "%s Entities", ICON_FA_CUBE)) {
       for (auto e : ents) {
-        auto p = gm->registry.get<hf::position>(e);
+        auto p = registry.get<hf::position>(e);
         if (cell->x == p.x && cell->y == p.y) {
-          drawEntityInfo(e, gm->registry);
+          drawEntityInfo(e);
         }
       }
       ImGui::TreePop();
@@ -891,9 +877,9 @@ void Editor::drawTilesetWindow() {
     return;
   }
   float GUI_SCALE = entt::monostate<"gui_scale"_hs>{};
-  auto viewport = entt::locator<Viewport>::value();
-  event_emitter emitter{};
-  auto engine = entt::locator<DrawEngine>::value();
+  auto &viewport = entt::locator<Viewport>::value();
+  auto &engine = entt::locator<DrawEngine>::value();
+  auto &emitter = entt::locator<event_emitter>::value();
 
   if (ImGui::Combo("Tileset", &ts_idx, ts)) {
     auto path = PATH / fs::path("tilesets") / ts[ts_idx];
@@ -986,7 +972,7 @@ void Editor::drawTilesetWindow() {
     std::vector<std::string> to_remove;
     for (auto [k, v] : viewport.tileSet.sprites) {
       sf::Sprite s;
-      s.setTexture(viewport.tilesTextures[v[0]]);
+      s.setTexture(*viewport.tilesTextures[v[0]]);
       s.setTextureRect(viewport.getTileRect(v[1], v[2]));
       // s.setOrigin(viewport.tileSet.size.first / 2,
       //             viewport.tileSet.size.second / 2);
@@ -1104,9 +1090,9 @@ void Editor::drawTilesetWindow() {
   if (ImGui::TreeNode("Preview")) {
     auto n = 0;
     for (auto t : viewport.tilesTextures) {
-      auto size = t.getSize();
+      auto size = t->getSize();
       sf::Sprite s;
-      s.setTexture(viewport.tilesTextures[n]);
+      s.setTexture(*viewport.tilesTextures[n]);
       ImGui::Text("%s", viewport.tileSet.maps[n].c_str());
       ImGui::Image(s, sf::Vector2f(size.x, size.y), sf::Color::White,
                    sf::Color::Transparent);
@@ -1138,8 +1124,9 @@ void Editor::saveTileset() {
 }
 
 void Editor::drawLocationWindow(std::shared_ptr<Location> location) {
-  auto ents = gm->registry.view<hf::position>();
-  event_emitter emitter{};
+  auto &registry = entt::locator<entt::registry>::value();
+  auto &emitter = entt::locator<event_emitter>::value();
+  auto ents = registry.view<hf::position>();
 
   ImGui::Begin("Location info");
   ImGui::Text(fmt::format("Tags [{}]:", location->tags.tags.size()).c_str());
@@ -1153,27 +1140,29 @@ void Editor::drawLocationWindow(std::shared_ptr<Location> location) {
     ImGui::SameLine();
     if (ImGui::Button(
             fmt::format("{}##enter", ICON_FA_ARROWS_TO_DOT).c_str())) {
-      emitter.publish(center_event{location->enterCell->x,location->enterCell->y});
+      emitter.publish(
+          center_event{location->enterCell->x, location->enterCell->y});
     }
     // ImGui::SameLine();
     ImGui::BulletText("Exit: %s", location->exitCell->getSId().c_str());
     ImGui::SameLine();
     if (ImGui::Button(fmt::format("{}##exit", ICON_FA_ARROWS_TO_DOT).c_str())) {
-      emitter.publish(center_event{location->exitCell->x,location->exitCell->y});
+      emitter.publish(
+          center_event{location->exitCell->x, location->exitCell->y});
     }
     ImGui::BulletText("Path: %zu", location->path.size());
     ImGui::SameLine();
     if (ImGui::Button(fmt::format("{}##path", ICON_FA_ARROWS_TO_DOT).c_str())) {
       for (auto e : ents) {
-        if (!gm->registry.all_of<hf::cell>(e))
+        if (!registry.all_of<hf::cell>(e))
           continue;
-        auto c = gm->registry.get<hf::cell>(e);
+        auto c = registry.get<hf::cell>(e);
         for (auto cell : location->path) {
           if (c.cell == cell) {
 
-            auto ie = gm->registry.get<hf::ineditor>(e);
+            auto ie = registry.get<hf::ineditor>(e);
             ie.selected = true;
-            gm->registry.emplace_or_replace<hellfrost::ineditor>(e, ie);
+            registry.emplace_or_replace<hellfrost::ineditor>(e, ie);
             emitter.publish(redraw_event{});
           }
         }

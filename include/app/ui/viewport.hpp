@@ -2,7 +2,6 @@
 #define __VIEWPORT_H_
 #include <app/ui/tile.hpp>
 #include <exception>
-#include <mutex>
 
 struct TileSet {
   std::vector<std::string> maps;
@@ -18,7 +17,6 @@ class Viewport {
   std::shared_ptr<R::Generator> gen = std::make_shared<R::Generator>();
 
 public:
-  std::mutex mutex;
   ~Viewport() { tilesTextures.clear(); }
   sf::IntRect getTileRect(int x, int y) {
     return sf::IntRect((tileSet.size.first + tileSet.gap) * x,
@@ -41,7 +39,7 @@ public:
     for (auto t_path : tileSet.maps) {
       sf::Texture t;
       t.loadFromFile(path / t_path);
-      tilesTextures.push_back(t);
+      tilesTextures.push_back(std::make_shared<sf::Texture>(t));
     }
   }
   Viewport() {}
@@ -50,10 +48,16 @@ public:
     colors = other.colors;
     tilesTextures = other.tilesTextures;
     regions = other.regions;
+
+    scale = other.scale;
+    width = other.width;
+    height = other.height;
+    view_x = other.view_x;
+    view_y = other.view_y;
+    view_z = other.view_z;
   }
   TileSet tileSet;
   json colors;
-  // std::shared_ptr<Tile> UT;
 
 public:
   float scale = 1.f;
@@ -64,7 +68,7 @@ public:
   int view_y = 0;
   int view_z = 0;
 
-  std::vector<sf::Texture> tilesTextures;
+  std::vector<std::shared_ptr<sf::Texture>> tilesTextures;
   std::vector<std::shared_ptr<Region>> regions;
 
   void setSize(std::pair<int, int> size) {
@@ -136,7 +140,7 @@ public:
   }
   std::shared_ptr<sf::Sprite> makeSprite(TileSpec spec) {
     auto s = std::make_shared<sf::Sprite>();
-    s->setTexture(tilesTextures[spec[0]]);
+    s->setTexture(*tilesTextures[spec[0]]);
     s->setTextureRect(getTileRect(spec[1], spec[2]));
     // if (spec[3] > 0) {
     // s->setOrigin(tileSet.size.first / 2, tileSet.size.second / 2);

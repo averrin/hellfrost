@@ -1,4 +1,4 @@
-#import "app/application.hpp"
+#include "app/application.hpp"
 
 std::string Application::getKeyName(sf::Keyboard::Key key, bool sys, bool alt,
                             bool control, bool shift) {

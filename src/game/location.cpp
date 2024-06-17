@@ -1,6 +1,7 @@
 #include <algorithm>
 #include <chrono>
 #include <memory>
+#include <optional>
 
 // #include "EventBus/EventBus.hpp"
 // #include "lss/game/enemy.hpp"
@@ -56,8 +57,7 @@ std::vector<entt::entity> Location::getEntities(std::shared_ptr<Cell> cell) {
   return result;
 }
 
-void Location::invalidateVisibilityCache(std::shared_ptr<Cell> cell,
-                                         bool ignore_player = false) {
+void Location::invalidateVisibilityCache(std::shared_ptr<Cell> cell) {
   std::lock_guard<std::mutex> lock(visibilityCacheMutex);
   std::vector<std::pair<std::shared_ptr<Cell>, float>> hits;
   for (auto [p, _] : visibilityCache) {
@@ -575,17 +575,20 @@ std::vector<std::shared_ptr<Cell>> Location::getLine(std::shared_ptr<Cell> c1,
 entt::entity Location::addEntity(std::string typeKey,
                                  std::shared_ptr<Cell> cell) {
   auto &data = entt::locator<GameData>::value();
+  auto &registry = entt::locator<entt::registry>::value();
+  auto &emitter = entt::locator<event_emitter>::value();
   //if (data.prototypes == nullptr) {
-  if (!data.prototypes.storage<entt::entity>().size() ) {
+  if (!registry.view<entt::tag<"proto"_hs>>().size() ) {
       log.error("No prototypes");
       return entt::null;
   }
+  // log.debug("Add entity: {} @ {}.{}", typeKey, cell->x, cell->y);
   auto e = registry.create();
 
   auto ne = registry.create();
   // for (auto e : data.prototypes.group(entt::get<entt::tag<"proto"_hs>)) {
-  for (auto e : data.prototypes.view<hf::meta>()) {
-    if (data.prototypes.get<hf::meta>(e).id == typeKey) {
+  for (auto e : registry.view<entt::tag<"proto"_hs>,hf::meta>()) {
+    if (registry.get<hf::meta>(e).id == typeKey) {
       // registry.push(ne, e, *data.prototypes,
       //                entt::exclude<entt::tag<"proto"_hs>>);
 
@@ -597,10 +600,14 @@ entt::entity Location::addEntity(std::string typeKey,
       registry.emplace<hf::ingame>(ne);
       registry.remove<entt::tag<"proto"_hs>>(ne);
       registry.emplace<hf::position>(ne, cell->x, cell->y, 0);
-      auto meta = data.prototypes.get<hf::meta>(e);
+      auto meta = registry.get<hf::meta>(e);
       meta.id = fmt::format("{}_{}", meta.id, (int)ne);
       registry.emplace_or_replace<hf::meta>(ne, meta);
       // log.debug("Add entity: {} @ {}.{}", meta.id, cell->x, cell->y);
+      if (registry.any_of<hf::script>(e)) {
+        auto script = registry.get<hf::script>(e);
+        emitter.publish(script_event{e, script.path, "init"});
+      }
       break;
     }
   }
@@ -614,15 +621,17 @@ entt::entity Location::addTerrain(std::string typeKey,
                                   std::shared_ptr<Cell> cell) {
   auto &data = entt::locator<GameData>::value();
   // if (data.prototypes == nullptr) {
-  if (!data.prototypes.storage<entt::entity>().size() ) {
+  // if (!data.prototypes.storage<entt::entity>().size() ) {
+  if (!registry.view<entt::tag<"proto"_hs>>().size() ) {
       log.error("No prototypes");
       return entt::null;
   }
   auto e = registry.create();
 
   auto ne = registry.create();
-  for (auto e : data.prototypes.view<entt::tag<"terrain"_hs>>()) {
-    if (data.prototypes.get<hf::meta>(e).id == typeKey) {
+  // for (auto e : registry.view<entt::tag<"proto"_hs>, entt::tag<"terrain"_hs>>()) {
+  for (auto e : registry.view<entt::tag<"proto"_hs>>()) {
+    if (registry.get<hf::meta>(e).id == typeKey) {
       // registry.push(ne, e, *data.prototypes,
       //                 entt::exclude<entt::tag<"proto"_hs>>);
       for (auto [id, storage] : registry.storage()) {
@@ -633,7 +642,7 @@ entt::entity Location::addTerrain(std::string typeKey,
       registry.emplace<hf::ingame>(ne);
       registry.remove<entt::tag<"proto"_hs>>(ne);
       registry.emplace<hf::position>(ne, cell->x, cell->y, 0);
-      auto meta = data.prototypes.get<hf::meta>(e);
+      auto meta = registry.get<hf::meta>(e);
       meta.id = fmt::format("{}_{}", meta.id, (int)ne);
       registry.emplace_or_replace<hf::meta>(ne, meta);
       break;
@@ -643,4 +652,12 @@ entt::entity Location::addTerrain(std::string typeKey,
     log.error("Cannot create: {} @ {}", typeKey, cell->getSId());
   }
   return ne;
+}
+
+std::optional<std::shared_ptr<Cell>> Location::getCellByEntity(entt::entity e) {
+  std::optional<std::shared_ptr<Cell>> cell;
+  auto &registry = entt::locator<entt::registry>::value();
+  auto p = registry.get<hf::position>(e);
+  cell = cells[p.y][p.x];
+  return cell;
 }

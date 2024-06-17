@@ -19,26 +19,31 @@ namespace hf = hellfrost;
 class EntityWrapper {
 public:
   entt::entity entity;
-  entt::registry& registry;
-  EntityWrapper(entt::entity e, entt::registry& registry) : entity(e), registry(registry) {}
+  EntityWrapper(entt::entity e)
+      : entity(e) {}
   std::string getId() {
+    auto &registry = entt::locator<entt::registry>::value();
     auto meta = registry.get<hf::meta>(entity);
     return meta.id;
   }
 
   int getX() {
+    auto &registry = entt::locator<entt::registry>::value();
     auto p = registry.get<hf::position>(entity);
     return p.x;
   }
   int getY() {
+    auto &registry = entt::locator<entt::registry>::value();
     auto p = registry.get<hf::position>(entity);
     return p.y;
   }
   int getZ() {
+    auto &registry = entt::locator<entt::registry>::value();
     auto p = registry.get<hf::position>(entity);
     return p.z;
   }
   void select() {
+    auto &registry = entt::locator<entt::registry>::value();
     if (!registry.all_of<hf::ineditor>(entity))
       return;
     auto ie = registry.get<hf::ineditor>(entity);
@@ -46,6 +51,7 @@ public:
     registry.emplace_or_replace<hf::ineditor>(entity, ie);
   }
   void unselect() {
+    auto &registry = entt::locator<entt::registry>::value();
     if (!registry.all_of<hf::ineditor>(entity))
       return;
     auto ie = registry.get<hf::ineditor>(entity);
@@ -63,6 +69,7 @@ public:
   }
 
   void hide() {
+    auto &registry = entt::locator<entt::registry>::value();
     // if (!registry.all_of<hf::renderable>(entity))
     //   return;
     // auto ie = registry.get<hf::renderable>(entity);
@@ -70,14 +77,16 @@ public:
     // registry.emplace_or_replace<hf::renderable>(entity, ie);
   }
   void show() {
+    auto &registry = entt::locator<entt::registry>::value();
     // auto ie = registry.get<hf::renderable>(entity);
     // ie.hidden = false;
     // registry.emplace_or_replace<hf::renderable>(entity, ie);
   }
 
   void remove() {
-    auto &emitter = entt::locator<event_emitter>::value();
+    auto &registry = entt::locator<entt::registry>::value();
     registry.destroy(entity);
+    auto &emitter = entt::locator<event_emitter>::value();
     emitter.publish(redraw_event{});
   }
 };
@@ -89,7 +98,6 @@ public:
   GameManager(fs::path);
   std::unique_ptr<Generator> generator;
   int seed;
-  entt::registry& registry = entt::locator<entt::registry>::emplace();
   std::shared_ptr<Location> location;
   fs::path path;
   std::map<std::string, std::shared_ptr<RoomTemplate>> templates;
@@ -97,7 +105,7 @@ public:
   std::map<std::string, std::shared_ptr<LocationSpec>> locationSpecs;
 
   std::shared_ptr<Location> getLocation() { return location; }
-  GameData& getData() {
+  GameData &getData() {
     auto &data = entt::locator<GameData>::value();
     return data;
   }
@@ -114,21 +122,26 @@ public:
   void reset();
   void gen(LocationSpec);
   void setSeed(int s) { seed = s; }
-  int size() { return registry.storage<entt::entity>().size(); }
+  int size() {
+    return entt::locator<entt::registry>::value()
+        .storage<entt::entity>()
+        .size();
+  }
   std::shared_ptr<EntityWrapper> createInLua(std::shared_ptr<Location> location,
                                              const std::string id, const int x,
                                              const int y, const int z);
 
   void loadData() {
     std::ifstream file(path, std::ios::in | std::ios::binary);
-    cereal::BinaryInputArchive iarchive(file);
-    entt::registry p{};
-    auto &data = entt::locator<GameData>::emplace(p);
+    // cereal::BinaryInputArchive iarchive(file);
+    cereal::JSONInputArchive iarchive(file);
+    auto &data = entt::locator<GameData>::emplace();
     iarchive(data);
   }
   void saveData() {
     std::ofstream file(path, std::ios::out | std::ios::binary);
-    cereal::BinaryOutputArchive oarchive(file);
+    // cereal::BinaryOutputArchive oarchive(file);
+    cereal::JSONOutputArchive oarchive(file);
     auto &data = entt::locator<GameData>::value();
     oarchive(data);
   }
@@ -137,6 +150,7 @@ public:
   void serve();
 
   bool moveCreature(std::shared_ptr<Creature>, Direction);
+  void destroyEntity(entt::entity e);
 };
 
 #endif // __GAMEMANAGER_H_

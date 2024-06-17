@@ -455,8 +455,9 @@ void Generator::placeLoot(std::shared_ptr<Location> location, int threat) {
 void Generator::placeEnemies(std::shared_ptr<Location> location, int threat) {
   dlog("place enemies");
   auto data = entt::locator<GameData>::value();
+  auto &registry = entt::locator<entt::registry>::value();
   // if(data.prototypes == nullptr) {
-  if (!data.prototypes.storage<entt::entity>().size() ) {
+  if (!registry.view<entt::tag<"proto"_hs>>().size() ) {
       location->log.error("prototypes not loaded");
       return;
   }

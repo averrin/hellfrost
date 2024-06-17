@@ -10,7 +10,7 @@ using namespace entt::literals;
 #include <cereal/types/vector.hpp>
 #include <cereal/types/memory.hpp>
 #include <cereal/archives/binary.hpp>
-// #include <cereal/archives/json.hpp>
+#include <cereal/archives/json.hpp>
 #include <string>
 #include <fmt/format.h>
 //TODO: migrate json to cereal
@@ -45,13 +45,16 @@ struct redraw_event {};
 struct regen_event {int seed = -2; std::string specKey;};
 struct resize_event {};
 struct center_event {int x; int y;};
-struct pre_action_event {};
-struct action_event {};
-struct post_action_event {};
 struct mouse_center_event {int x; int y;};
 struct damage_event {int x; int y;};
 struct exec_event {std::string code;};
 struct log_event {std::string msg;};
+struct script_event {
+  entt::entity instance;
+  std::string path;
+  std::string function;
+  std::string arg;
+};
 
 class Tags {
 public:

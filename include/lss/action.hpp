@@ -17,8 +17,19 @@ public:
 
   std::function<void()> action;
 
-  Action(){}
-  Action(entt::entity entity, std::string name, int cost, std::function<void()> action)
+  Action() {}
+  Action(entt::entity entity, std::string name, int cost,
+         std::function<void()> action)
       : entity(entity), name(name), cost(cost), action(action) {}
 };
-}
+} // namespace lss
+
+struct pre_action_event {
+  lss::Action action;
+};
+struct action_event {
+  lss::Action action;
+};
+struct post_action_event {
+  lss::Action action;
+};
