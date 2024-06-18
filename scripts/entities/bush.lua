@@ -10,6 +10,6 @@ entity = {
   ["destroy"] = function(location)
     print("destroy")
     cell = location:getCellByEntity(instance)
-    print(location:addEntity("GRASS", cell))
+    print(location:addEntity("HERB_GREEN", cell))
   end,
 }

@@ -992,8 +992,8 @@ int Application::serve() {
   // io.Fonts->Clear();
   io.Fonts->AddFontDefault();
   io.Fonts->AddFontFromFileTTF("Hack-Bold.ttf", 16.0f);
-  io.Fonts->AddFontFromFileTTF(FONT_ICON_FILE_NAME_FAS, 16.0f, &icons_config,
-                               icons_ranges);
+  // io.Fonts->AddFontFromFileTTF(FONT_ICON_FILE_NAME_FAS, 16.0f, &icons_config,
+  //                              icons_ranges);
   log.info("fonts: {}", io.Fonts->Fonts.Size);
   io.Fonts->Build();
   log.debug("Update font tex: {}", ImGui::SFML::UpdateFontTexture());
@@ -1016,7 +1016,7 @@ int Application::serve() {
   });
   t.detach();
 
-  auto de = false;
+  auto de = true;
   // auto de = lua.get<bool>("darkness");
   engine.layers->layers["darkness"]->enabled = de;
   auto &emitter = entt::locator<event_emitter>::value();

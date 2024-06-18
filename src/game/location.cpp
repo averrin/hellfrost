@@ -613,6 +613,8 @@ entt::entity Location::addEntity(std::string typeKey,
   }
   if (!registry.valid(ne)) {
     log.error("Cannot create: {} @ {}", typeKey, cell->getSId());
+  } else {
+    invalidateEntityCache(cell);
   }
   return ne;
 }
